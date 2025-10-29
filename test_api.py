@@ -12,7 +12,7 @@ import sys
 
 
 # API base URL
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://localhost:9247/api"
 
 
 def print_section(title):

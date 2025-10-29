@@ -47,7 +47,7 @@ cd backend
 python -m uvicorn app.main:app --reload
 ```
 
-Open http://localhost:8000 in your browser.
+Open http://localhost:9247 in your browser.
 
 ### Option 2: Docker
 
@@ -56,7 +56,7 @@ cd astro-planner
 docker-compose up -d
 ```
 
-Open http://localhost:8000 in your browser.
+Open http://localhost:9247 in your browser.
 
 See [QUICKSTART.md](QUICKSTART.md) for detailed instructions.
 
@@ -126,7 +126,7 @@ Targets setting within the lookahead window (default 30 minutes) receive a prior
 - `POST /api/export` - Export plan in various formats
 - `GET /api/health` - Health check
 
-Full API documentation available at http://localhost:8000/api/docs
+Full API documentation available at http://localhost:9247/api/docs
 
 ## Testing
 

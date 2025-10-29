@@ -162,7 +162,7 @@ import requests
 from datetime import datetime
 
 # API base URL
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://localhost:9247/api"
 
 # Create request
 request = {
@@ -200,7 +200,7 @@ for target in plan['scheduled_targets']:
 ```python
 import requests
 
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://localhost:9247/api"
 
 # Get nebulae
 response = requests.get(f"{BASE_URL}/targets", params={"object_type": "nebula"})
@@ -221,7 +221,7 @@ for i, nebula in enumerate(nebulae[:5], 1):
 import requests
 from datetime import datetime
 
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://localhost:9247/api"
 
 location = {
     "name": "Observatory",
@@ -254,7 +254,7 @@ print(f"Astronomical twilight: {start.strftime('%H:%M')} - {end.strftime('%H:%M'
 ```python
 import requests
 
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://localhost:9247/api"
 
 # Generate plan (from previous example)
 plan = {...}  # Your plan object
@@ -370,4 +370,4 @@ OPTIMAL_MAX_ALTITUDE=70
 
 ---
 
-Need more help? Check the API docs at http://localhost:8000/api/docs
+Need more help? Check the API docs at http://localhost:9247/api/docs

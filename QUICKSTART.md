@@ -40,7 +40,7 @@ Get Astro Planner running in 5 minutes!
    ```
 
 5. **Open your browser**
-   Navigate to: http://localhost:8000
+   Navigate to: http://localhost:9247
 
 ### Method 2: Docker (Alternative)
 
@@ -51,7 +51,7 @@ cd astro-planner
 docker-compose up -d
 ```
 
-Then open http://localhost:8000
+Then open http://localhost:9247
 
 ## First Use
 
@@ -119,8 +119,8 @@ You should see all tests pass.
 - On Ubuntu/Debian: `sudo apt install python3.11`
 - On macOS with Homebrew: `brew install python@3.11`
 
-### "Port 8000 already in use"
-- Stop other services using port 8000
+### "Port 9247 already in use"
+- Stop other services using port 9247
 - Or change port: `uvicorn app.main:app --port 8001`
 
 ### "Module not found"
@@ -128,7 +128,7 @@ You should see all tests pass.
 - Reinstall dependencies: `pip install -r backend/requirements.txt`
 
 ### Frontend not loading
-- Check that you're accessing http://localhost:8000 (not /api/docs)
+- Check that you're accessing http://localhost:9247 (not /api/docs)
 - Clear browser cache
 - Check browser console for errors
 
@@ -150,7 +150,7 @@ You should see all tests pass.
 ## Getting Help
 
 - Check the full README.md for detailed information
-- Review API documentation at http://localhost:8000/api/docs
+- Review API documentation at http://localhost:9247/api/docs
 - Run `test_api.py` to diagnose issues
 
 ---

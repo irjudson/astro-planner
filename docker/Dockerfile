@@ -23,12 +23,12 @@ COPY frontend ./frontend
 RUN mkdir -p /app/data
 
 # Expose port
-EXPOSE 8000
+EXPOSE 9247
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV HOST=0.0.0.0
-ENV PORT=8000
+ENV PORT=9247
 
 # Run the application
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9247"]
