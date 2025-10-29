@@ -60,16 +60,19 @@ class SchedulerService:
         if planning_mode == "quality":
             # Quality mode: longer exposures, fewer targets, stricter scoring
             min_duration = timedelta(minutes=45)
+            max_duration = timedelta(minutes=180)  # Cap at 3 hours
             min_score_threshold = 0.7
             max_targets_per_night = 8
         elif planning_mode == "quantity":
             # Quantity mode: shorter exposures, more targets, lenient scoring
             min_duration = timedelta(minutes=15)
+            max_duration = timedelta(minutes=45)  # Cap at 45 minutes
             min_score_threshold = 0.5
             max_targets_per_night = 20
         else:  # balanced
             # Balanced mode: middle ground
             min_duration = timedelta(minutes=self.settings.min_target_duration_minutes)
+            max_duration = timedelta(minutes=90)  # Cap at 1.5 hours
             min_score_threshold = 0.6
             max_targets_per_night = 15
 
@@ -92,6 +95,10 @@ class SchedulerService:
                 # No suitable targets, advance time
                 current_time += timedelta(minutes=5)
                 continue
+
+            # Cap duration based on planning mode
+            if duration > max_duration:
+                duration = max_duration
 
             # Calculate positions and field rotation
             start_alt, start_az = self.ephemeris.calculate_position(
