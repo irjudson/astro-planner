@@ -70,36 +70,29 @@ class EphemerisService:
                 twilight_times['sunrise'] = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
                 break
 
-        # Civil twilight (6° below)
-        f_civil = almanac.dark_twilight_day(self.eph, topos)
-        times_civil, events_civil = almanac.find_discrete(t0, t1, f_civil)
+        # Use dark_twilight_day for all twilight calculations
+        # Events: 0=Night, 1=Astronomical, 2=Nautical, 3=Civil, 4=Day
+        f_twilight = almanac.dark_twilight_day(self.eph, topos)
+        times_twilight, events_twilight = almanac.find_discrete(t0, t1, f_twilight)
 
-        for i, (t, event) in enumerate(zip(times_civil, events_civil)):
+        for i, (t, event) in enumerate(zip(times_twilight, events_twilight)):
             dt = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
-            if event == 0:  # Evening civil twilight ends
-                if 'sunset' in twilight_times and dt > twilight_times['sunset']:
-                    twilight_times['civil_twilight_end'] = dt
-            elif event == 4:  # Morning civil twilight begins
-                if 'sunrise' in twilight_times and dt < twilight_times['sunrise']:
-                    twilight_times['civil_twilight_start'] = dt
 
-        # Nautical and astronomical twilight (using custom angles)
-        # Nautical: 12° below, Astronomical: 18° below
-        nautical_angle = -12.0
-        astronomical_angle = -18.0
+            # Evening transitions (going from light to dark)
+            if i > 0 and events_twilight[i-1] == 4 and event == 3:
+                twilight_times['civil_twilight_end'] = dt
+            elif i > 0 and events_twilight[i-1] == 3 and event == 2:
+                twilight_times['nautical_twilight_end'] = dt
+            elif i > 0 and events_twilight[i-1] == 2 and event == 1:
+                twilight_times['astronomical_twilight_end'] = dt
 
-        # Create observer for angle calculations
-        observer = self.earth + topos
-
-        # Calculate nautical twilight
-        nautical_times = self._find_twilight_angle(observer, t0, t1, nautical_angle)
-        twilight_times['nautical_twilight_end'] = nautical_times[0].astimezone(tz)
-        twilight_times['nautical_twilight_start'] = nautical_times[1].astimezone(tz)
-
-        # Calculate astronomical twilight
-        astro_times = self._find_twilight_angle(observer, t0, t1, astronomical_angle)
-        twilight_times['astronomical_twilight_end'] = astro_times[0].astimezone(tz)
-        twilight_times['astronomical_twilight_start'] = astro_times[1].astimezone(tz)
+            # Morning transitions (going from dark to light)
+            elif i > 0 and events_twilight[i-1] == 1 and event == 2:
+                twilight_times['astronomical_twilight_start'] = dt
+            elif i > 0 and events_twilight[i-1] == 2 and event == 3:
+                twilight_times['nautical_twilight_start'] = dt
+            elif i > 0 and events_twilight[i-1] == 3 and event == 4:
+                twilight_times['civil_twilight_start'] = dt
 
         return twilight_times
 
