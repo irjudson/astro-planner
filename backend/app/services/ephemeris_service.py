@@ -36,7 +36,7 @@ class EphemerisService:
             Dictionary with sunset, twilight times, and sunrise
         """
         # Create observer location
-        observer = self.earth + wgs84.latlon(
+        topos = wgs84.latlon(
             location.latitude, location.longitude, elevation_m=location.elevation
         )
 
@@ -52,7 +52,7 @@ class EphemerisService:
         t1 = self.ts.from_datetime(noon_utc + timedelta(hours=36))
 
         # Find sunset and sunrise
-        f = almanac.sunrise_sunset(self.eph, observer)
+        f = almanac.sunrise_sunset(self.eph, topos)
         times, events = almanac.find_discrete(t0, t1, f)
 
         # Find twilight times (civil, nautical, astronomical)
@@ -71,7 +71,7 @@ class EphemerisService:
                 break
 
         # Civil twilight (6° below)
-        f_civil = almanac.dark_twilight_day(self.eph, observer)
+        f_civil = almanac.dark_twilight_day(self.eph, topos)
         times_civil, events_civil = almanac.find_discrete(t0, t1, f_civil)
 
         for i, (t, event) in enumerate(zip(times_civil, events_civil)):
@@ -87,6 +87,9 @@ class EphemerisService:
         # Nautical: 12° below, Astronomical: 18° below
         nautical_angle = -12.0
         astronomical_angle = -18.0
+
+        # Create observer for angle calculations
+        observer = self.earth + topos
 
         # Calculate nautical twilight
         nautical_times = self._find_twilight_angle(observer, t0, t1, nautical_angle)

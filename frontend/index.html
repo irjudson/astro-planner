@@ -328,8 +328,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="elevation">Elevation (meters)</label>
-                        <input type="number" id="elevation" value="1234" step="1">
+                        <label for="elevation">Elevation (feet)</label>
+                        <input type="number" id="elevation" value="4049" step="1">
                     </div>
 
                     <div class="form-group">
@@ -347,7 +347,7 @@
 
                     <div class="form-group">
                         <label for="setup-time">Setup Time (minutes)</label>
-                        <input type="number" id="setup-time" value="15" min="0" step="5">
+                        <input type="number" id="setup-time" value="30" min="0" step="5">
                     </div>
 
                     <div class="form-group">
@@ -357,7 +357,7 @@
 
                     <div class="form-group">
                         <label for="max-altitude">Maximum Altitude (degrees)</label>
-                        <input type="number" id="max-altitude" value="80" min="0" max="90">
+                        <input type="number" id="max-altitude" value="90" min="0" max="90">
                     </div>
                 </div>
 
@@ -435,7 +435,7 @@
                 name: document.getElementById('location-name').value,
                 latitude: parseFloat(document.getElementById('latitude').value),
                 longitude: parseFloat(document.getElementById('longitude').value),
-                elevation: parseFloat(document.getElementById('elevation').value),
+                elevation: parseFloat(document.getElementById('elevation').value) * 0.3048, // Convert feet to meters
                 timezone: document.getElementById('timezone').value
             };
 

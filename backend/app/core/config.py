@@ -32,11 +32,11 @@ class Settings(BaseSettings):
 
     # Observing Constraints
     min_altitude: float = 30.0
-    max_altitude: float = 80.0
+    max_altitude: float = 90.0
     optimal_min_altitude: float = 45.0
     optimal_max_altitude: float = 65.0
     slew_time_seconds: int = 60
-    setup_time_minutes: int = 15
+    setup_time_minutes: int = 30
 
     # Scheduling
     lookahead_minutes: int = 30
