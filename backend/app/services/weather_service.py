@@ -1,6 +1,6 @@
 """Weather forecasting service using OpenWeatherMap API."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 import requests
 import pytz
@@ -99,7 +99,7 @@ class WeatherService:
                 conditions="Clear sky (estimated)"
             )
             forecasts.append(forecast)
-            current_time = current_time.replace(hour=current_time.hour + 1)
+            current_time = current_time + timedelta(hours=1)
 
         return forecasts
 
