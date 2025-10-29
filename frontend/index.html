@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astro Planner - Seestar S50 Session Planner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"] {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .session-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-item {
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+        }
+
+        .summary-item strong {
+            display: block;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .target-list {
+            margin-top: 20px;
+        }
+
+        .target-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .target-card:hover {
+            border-color: #667eea;
+        }
+
+        .target-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .target-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .target-type {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+
+        .target-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .detail-item {
+            font-size: 0.95em;
+        }
+
+        .detail-item strong {
+            color: #555;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .export-btn:hover {
+            background: #218838;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .weather-forecast {
+            background: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .date-notice {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔭 Astro Planner</h1>
+            <p>Astrophotography Session Planner for Seestar S50 Smart Telescope</p>
+        </header>
+
+        <div class="content">
+            <!-- Input Form -->
+            <div class="section">
+                <h2>Session Configuration</h2>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="location-name">Location Name</label>
+                        <input type="text" id="location-name" value="Three Forks, MT">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="latitude">Latitude (degrees)</label>
+                        <input type="number" id="latitude" value="45.9183" step="0.0001">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="longitude">Longitude (degrees)</label>
+                        <input type="number" id="longitude" value="-111.5433" step="0.0001">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="elevation">Elevation (meters)</label>
+                        <input type="number" id="elevation" value="1234" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timezone">Timezone</label>
+                        <input type="text" id="timezone" value="America/Denver">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observing-date">Observing Date (Tonight's Session)</label>
+                        <input type="date" id="observing-date">
+                        <div class="date-notice">
+                            This date represents which night to plan for. The planner will calculate the astronomical night containing this date.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="setup-time">Setup Time (minutes)</label>
+                        <input type="number" id="setup-time" value="15" min="0" step="5">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="min-altitude">Minimum Altitude (degrees)</label>
+                        <input type="number" id="min-altitude" value="30" min="0" max="90">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="max-altitude">Maximum Altitude (degrees)</label>
+                        <input type="number" id="max-altitude" value="80" min="0" max="90">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Object Types to Include</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="type-galaxy" value="galaxy" checked>
+                            <label for="type-galaxy">Galaxies</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="type-nebula" value="nebula" checked>
+                            <label for="type-nebula">Nebulae</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="type-cluster" value="cluster" checked>
+                            <label for="type-cluster">Star Clusters</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="type-planetary" value="planetary_nebula" checked>
+                            <label for="type-planetary">Planetary Nebulae</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="btn" onclick="generatePlan()">Generate Observing Plan</button>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Calculating optimal observing plan...</p>
+            </div>
+
+            <!-- Error Message -->
+            <div class="error" id="error"></div>
+
+            <!-- Results -->
+            <div class="results" id="results">
+                <div class="section">
+                    <h2>Session Summary</h2>
+                    <div class="session-summary" id="session-summary"></div>
+                </div>
+
+                <div class="section">
+                    <h2>Scheduled Targets</h2>
+                    <div class="target-list" id="target-list"></div>
+                </div>
+
+                <div class="section">
+                    <h2>Export Plan</h2>
+                    <div class="export-buttons">
+                        <button class="export-btn" onclick="exportPlan('json')">📄 Export JSON</button>
+                        <button class="export-btn" onclick="exportPlan('seestar_plan')">🔭 Seestar Plan Mode</button>
+                        <button class="export-btn" onclick="exportPlan('seestar_alp')">📋 Seestar ALP</button>
+                        <button class="export-btn" onclick="exportPlan('text')">📝 Text Format</button>
+                        <button class="export-btn" onclick="exportPlan('csv')">📊 CSV Format</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set today's date as default
+        document.getElementById('observing-date').valueAsDate = new Date();
+
+        let currentPlan = null;
+
+        async function generatePlan() {
+            // Get form values
+            const location = {
+                name: document.getElementById('location-name').value,
+                latitude: parseFloat(document.getElementById('latitude').value),
+                longitude: parseFloat(document.getElementById('longitude').value),
+                elevation: parseFloat(document.getElementById('elevation').value),
+                timezone: document.getElementById('timezone').value
+            };
+
+            const observingDate = document.getElementById('observing-date').value;
+
+            const objectTypes = [];
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                objectTypes.push(cb.value);
+            });
+
+            const constraints = {
+                min_altitude: parseFloat(document.getElementById('min-altitude').value),
+                max_altitude: parseFloat(document.getElementById('max-altitude').value),
+                setup_time_minutes: parseInt(document.getElementById('setup-time').value),
+                object_types: objectTypes
+            };
+
+            const request = {
+                location: location,
+                observing_date: observingDate,
+                constraints: constraints
+            };
+
+            // Show loading
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('error').classList.remove('active');
+
+            try {
+                const response = await fetch('/api/plan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(request)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const plan = await response.json();
+                currentPlan = plan;
+                displayPlan(plan);
+
+                // Hide loading, show results
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('results').classList.add('active');
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').classList.remove('active');
+                const errorEl = document.getElementById('error');
+                errorEl.textContent = `Error generating plan: ${error.message}`;
+                errorEl.classList.add('active');
+            }
+        }
+
+        function displayPlan(plan) {
+            // Display session summary
+            const summaryHtml = `
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <strong>Observing Date</strong>
+                        ${plan.session.observing_date}
+                    </div>
+                    <div class="summary-item">
+                        <strong>Astronomical Twilight</strong>
+                        ${formatTime(plan.session.astronomical_twilight_end)} - ${formatTime(plan.session.astronomical_twilight_start)}
+                    </div>
+                    <div class="summary-item">
+                        <strong>Imaging Window</strong>
+                        ${formatTime(plan.session.imaging_start)} - ${formatTime(plan.session.imaging_end)}
+                    </div>
+                    <div class="summary-item">
+                        <strong>Total Imaging Time</strong>
+                        ${plan.session.total_imaging_minutes} minutes
+                    </div>
+                    <div class="summary-item">
+                        <strong>Total Targets</strong>
+                        ${plan.total_targets}
+                    </div>
+                    <div class="summary-item">
+                        <strong>Night Coverage</strong>
+                        ${plan.coverage_percent.toFixed(1)}%
+                    </div>
+                </div>
+
+                <div class="weather-forecast">
+                    <strong>Weather Forecast</strong>
+                    ${plan.weather_forecast.length > 0 ?
+                        `<p>Avg Cloud Cover: ${(plan.weather_forecast.reduce((a,b) => a + b.cloud_cover, 0) / plan.weather_forecast.length).toFixed(0)}%, ` +
+                        `Humidity: ${(plan.weather_forecast.reduce((a,b) => a + b.humidity, 0) / plan.weather_forecast.length).toFixed(0)}%</p>` :
+                        '<p>No weather data available</p>'
+                    }
+                </div>
+            `;
+            document.getElementById('session-summary').innerHTML = summaryHtml;
+
+            // Display targets
+            const targetsHtml = plan.scheduled_targets.map((st, i) => `
+                <div class="target-card">
+                    <div class="target-header">
+                        <div>
+                            <div class="target-name">${i+1}. ${st.target.name} (${st.target.catalog_id})</div>
+                        </div>
+                        <div class="target-type">${st.target.object_type}</div>
+                    </div>
+                    <div class="target-details">
+                        <div class="detail-item">
+                            <strong>Time:</strong> ${formatTime(st.start_time)} - ${formatTime(st.end_time)} (${st.duration_minutes} min)
+                        </div>
+                        <div class="detail-item">
+                            <strong>Altitude:</strong> ${st.start_altitude.toFixed(1)}° → ${st.end_altitude.toFixed(1)}°
+                        </div>
+                        <div class="detail-item">
+                            <strong>Azimuth:</strong> ${st.start_azimuth.toFixed(1)}° → ${st.end_azimuth.toFixed(1)}°
+                        </div>
+                        <div class="detail-item">
+                            <strong>Field Rotation:</strong> ${st.field_rotation_rate.toFixed(2)}°/min
+                        </div>
+                        <div class="detail-item">
+                            <strong>Exposure:</strong> ${st.recommended_exposure}s × ${st.recommended_frames} frames
+                        </div>
+                        <div class="detail-item">
+                            <strong>Score:</strong> ${st.score.total_score.toFixed(2)}
+                        </div>
+                    </div>
+                    ${st.target.description ? `<p style="margin-top:10px; font-style:italic;">${st.target.description}</p>` : ''}
+                </div>
+            `).join('');
+
+            document.getElementById('target-list').innerHTML = targetsHtml || '<p>No targets scheduled</p>';
+        }
+
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function exportPlan(format) {
+            if (!currentPlan) {
+                alert('Please generate a plan first');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/export?format=${format}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(currentPlan)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Download file
+                const blob = new Blob([result.data], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `observing_plan_${currentPlan.session.observing_date}.${getFileExtension(format)}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert(`Error exporting plan: ${error.message}`);
+            }
+        }
+
+        function getFileExtension(format) {
+            const extensions = {
+                'json': 'json',
+                'seestar_plan': 'json',
+                'seestar_alp': 'alp',
+                'text': 'txt',
+                'csv': 'csv'
+            };
+            return extensions[format] || 'txt';
+        }
+    </script>
+</body>
+</html>

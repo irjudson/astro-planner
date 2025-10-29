@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  astro-planner:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: astro-planner
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - RELOAD=False
+      - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY:-}
+      - DEFAULT_LAT=${DEFAULT_LAT:-45.9183}
+      - DEFAULT_LON=${DEFAULT_LON:--111.5433}
+      - DEFAULT_ELEVATION=${DEFAULT_ELEVATION:-1234}
+      - DEFAULT_TIMEZONE=${DEFAULT_TIMEZONE:-America/Denver}
+      - DEFAULT_LOCATION_NAME=${DEFAULT_LOCATION_NAME:-Three Forks, MT}
+    volumes:
+      - ./data:/app/data
+      - ./backend/.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  data:

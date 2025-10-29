@@ -1,0 +1,266 @@
+"""Export service for generating observing plans in various formats."""
+
+import json
+import csv
+from io import StringIO
+from typing import List
+from datetime import datetime
+
+from app.models import ObservingPlan, ScheduledTarget
+
+
+class ExportService:
+    """Service for exporting observing plans in various formats."""
+
+    def export_json(self, plan: ObservingPlan) -> str:
+        """
+        Export plan as JSON.
+
+        Args:
+            plan: Observing plan
+
+        Returns:
+            JSON string
+        """
+        return plan.model_dump_json(indent=2)
+
+    def export_seestar_plan_mode(self, plan: ObservingPlan) -> str:
+        """
+        Export plan in Seestar Plan Mode JSON format.
+
+        This format is compatible with the Seestar S50's plan mode feature.
+
+        Args:
+            plan: Observing plan
+
+        Returns:
+            JSON string in Seestar Plan Mode format
+        """
+        targets = []
+
+        for scheduled in plan.scheduled_targets:
+            target_entry = {
+                "target_name": scheduled.target.name,
+                "ra": scheduled.target.ra_hours,
+                "dec": scheduled.target.dec_degrees,
+                "start_time": scheduled.start_time.isoformat(),
+                "duration_min": scheduled.duration_minutes,
+                "gain": 80,  # Default gain for Seestar
+                "exposure_sec": scheduled.recommended_exposure,
+                "frames": scheduled.recommended_frames,
+                "filter": "LP",  # Light pollution filter (default)
+                "notes": f"{scheduled.target.catalog_id} - {scheduled.target.description or ''}"
+            }
+            targets.append(target_entry)
+
+        plan_data = {
+            "format": "seestar_plan_v1",
+            "location": {
+                "name": plan.location.name,
+                "latitude": plan.location.latitude,
+                "longitude": plan.location.longitude,
+                "elevation": plan.location.elevation,
+                "timezone": plan.location.timezone
+            },
+            "session_date": plan.session.observing_date,
+            "imaging_start": plan.session.imaging_start.isoformat(),
+            "imaging_end": plan.session.imaging_end.isoformat(),
+            "targets": targets,
+            "generated_at": plan.generated_at.isoformat()
+        }
+
+        return json.dumps(plan_data, indent=2)
+
+    def export_seestar_alp(self, plan: ObservingPlan) -> str:
+        """
+        Export plan in Seestar_alp format.
+
+        This is a simplified text format that can be imported into various tools.
+
+        Args:
+            plan: Observing plan
+
+        Returns:
+            Seestar_alp format string
+        """
+        lines = []
+        lines.append(f"# Seestar S50 Observing Plan")
+        lines.append(f"# Location: {plan.location.name}")
+        lines.append(f"# Date: {plan.session.observing_date}")
+        lines.append(f"# Generated: {plan.generated_at.strftime('%Y-%m-%d %H:%M:%S')}")
+        lines.append("")
+
+        for scheduled in plan.scheduled_targets:
+            # Format: TARGET_NAME|RA(h)|DEC(deg)|START_TIME|DURATION(min)|EXPOSURE(s)|FRAMES
+            line = (
+                f"{scheduled.target.catalog_id}|"
+                f"{scheduled.target.ra_hours:.4f}|"
+                f"{scheduled.target.dec_degrees:.4f}|"
+                f"{scheduled.start_time.strftime('%H:%M')}|"
+                f"{scheduled.duration_minutes}|"
+                f"{scheduled.recommended_exposure}|"
+                f"{scheduled.recommended_frames}"
+            )
+            lines.append(line)
+
+        return "\n".join(lines)
+
+    def export_text(self, plan: ObservingPlan) -> str:
+        """
+        Export plan as human-readable text.
+
+        Args:
+            plan: Observing plan
+
+        Returns:
+            Formatted text string
+        """
+        lines = []
+        lines.append("=" * 80)
+        lines.append("SEESTAR S50 OBSERVING PLAN")
+        lines.append("=" * 80)
+        lines.append("")
+        lines.append(f"Location: {plan.location.name}")
+        lines.append(f"Coordinates: {plan.location.latitude:.4f}°, {plan.location.longitude:.4f}°")
+        lines.append(f"Elevation: {plan.location.elevation:.0f}m")
+        lines.append(f"Timezone: {plan.location.timezone}")
+        lines.append("")
+        lines.append(f"Observing Date: {plan.session.observing_date}")
+        lines.append(f"Astronomical Twilight: {plan.session.astronomical_twilight_end.strftime('%H:%M')} - "
+                    f"{plan.session.astronomical_twilight_start.strftime('%H:%M')}")
+        lines.append(f"Imaging Window: {plan.session.imaging_start.strftime('%H:%M')} - "
+                    f"{plan.session.imaging_end.strftime('%H:%M')}")
+        lines.append(f"Total Imaging Time: {plan.session.total_imaging_minutes} minutes")
+        lines.append("")
+        lines.append(f"Total Targets: {plan.total_targets}")
+        lines.append(f"Night Coverage: {plan.coverage_percent:.1f}%")
+        lines.append("")
+
+        # Weather summary
+        if plan.weather_forecast:
+            avg_cloud = sum(w.cloud_cover for w in plan.weather_forecast) / len(plan.weather_forecast)
+            avg_humidity = sum(w.humidity for w in plan.weather_forecast) / len(plan.weather_forecast)
+            lines.append(f"Weather Forecast (Average):")
+            lines.append(f"  Cloud Cover: {avg_cloud:.0f}%")
+            lines.append(f"  Humidity: {avg_humidity:.0f}%")
+            lines.append("")
+
+        lines.append("=" * 80)
+        lines.append("SCHEDULED TARGETS")
+        lines.append("=" * 80)
+        lines.append("")
+
+        for i, scheduled in enumerate(plan.scheduled_targets, 1):
+            lines.append(f"{i}. {scheduled.target.name} ({scheduled.target.catalog_id})")
+            lines.append(f"   Type: {scheduled.target.object_type.title()}")
+            lines.append(f"   Time: {scheduled.start_time.strftime('%H:%M')} - "
+                        f"{scheduled.end_time.strftime('%H:%M')} "
+                        f"({scheduled.duration_minutes} min)")
+            lines.append(f"   Altitude: {scheduled.start_altitude:.1f}° → {scheduled.end_altitude:.1f}°")
+            lines.append(f"   Azimuth: {scheduled.start_azimuth:.1f}° → {scheduled.end_azimuth:.1f}°")
+            lines.append(f"   Field Rotation: {scheduled.field_rotation_rate:.2f}°/min")
+            lines.append(f"   Settings: {scheduled.recommended_exposure}s × {scheduled.recommended_frames} frames")
+            lines.append(f"   Score: {scheduled.score.total_score:.2f} "
+                        f"(vis:{scheduled.score.visibility_score:.2f}, "
+                        f"wx:{scheduled.score.weather_score:.2f}, "
+                        f"obj:{scheduled.score.object_score:.2f})")
+            if scheduled.target.description:
+                lines.append(f"   Notes: {scheduled.target.description}")
+            lines.append("")
+
+        lines.append("=" * 80)
+        lines.append(f"Generated: {plan.generated_at.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        lines.append("=" * 80)
+
+        return "\n".join(lines)
+
+    def export_csv(self, plan: ObservingPlan) -> str:
+        """
+        Export plan as CSV.
+
+        Args:
+            plan: Observing plan
+
+        Returns:
+            CSV string
+        """
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Header
+        writer.writerow([
+            "Target Name",
+            "Catalog ID",
+            "Type",
+            "RA (hours)",
+            "Dec (degrees)",
+            "Start Time",
+            "End Time",
+            "Duration (min)",
+            "Start Alt (deg)",
+            "End Alt (deg)",
+            "Start Az (deg)",
+            "End Az (deg)",
+            "Field Rotation (deg/min)",
+            "Exposure (s)",
+            "Frames",
+            "Total Score",
+            "Visibility Score",
+            "Weather Score",
+            "Object Score"
+        ])
+
+        # Data rows
+        for scheduled in plan.scheduled_targets:
+            writer.writerow([
+                scheduled.target.name,
+                scheduled.target.catalog_id,
+                scheduled.target.object_type,
+                f"{scheduled.target.ra_hours:.4f}",
+                f"{scheduled.target.dec_degrees:.4f}",
+                scheduled.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                scheduled.end_time.strftime('%Y-%m-%d %H:%M:%S'),
+                scheduled.duration_minutes,
+                f"{scheduled.start_altitude:.2f}",
+                f"{scheduled.end_altitude:.2f}",
+                f"{scheduled.start_azimuth:.2f}",
+                f"{scheduled.end_azimuth:.2f}",
+                f"{scheduled.field_rotation_rate:.3f}",
+                scheduled.recommended_exposure,
+                scheduled.recommended_frames,
+                f"{scheduled.score.total_score:.3f}",
+                f"{scheduled.score.visibility_score:.3f}",
+                f"{scheduled.score.weather_score:.3f}",
+                f"{scheduled.score.object_score:.3f}"
+            ])
+
+        return output.getvalue()
+
+    def export(self, plan: ObservingPlan, format_type: str) -> str:
+        """
+        Export plan in specified format.
+
+        Args:
+            plan: Observing plan
+            format_type: One of: json, seestar_plan, seestar_alp, text, csv
+
+        Returns:
+            Exported data as string
+
+        Raises:
+            ValueError: If format_type is not recognized
+        """
+        format_type = format_type.lower()
+
+        if format_type == "json":
+            return self.export_json(plan)
+        elif format_type == "seestar_plan":
+            return self.export_seestar_plan_mode(plan)
+        elif format_type == "seestar_alp":
+            return self.export_seestar_alp(plan)
+        elif format_type == "text":
+            return self.export_text(plan)
+        elif format_type == "csv":
+            return self.export_csv(plan)
+        else:
+            raise ValueError(f"Unknown format: {format_type}")
