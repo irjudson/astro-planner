@@ -78,21 +78,27 @@ class EphemerisService:
         for i, (t, event) in enumerate(zip(times_twilight, events_twilight)):
             dt = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
 
-            # Evening transitions (going from light to dark)
+            # Evening transitions (going from light to dark) - take first occurrence only
             if i > 0 and events_twilight[i-1] == 4 and event == 3:
-                twilight_times['civil_twilight_end'] = dt
+                if 'civil_twilight_end' not in twilight_times:
+                    twilight_times['civil_twilight_end'] = dt
             elif i > 0 and events_twilight[i-1] == 3 and event == 2:
-                twilight_times['nautical_twilight_end'] = dt
+                if 'nautical_twilight_end' not in twilight_times:
+                    twilight_times['nautical_twilight_end'] = dt
             elif i > 0 and events_twilight[i-1] == 2 and event == 1:
-                twilight_times['astronomical_twilight_end'] = dt
+                if 'astronomical_twilight_end' not in twilight_times:
+                    twilight_times['astronomical_twilight_end'] = dt
 
-            # Morning transitions (going from dark to light)
+            # Morning transitions (going from dark to light) - take first occurrence only
             elif i > 0 and events_twilight[i-1] == 1 and event == 2:
-                twilight_times['astronomical_twilight_start'] = dt
+                if 'astronomical_twilight_start' not in twilight_times:
+                    twilight_times['astronomical_twilight_start'] = dt
             elif i > 0 and events_twilight[i-1] == 2 and event == 3:
-                twilight_times['nautical_twilight_start'] = dt
+                if 'nautical_twilight_start' not in twilight_times:
+                    twilight_times['nautical_twilight_start'] = dt
             elif i > 0 and events_twilight[i-1] == 3 and event == 4:
-                twilight_times['civil_twilight_start'] = dt
+                if 'civil_twilight_start' not in twilight_times:
+                    twilight_times['civil_twilight_start'] = dt
 
         return twilight_times
 
