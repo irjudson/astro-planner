@@ -17,10 +17,11 @@ class Location(BaseModel):
 class ObservingConstraints(BaseModel):
     """Constraints for observing session."""
     min_altitude: float = Field(default=30.0, ge=0, le=90, description="Minimum altitude in degrees")
-    max_altitude: float = Field(default=80.0, ge=0, le=90, description="Maximum altitude in degrees")
-    setup_time_minutes: int = Field(default=15, ge=0, description="Setup time in minutes")
+    max_altitude: float = Field(default=90.0, ge=0, le=90, description="Maximum altitude in degrees")
+    setup_time_minutes: int = Field(default=30, ge=0, description="Setup time in minutes")
     object_types: List[str] = Field(default=["galaxy", "nebula", "cluster", "planetary_nebula"],
                                     description="Object types to include")
+    planning_mode: str = Field(default="balanced", description="Planning mode: balanced, quality, or quantity")
 
 
 class PlanRequest(BaseModel):

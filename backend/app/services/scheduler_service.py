@@ -54,14 +54,31 @@ class SchedulerService:
         scheduled = []
         current_time = session.imaging_start
         slew_time = timedelta(seconds=self.settings.slew_time_seconds)
-        min_duration = timedelta(minutes=self.settings.min_target_duration_minutes)
+
+        # Adjust parameters based on planning mode
+        planning_mode = constraints.planning_mode
+        if planning_mode == "quality":
+            # Quality mode: longer exposures, fewer targets, stricter scoring
+            min_duration = timedelta(minutes=45)
+            min_score_threshold = 0.7
+            max_targets_per_night = 8
+        elif planning_mode == "quantity":
+            # Quantity mode: shorter exposures, more targets, lenient scoring
+            min_duration = timedelta(minutes=15)
+            min_score_threshold = 0.5
+            max_targets_per_night = 20
+        else:  # balanced
+            # Balanced mode: middle ground
+            min_duration = timedelta(minutes=self.settings.min_target_duration_minutes)
+            min_score_threshold = 0.6
+            max_targets_per_night = 15
 
         # Track which targets have been observed
         observed_targets = set()
 
-        while current_time < session.imaging_end:
+        while current_time < session.imaging_end and len(scheduled) < max_targets_per_night:
             # Find best target for current time
-            best_target, duration = self._find_best_target(
+            best_target, duration, target_score = self._find_best_target(
                 targets=targets,
                 location=location,
                 current_time=current_time,
@@ -71,7 +88,7 @@ class SchedulerService:
                 observed_targets=observed_targets
             )
 
-            if best_target is None or duration < min_duration:
+            if best_target is None or duration < min_duration or target_score < min_score_threshold:
                 # No suitable targets, advance time
                 current_time += timedelta(minutes=5)
                 continue
@@ -140,7 +157,7 @@ class SchedulerService:
         constraints: ObservingConstraints,
         weather_forecasts: List,
         observed_targets: set
-    ) -> Tuple[Optional[DSOTarget], timedelta]:
+    ) -> Tuple[Optional[DSOTarget], timedelta, float]:
         """
         Find the best target for the current time using urgency-based scoring.
 
@@ -154,7 +171,7 @@ class SchedulerService:
             observed_targets: Set of already observed target IDs
 
         Returns:
-            Tuple of (best target, recommended duration)
+            Tuple of (best target, recommended duration, total score)
         """
         best_target = None
         best_score = -1
@@ -205,7 +222,7 @@ class SchedulerService:
                 best_target = target
                 best_duration = duration
 
-        return best_target, best_duration
+        return best_target, best_duration, best_score
 
     def _calculate_visibility_duration(
         self,

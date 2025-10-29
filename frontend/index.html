@@ -362,6 +362,17 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Planning Mode</label>
+                    <div style="margin-top: 10px;">
+                        <select id="planning-mode" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 1em;">
+                            <option value="balanced">Balanced - Good mix of quality and variety</option>
+                            <option value="quality">Best Quality - Longer exposures, fewer targets</option>
+                            <option value="quantity">More Objects - Shorter exposures, more targets</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>Object Types to Include</label>
                     <div class="checkbox-group">
                         <div class="checkbox-item">
@@ -379,6 +390,14 @@
                         <div class="checkbox-item">
                             <input type="checkbox" id="type-planetary" value="planetary_nebula" checked>
                             <label for="type-planetary">Planetary Nebulae</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="type-comet" value="comet">
+                            <label for="type-comet">Comets</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="type-asteroid" value="asteroid">
+                            <label for="type-asteroid">Asteroids</label>
                         </div>
                     </div>
                 </div>
@@ -446,11 +465,14 @@
                 objectTypes.push(cb.value);
             });
 
+            const planningMode = document.getElementById('planning-mode').value;
+
             const constraints = {
                 min_altitude: parseFloat(document.getElementById('min-altitude').value),
                 max_altitude: parseFloat(document.getElementById('max-altitude').value),
                 setup_time_minutes: parseInt(document.getElementById('setup-time').value),
-                object_types: objectTypes
+                object_types: objectTypes,
+                planning_mode: planningMode
             };
 
             const request = {
