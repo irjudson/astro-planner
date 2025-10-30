@@ -289,6 +289,39 @@
             margin-top: 15px;
         }
 
+        .weather-warning {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .weather-warning.active {
+            display: block;
+        }
+
+        .weather-warning h3 {
+            color: #721c24;
+            margin-bottom: 10px;
+        }
+
+        .weather-warning p {
+            color: #721c24;
+            margin-bottom: 15px;
+        }
+
+        .weather-warning .btn {
+            background: #dc3545;
+            padding: 10px 20px;
+            font-size: 1em;
+        }
+
+        .weather-warning .btn:hover {
+            background: #c82333;
+        }
+
         .date-notice {
             background: #fff3cd;
             border-left: 4px solid #ffc107;
@@ -297,46 +330,158 @@
             border-radius: 4px;
             font-size: 0.95em;
         }
+
+        .collapsible-section {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+            user-select: none;
+        }
+
+        .collapsible-header:hover {
+            background: #e9ecef;
+        }
+
+        .collapsible-header h3 {
+            margin: 0;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .collapsible-toggle {
+            font-size: 1.5em;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .collapsible-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            padding: 20px;
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            padding: 0 20px;
+        }
+
+        .subsection-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .subsection {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .subsection h4 {
+            color: #667eea;
+            margin: 0 0 15px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .preferences-section {
+            margin-bottom: 30px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🔭 Astro Planner</h1>
-            <p>Astrophotography Session Planner for Seestar S50 Smart Telescope</p>
+            <p>Astrophotography Session Planner</p>
         </header>
 
         <div class="content">
-            <!-- Input Form -->
-            <div class="section">
-                <h2>Session Configuration</h2>
+            <!-- Location & Device (Collapsible) -->
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('location-device')">
+                    <h3>📍 Location & Device</h3>
+                    <span class="collapsible-toggle collapsed" id="location-device-toggle">▼</span>
+                </div>
+                <div class="collapsible-content collapsed" id="location-device-content">
+                    <div class="subsection-container">
+                        <!-- Location Subsection -->
+                        <div class="subsection">
+                            <h4>📍 Location</h4>
+                            <div class="form-group">
+                                <label for="location-name">Location Name</label>
+                                <input type="text" id="location-name" value="Three Forks, MT">
+                            </div>
+                            <div class="form-group">
+                                <label for="latitude">Latitude (degrees)</label>
+                                <input type="number" id="latitude" value="45.9183" step="0.0001">
+                            </div>
+                            <div class="form-group">
+                                <label for="longitude">Longitude (degrees)</label>
+                                <input type="number" id="longitude" value="-111.5433" step="0.0001">
+                            </div>
+                            <div class="form-group">
+                                <label for="elevation">Elevation (feet)</label>
+                                <input type="number" id="elevation" value="4049" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="timezone">Timezone</label>
+                                <input type="text" id="timezone" value="America/Denver">
+                            </div>
+                        </div>
 
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="location-name">Location Name</label>
-                        <input type="text" id="location-name" value="Three Forks, MT">
+                        <!-- Device Subsection -->
+                        <div class="subsection">
+                            <h4>🔭 Device</h4>
+                            <div class="form-group">
+                                <label>Telescope/Equipment</label>
+                                <div style="margin-top: 10px;">
+                                    <select id="telescope" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 1em;" onchange="updateTelescopeOptions()">
+                                        <option value="seestar_s50">Seestar S50 (50mm f/5, 1.27° × 0.71° FOV)</option>
+                                        <option value="other">Other Telescope/Equipment</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group seestar-option" id="exposure-time-group" style="margin-top: 15px;">
+                                <label>Exposure Time (Seestar S50)</label>
+                                <div style="margin-top: 10px;">
+                                    <select id="exposure-time" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 1em;">
+                                        <option value="10" selected>10 seconds</option>
+                                        <option value="20">20 seconds</option>
+                                        <option value="30">30 seconds</option>
+                                        <option value="60">60 seconds</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="form-group">
-                        <label for="latitude">Latitude (degrees)</label>
-                        <input type="number" id="latitude" value="45.9183" step="0.0001">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="longitude">Longitude (degrees)</label>
-                        <input type="number" id="longitude" value="-111.5433" step="0.0001">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="elevation">Elevation (feet)</label>
-                        <input type="number" id="elevation" value="4049" step="1">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="timezone">Timezone</label>
-                        <input type="text" id="timezone" value="America/Denver">
-                    </div>
-
+            <!-- Preferences Section (Collapsible) -->
+            <div class="collapsible-section">
+                <div class="collapsible-header" onclick="toggleCollapsible('preferences')">
+                    <h3>🎯 Observing Preferences</h3>
+                    <span class="collapsible-toggle" id="preferences-toggle">▼</span>
+                </div>
+                <div class="collapsible-content" id="preferences-content">
                     <div class="form-group">
                         <label for="observing-date">Observing Date (Tonight's Session)</label>
                         <input type="date" id="observing-date">
@@ -345,65 +490,65 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="setup-time">Setup Time (minutes)</label>
-                        <input type="number" id="setup-time" value="30" min="0" step="5">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="setup-time">Setup Time (minutes)</label>
+                            <input type="number" id="setup-time" value="30" min="0" step="5">
+                        </div>
+                        <div class="form-group">
+                            <label for="min-altitude">Minimum Altitude (degrees)</label>
+                            <input type="number" id="min-altitude" value="30" min="0" max="90">
+                        </div>
+                        <div class="form-group">
+                            <label for="max-altitude">Maximum Altitude (degrees)</label>
+                            <input type="number" id="max-altitude" value="90" min="0" max="90">
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="min-altitude">Minimum Altitude (degrees)</label>
-                        <input type="number" id="min-altitude" value="30" min="0" max="90">
+                        <label>Planning Mode</label>
+                        <div style="margin-top: 10px;">
+                            <select id="planning-mode" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 1em;">
+                                <option value="balanced">Balanced - Good mix of quality and variety</option>
+                                <option value="quality">Best Quality - Longer exposures, fewer targets</option>
+                                <option value="quantity">More Objects - Shorter exposures, more targets</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="max-altitude">Maximum Altitude (degrees)</label>
-                        <input type="number" id="max-altitude" value="90" min="0" max="90">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Planning Mode</label>
-                    <div style="margin-top: 10px;">
-                        <select id="planning-mode" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 1em;">
-                            <option value="balanced">Balanced - Good mix of quality and variety</option>
-                            <option value="quality">Best Quality - Longer exposures, fewer targets</option>
-                            <option value="quantity">More Objects - Shorter exposures, more targets</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Object Types to Include</label>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="type-galaxy" value="galaxy" checked>
-                            <label for="type-galaxy">Galaxies</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="type-nebula" value="nebula" checked>
-                            <label for="type-nebula">Nebulae</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="type-cluster" value="cluster" checked>
-                            <label for="type-cluster">Star Clusters</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="type-planetary" value="planetary_nebula" checked>
-                            <label for="type-planetary">Planetary Nebulae</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="type-comet" value="comet">
-                            <label for="type-comet">Comets</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="type-asteroid" value="asteroid">
-                            <label for="type-asteroid">Asteroids</label>
+                        <label>Object Types to Include</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="type-galaxy" value="galaxy" checked>
+                                <label for="type-galaxy">Galaxies</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="type-nebula" value="nebula" checked>
+                                <label for="type-nebula">Nebulae</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="type-cluster" value="cluster" checked>
+                                <label for="type-cluster">Star Clusters</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="type-planetary" value="planetary_nebula" checked>
+                                <label for="type-planetary">Planetary Nebulae</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="type-comet" value="comet">
+                                <label for="type-comet">Comets</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="type-asteroid" value="asteroid">
+                                <label for="type-asteroid">Asteroids</label>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div style="text-align: center; margin-top: 30px;">
-                    <button class="btn" onclick="generatePlan()">Generate Observing Plan</button>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button class="btn" onclick="generatePlan()">Generate Observing Plan</button>
+                    </div>
                 </div>
             </div>
 
@@ -418,8 +563,15 @@
 
             <!-- Results -->
             <div class="results" id="results">
+                <!-- Weather Warning -->
+                <div class="weather-warning" id="weather-warning">
+                    <h3>⚠️ Poor Observing Conditions</h3>
+                    <p id="weather-warning-text"></p>
+                    <button class="btn" onclick="tryNextNight()">Try Next Night →</button>
+                </div>
+
                 <div class="section">
-                    <h2>Session Summary</h2>
+                    <h2>Observation Plan</h2>
                     <div class="session-summary" id="session-summary"></div>
                 </div>
 
@@ -432,8 +584,8 @@
                     <h2>Export Plan</h2>
                     <div class="export-buttons">
                         <button class="export-btn" onclick="exportPlan('json')">📄 Export JSON</button>
-                        <button class="export-btn" onclick="exportPlan('seestar_plan')">🔭 Seestar Plan Mode</button>
-                        <button class="export-btn" onclick="exportPlan('seestar_alp')">📋 Seestar ALP</button>
+                        <button class="export-btn seestar-export" id="export-seestar-plan" onclick="exportPlan('seestar_plan')">🔭 Seestar Plan Mode</button>
+                        <button class="export-btn seestar-export" id="export-seestar-alp" onclick="exportPlan('seestar_alp')">📋 Seestar ALP</button>
                         <button class="export-btn" onclick="exportPlan('text')">📝 Text Format</button>
                         <button class="export-btn" onclick="exportPlan('csv')">📊 CSV Format</button>
                     </div>
@@ -447,6 +599,63 @@
         document.getElementById('observing-date').valueAsDate = new Date();
 
         let currentPlan = null;
+
+        // Update telescope-specific options (exports and exposure time)
+        function updateTelescopeOptions() {
+            const telescope = document.getElementById('telescope').value;
+            const seestarExports = document.querySelectorAll('.seestar-export');
+            const seestarOptions = document.querySelectorAll('.seestar-option');
+
+            if (telescope === 'seestar_s50') {
+                // Show Seestar-specific exports
+                seestarExports.forEach(btn => {
+                    btn.style.display = 'inline-block';
+                });
+                // Show Seestar-specific options (exposure time)
+                seestarOptions.forEach(opt => {
+                    opt.style.display = 'flex';
+                });
+            } else {
+                // Hide Seestar-specific exports
+                seestarExports.forEach(btn => {
+                    btn.style.display = 'none';
+                });
+                // Hide Seestar-specific options (exposure time)
+                seestarOptions.forEach(opt => {
+                    opt.style.display = 'none';
+                });
+            }
+        }
+
+        // Initialize telescope options on page load
+        updateTelescopeOptions();
+
+        // Toggle collapsible section
+        function toggleCollapsible(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const toggle = document.getElementById(sectionId + '-toggle');
+
+            content.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        }
+
+        function tryNextNight() {
+            // Get current date from input
+            const dateInput = document.getElementById('observing-date');
+            const currentDate = new Date(dateInput.value);
+
+            // Add one day
+            currentDate.setDate(currentDate.getDate() + 1);
+
+            // Update the input field
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const day = String(currentDate.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+
+            // Regenerate the plan
+            generatePlan();
+        }
 
         async function generatePlan() {
             // Get form values
@@ -507,6 +716,14 @@
                 document.getElementById('loading').classList.remove('active');
                 document.getElementById('results').classList.add('active');
 
+                // Collapse the preferences section to focus on results
+                const preferencesContent = document.getElementById('preferences-content');
+                const preferencesToggle = document.getElementById('preferences-toggle');
+                if (preferencesContent && !preferencesContent.classList.contains('collapsed')) {
+                    preferencesContent.classList.add('collapsed');
+                    preferencesToggle.classList.add('collapsed');
+                }
+
             } catch (error) {
                 console.error('Error:', error);
                 document.getElementById('loading').classList.remove('active');
@@ -517,6 +734,32 @@
         }
 
         function displayPlan(plan) {
+            // Calculate average weather score from scheduled targets
+            let avgWeatherScore = 0;
+            if (plan.scheduled_targets.length > 0) {
+                const totalWeatherScore = plan.scheduled_targets.reduce((sum, st) => sum + st.score.weather_score, 0);
+                avgWeatherScore = totalWeatherScore / plan.scheduled_targets.length;
+            }
+
+            // Check if weather is bad (score < 0.4)
+            const weatherWarning = document.getElementById('weather-warning');
+            const weatherWarningText = document.getElementById('weather-warning-text');
+
+            if (avgWeatherScore < 0.4 && plan.scheduled_targets.length > 0) {
+                const avgCloudCover = plan.weather_forecast.length > 0
+                    ? (plan.weather_forecast.reduce((a,b) => a + b.cloud_cover, 0) / plan.weather_forecast.length).toFixed(0)
+                    : 'unknown';
+
+                weatherWarningText.innerHTML = `
+                    The weather conditions for <strong>${plan.session.observing_date}</strong> are poor for astrophotography.
+                    Average cloud cover: ${avgCloudCover}%, Weather quality score: ${(avgWeatherScore * 100).toFixed(0)}%.
+                    Consider trying another night for better results.
+                `;
+                weatherWarning.classList.add('active');
+            } else {
+                weatherWarning.classList.remove('active');
+            }
+
             // Display session summary
             const summaryHtml = `
                 <div class="summary-grid">
