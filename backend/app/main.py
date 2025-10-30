@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pathlib import Path
 
 from app.api import router
@@ -33,8 +34,19 @@ app.add_middleware(
 # Include API routes
 app.include_router(router, prefix="/api")
 
-# Serve static frontend files
+# Route for shared plan viewer
 frontend_path = Path(__file__).parent.parent / "frontend"
+
+@app.get("/plan/{plan_id}")
+async def serve_plan_viewer(plan_id: str):
+    """Serve the plan viewer page for shared plans."""
+    plan_html = frontend_path / "plan.html"
+    if plan_html.exists():
+        return FileResponse(plan_html)
+    else:
+        return {"error": "Plan viewer not found"}
+
+# Serve static frontend files
 if frontend_path.exists():
     app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
 else:

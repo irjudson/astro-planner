@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Observing Plan - Astro Planner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #c33;
+        }
+
+        .plan-info {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .plan-info h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .info-item label {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 0.9em;
+        }
+
+        .info-item value {
+            display: block;
+            margin-top: 5px;
+            color: #333;
+        }
+
+        .targets-list {
+            margin-top: 20px;
+        }
+
+        .target-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .target-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .target-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .target-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .target-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔭 Shared Observing Plan</h1>
+            <p>Astro Planner</p>
+        </header>
+
+        <div class="content">
+            <div id="loading" class="loading">
+                Loading plan...
+            </div>
+
+            <div id="error" class="error" style="display: none;">
+                <strong>Error:</strong> <span id="error-message"></span>
+            </div>
+
+            <div id="plan-content" style="display: none;">
+                <!-- Plan info will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get plan ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const planId = pathParts[pathParts.length - 1];
+
+        async function loadPlan() {
+            try {
+                const response = await fetch(`/api/plans/${planId}`);
+
+                if (!response.ok) {
+                    throw new Error(response.status === 404 ? 'Plan not found' : 'Failed to load plan');
+                }
+
+                const plan = await response.json();
+                displayPlan(plan);
+
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error-message').textContent = error.message;
+            }
+        }
+
+        function displayPlan(plan) {
+            document.getElementById('loading').style.display = 'none';
+            const content = document.getElementById('plan-content');
+            content.style.display = 'block';
+
+            let html = `
+                <div class="plan-info">
+                    <h2>📍 ${plan.location.name}</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Date</label>
+                            <value>${plan.session.observing_date}</value>
+                        </div>
+                        <div class="info-item">
+                            <label>Imaging Window</label>
+                            <value>${formatTime(plan.session.imaging_start)} - ${formatTime(plan.session.imaging_end)}</value>
+                        </div>
+                        <div class="info-item">
+                            <label>Total Targets</label>
+                            <value>${plan.total_targets}</value>
+                        </div>
+                        <div class="info-item">
+                            <label>Night Coverage</label>
+                            <value>${plan.coverage_percent.toFixed(1)}%</value>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="targets-list">
+                    <h2>Scheduled Targets</h2>
+            `;
+
+            plan.scheduled_targets.forEach((scheduled, index) => {
+                html += `
+                    <div class="target-card">
+                        <div class="target-header">
+                            <div>
+                                <div class="target-name">${index + 1}. ${scheduled.target.name} (${scheduled.target.catalog_id})</div>
+                                <div class="target-time">${formatTime(scheduled.start_time)} - ${formatTime(scheduled.end_time)}</div>
+                            </div>
+                        </div>
+                        <div class="target-details">
+                            <div><strong>Type:</strong> ${scheduled.target.object_type}</div>
+                            <div><strong>Duration:</strong> ${scheduled.duration_minutes} min</div>
+                            <div><strong>Altitude:</strong> ${scheduled.start_altitude.toFixed(1)}° → ${scheduled.end_altitude.toFixed(1)}°</div>
+                            <div><strong>Exposure:</strong> ${scheduled.recommended_exposure}s × ${scheduled.recommended_frames}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+
+                <div class="download-buttons">
+                    <button class="btn btn-primary" onclick="downloadCSV()">📥 Download seestar_alp CSV</button>
+                    <button class="btn btn-secondary" onclick="downloadJSON()">📄 Download JSON</button>
+                    <a href="/" class="btn btn-secondary">🔭 Create New Plan</a>
+                </div>
+            `;
+
+            content.innerHTML = html;
+        }
+
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function downloadCSV() {
+            try {
+                const response = await fetch(`/api/plans/${planId}`);
+                const plan = await response.json();
+
+                const exportResponse = await fetch('/api/export?format=seestar_alp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(plan)
+                });
+
+                const result = await exportResponse.json();
+
+                // Download file
+                const blob = new Blob([result.data], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `observing_plan_${plan.session.observing_date}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+            } catch (error) {
+                alert(`Error downloading CSV: ${error.message}`);
+            }
+        }
+
+        async function downloadJSON() {
+            try {
+                const response = await fetch(`/api/plans/${planId}`);
+                const plan = await response.json();
+
+                const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `observing_plan_${plan.session.observing_date}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+            } catch (error) {
+                alert(`Error downloading JSON: ${error.message}`);
+            }
+        }
+
+        // Load plan on page load
+        loadPlan();
+    </script>
+</body>
+</html>
