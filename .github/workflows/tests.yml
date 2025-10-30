@@ -1,0 +1,101 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements-test.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+        pip install -r backend/requirements-test.txt
+
+    - name: Lint with ruff
+      run: |
+        pip install ruff
+        ruff check backend/app --select E,F,W --ignore E501
+      continue-on-error: true
+
+    - name: Run pytest
+      run: |
+        cd backend
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=term
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+      continue-on-error: true
+
+    - name: Test report
+      if: always()
+      run: |
+        echo "Test run completed"
+        if [ -f backend/coverage.xml ]; then
+          echo "Coverage report generated"
+        fi
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      run: |
+        docker-compose build
+
+    - name: Start services
+      run: |
+        docker-compose up -d
+        sleep 15
+
+    - name: Wait for service to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:9247/api/health; do sleep 2; done'
+
+    - name: Run integration tests
+      run: |
+        python test_api.py
+
+    - name: Check service logs
+      if: failure()
+      run: |
+        docker-compose logs
+
+    - name: Stop services
+      if: always()
+      run: |
+        docker-compose down

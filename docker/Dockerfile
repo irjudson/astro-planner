@@ -12,12 +12,16 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements
 COPY backend/requirements.txt .
+COPY backend/requirements-test.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-test.txt
 
 # Copy application code
 COPY backend/app ./app
+COPY backend/tests ./tests
+COPY backend/pytest.ini ./pytest.ini
 COPY frontend ./frontend
 
 # Create data directory
