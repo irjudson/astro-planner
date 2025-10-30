@@ -75,11 +75,11 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker-compose build
+        docker compose build
 
     - name: Start services
       run: |
-        docker-compose up -d
+        docker compose up -d
         sleep 15
 
     - name: Wait for service to be ready
@@ -93,9 +93,9 @@ jobs:
     - name: Check service logs
       if: failure()
       run: |
-        docker-compose logs
+        docker compose logs
 
     - name: Stop services
       if: always()
       run: |
-        docker-compose down
+        docker compose down
