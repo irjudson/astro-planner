@@ -404,7 +404,109 @@
         .preferences-section {
             margin-bottom: 30px;
         }
+
+        /* QR Code Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            background: none;
+            border: none;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .qr-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #qr-code {
+            padding: 20px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .qr-instructions {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: left;
+            width: 100%;
+        }
+
+        .qr-instructions h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .qr-instructions ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .qr-instructions li {
+            margin-bottom: 8px;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -583,6 +685,7 @@
                 <div class="section">
                     <h2>Export Plan</h2>
                     <div class="export-buttons">
+                        <button class="export-btn" onclick="showQRCode()">📱 Share QR Code</button>
                         <button class="export-btn" onclick="exportPlan('json')">📄 Export JSON</button>
                         <button class="export-btn seestar-export" id="export-seestar-plan" onclick="exportPlan('seestar_plan')">🔭 Seestar Plan Mode</button>
                         <button class="export-btn seestar-export" id="export-seestar-alp" onclick="exportPlan('seestar_alp')">🚀 seestar_alp CSV (Recommended)</button>
@@ -599,6 +702,31 @@
                         5. Start automated imaging - it's that simple!<br>
                         <small style="opacity: 0.8;">The official Seestar app has no import capability. seestar_alp is the community standard for automated observing.</small>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qr-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📱 Share Observing Plan</h2>
+                <button class="close-btn" onclick="closeQRModal()">&times;</button>
+            </div>
+            <div class="qr-container">
+                <div id="qr-code"></div>
+                <div class="qr-instructions">
+                    <h3>How to use:</h3>
+                    <ol>
+                        <li>Scan the QR code with your phone or tablet</li>
+                        <li>Your device will open the plan data</li>
+                        <li>Save or share the plan with others</li>
+                        <li>Import into seestar_alp or use with other tools</li>
+                    </ol>
+                    <small style="opacity: 0.7; display: block; margin-top: 10px;">
+                        💡 The QR code contains your complete observing plan in JSON format
+                    </small>
                 </div>
             </div>
         </div>
@@ -899,6 +1027,49 @@
                 'csv': 'csv'
             };
             return extensions[format] || 'txt';
+        }
+
+        function showQRCode() {
+            if (!currentPlan) {
+                alert('Please generate a plan first');
+                return;
+            }
+
+            // Clear previous QR code
+            const qrContainer = document.getElementById('qr-code');
+            qrContainer.innerHTML = '';
+
+            // Create QR code with the plan data
+            const planData = JSON.stringify(currentPlan);
+
+            try {
+                new QRCode(qrContainer, {
+                    text: planData,
+                    width: 256,
+                    height: 256,
+                    colorDark: '#667eea',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                // Show modal
+                document.getElementById('qr-modal').style.display = 'block';
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                alert('Error generating QR code. The plan data might be too large.');
+            }
+        }
+
+        function closeQRModal() {
+            document.getElementById('qr-modal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('qr-modal');
+            if (event.target === modal) {
+                closeQRModal();
+            }
         }
     </script>
 </body>

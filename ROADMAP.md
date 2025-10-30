@@ -8,8 +8,9 @@ This document outlines the planned features and improvements for the Astro Plann
 
 ### Current State
 - ✅ Export to Seestar Plan Mode JSON format
-- ✅ Export to Seestar ALP format
-- ❌ User must manually transfer file to telescope
+- ✅ Export to Seestar ALP CSV format
+- ✅ QR code sharing for mobile workflow
+- ❌ Direct WiFi upload to Seestar S50
 - ❌ No direct integration with Seestar app/device
 
 ### Planned Features
@@ -361,7 +362,7 @@ class Comet:
 
 ### Q1 2026: Telescope Integration
 - ✅ Export formats (DONE)
-- 🎯 QR code plan sharing
+- ✅ QR code plan sharing (DONE)
 - 🎯 Seestar WiFi auto-discovery
 - 🎯 One-click plan transfer
 

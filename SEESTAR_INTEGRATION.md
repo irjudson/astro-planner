@@ -117,8 +117,16 @@ Check your plan for:
 #### 3. Export for seestar_alp
 
 1. Scroll to **"Export Plan"** section
-2. Click **"🚀 seestar_alp CSV (Recommended)"**
+2. Choose your preferred export method:
+   - **📱 Share QR Code** - Scan with phone/tablet for instant access
+   - **🚀 seestar_alp CSV (Recommended)** - Download CSV file
 3. Save file as: `observing_plan_YYYY-MM-DD.csv`
+
+**QR Code Method (Easiest for Mobile Workflow)**:
+- Click "Share QR Code" button
+- Scan with your phone or tablet camera
+- Your device will receive the complete plan in JSON format
+- Save or share the plan data for import into seestar_alp
 
 **What's in the export?**
 
