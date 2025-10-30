@@ -1,5 +1,7 @@
 """DSO catalog management service."""
 
+import sqlite3
+from pathlib import Path
 from typing import List, Optional
 from app.models import DSOTarget
 
@@ -7,336 +9,226 @@ from app.models import DSOTarget
 class CatalogService:
     """Service for managing deep sky object catalog."""
 
-    def __init__(self):
-        """Initialize catalog with built-in targets."""
-        self.targets = self._initialize_catalog()
+    def __init__(self, db_path: str = None):
+        """Initialize catalog service with SQLite database."""
+        # Auto-detect database path
+        if db_path is None:
+            # Try Docker path first, then local dev path
+            docker_path = Path("/app/data/catalogs.db")
+            local_path = Path("backend/data/catalogs.db")
+            if docker_path.exists():
+                db_path = str(docker_path)
+            else:
+                db_path = str(local_path)
 
-    def _initialize_catalog(self) -> List[DSOTarget]:
+        self.db_path = db_path
+        self._ensure_db_exists()
+
+    def _ensure_db_exists(self) -> None:
+        """Ensure database file exists, create with default catalog if not."""
+        db_file = Path(self.db_path)
+        if not db_file.exists():
+            # Database doesn't exist - try to create it
+            db_file.parent.mkdir(parents=True, exist_ok=True)
+            # Run import script to create database
+            import subprocess
+            import sys
+
+            # Determine the correct path to the import script
+            # In Docker, we're in /app, so scripts/ is directly accessible
+            # Outside Docker, we might be in backend/ or root
+            script_paths = [
+                "scripts/import_catalog.py",  # Docker path
+                "backend/scripts/import_catalog.py",  # Local dev path
+            ]
+
+            script_path = None
+            for path in script_paths:
+                if Path(path).exists():
+                    script_path = path
+                    break
+
+            if not script_path:
+                # Can't find import script, just create empty database
+                print(f"Warning: Import script not found. Creating empty database at {self.db_path}")
+                return
+
+            try:
+                subprocess.run([
+                    sys.executable, script_path,
+                    "--database", str(self.db_path)
+                ], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Warning: Failed to import catalog: {e}")
+                print(f"Please run manually: python {script_path} --database {self.db_path}")
+
+    def _db_row_to_target(self, row: tuple) -> DSOTarget:
+        """Convert database row to DSOTarget model."""
+        (id, catalog_name, catalog_number, common_name, ra_hours, dec_degrees,
+         object_type, magnitude, surface_brightness, size_major_arcmin,
+         size_minor_arcmin, constellation, created_at, updated_at) = row
+
+        # Generate catalog ID (e.g., "M31", "NGC224", "IC434")
+        catalog_id = f"{catalog_name}{catalog_number}"
+
+        # Use common name if available, otherwise generate from catalog
+        name = common_name if common_name else catalog_id
+
+        # Use major axis for size, default to 1.0 if None
+        size_arcmin = size_major_arcmin if size_major_arcmin else 1.0
+
+        # Generate description
+        type_name = object_type.replace('_', ' ').title()
+        description = f"{type_name}"
+        if constellation:
+            description += f" in {constellation}"
+
+        # Default magnitude if None
+        mag = magnitude if magnitude else 99.0
+
+        return DSOTarget(
+            name=name,
+            catalog_id=catalog_id,
+            object_type=object_type,
+            ra_hours=ra_hours,
+            dec_degrees=dec_degrees,
+            magnitude=mag,
+            size_arcmin=size_arcmin,
+            description=description
+        )
+
+    def _get_connection(self) -> sqlite3.Connection:
+        """Get database connection."""
+        conn = sqlite3.connect(self.db_path)
+        return conn
+
+    def get_all_targets(self, limit: Optional[int] = None, offset: int = 0) -> List[DSOTarget]:
         """
-        Initialize catalog with popular targets optimized for Seestar S50.
+        Get all targets in catalog.
 
-        Criteria:
-        - Appropriate size for 1.27° x 0.71° FOV
-        - Bright enough for short exposures (10s max)
-        - Good for alt-az mount (not too close to zenith)
+        Args:
+            limit: Maximum number of targets to return (None = all)
+            offset: Number of targets to skip (for pagination)
+
+        Returns:
+            List of DSOTarget objects
         """
-        catalog = [
-            # Messier Objects - Galaxies
-            DSOTarget(
-                name="Andromeda Galaxy",
-                catalog_id="M31",
-                object_type="galaxy",
-                ra_hours=0.712,
-                dec_degrees=41.269,
-                magnitude=3.4,
-                size_arcmin=178.0,
-                description="Large spiral galaxy in Andromeda"
-            ),
-            DSOTarget(
-                name="Triangulum Galaxy",
-                catalog_id="M33",
-                object_type="galaxy",
-                ra_hours=1.564,
-                dec_degrees=30.660,
-                magnitude=5.7,
-                size_arcmin=70.8,
-                description="Spiral galaxy in Triangulum"
-            ),
-            DSOTarget(
-                name="Bode's Galaxy",
-                catalog_id="M81",
-                object_type="galaxy",
-                ra_hours=9.928,
-                dec_degrees=69.065,
-                magnitude=6.9,
-                size_arcmin=26.9,
-                description="Spiral galaxy in Ursa Major"
-            ),
-            DSOTarget(
-                name="Cigar Galaxy",
-                catalog_id="M82",
-                object_type="galaxy",
-                ra_hours=9.928,
-                dec_degrees=69.680,
-                magnitude=8.4,
-                size_arcmin=11.2,
-                description="Starburst galaxy in Ursa Major"
-            ),
-            DSOTarget(
-                name="Whirlpool Galaxy",
-                catalog_id="M51",
-                object_type="galaxy",
-                ra_hours=13.498,
-                dec_degrees=47.195,
-                magnitude=8.4,
-                size_arcmin=11.2,
-                description="Interacting spiral galaxies in Canes Venatici"
-            ),
+        conn = self._get_connection()
+        cursor = conn.cursor()
 
-            # Messier Objects - Nebulae
-            DSOTarget(
-                name="Orion Nebula",
-                catalog_id="M42",
-                object_type="nebula",
-                ra_hours=5.583,
-                dec_degrees=-5.391,
-                magnitude=4.0,
-                size_arcmin=65.0,
-                description="Bright emission nebula in Orion"
-            ),
-            DSOTarget(
-                name="Lagoon Nebula",
-                catalog_id="M8",
-                object_type="nebula",
-                ra_hours=18.061,
-                dec_degrees=-24.383,
-                magnitude=6.0,
-                size_arcmin=90.0,
-                description="Emission nebula in Sagittarius"
-            ),
-            DSOTarget(
-                name="Eagle Nebula",
-                catalog_id="M16",
-                object_type="nebula",
-                ra_hours=18.314,
-                dec_degrees=-13.783,
-                magnitude=6.0,
-                size_arcmin=35.0,
-                description="Star-forming region with Pillars of Creation"
-            ),
-            DSOTarget(
-                name="Omega Nebula",
-                catalog_id="M17",
-                object_type="nebula",
-                ra_hours=18.347,
-                dec_degrees=-16.183,
-                magnitude=6.0,
-                size_arcmin=46.0,
-                description="Swan Nebula in Sagittarius"
-            ),
-            DSOTarget(
-                name="Trifid Nebula",
-                catalog_id="M20",
-                object_type="nebula",
-                ra_hours=18.035,
-                dec_degrees=-23.033,
-                magnitude=6.3,
-                size_arcmin=28.0,
-                description="Emission and reflection nebula"
-            ),
-            DSOTarget(
-                name="Ring Nebula",
-                catalog_id="M57",
-                object_type="planetary_nebula",
-                ra_hours=18.887,
-                dec_degrees=33.029,
-                magnitude=8.8,
-                size_arcmin=1.4,
-                description="Planetary nebula in Lyra"
-            ),
-            DSOTarget(
-                name="Dumbbell Nebula",
-                catalog_id="M27",
-                object_type="planetary_nebula",
-                ra_hours=19.991,
-                dec_degrees=22.721,
-                magnitude=7.5,
-                size_arcmin=8.0,
-                description="Planetary nebula in Vulpecula"
-            ),
+        query = "SELECT * FROM dso_catalog ORDER BY magnitude ASC"
+        if limit:
+            query += f" LIMIT {limit} OFFSET {offset}"
 
-            # Messier Objects - Star Clusters
-            DSOTarget(
-                name="Pleiades",
-                catalog_id="M45",
-                object_type="cluster",
-                ra_hours=3.783,
-                dec_degrees=24.117,
-                magnitude=1.6,
-                size_arcmin=110.0,
-                description="Open cluster in Taurus"
-            ),
-            DSOTarget(
-                name="Beehive Cluster",
-                catalog_id="M44",
-                object_type="cluster",
-                ra_hours=8.673,
-                dec_degrees=19.983,
-                magnitude=3.7,
-                size_arcmin=95.0,
-                description="Open cluster in Cancer"
-            ),
-            DSOTarget(
-                name="Wild Duck Cluster",
-                catalog_id="M11",
-                object_type="cluster",
-                ra_hours=18.850,
-                dec_degrees=-6.267,
-                magnitude=6.3,
-                size_arcmin=14.0,
-                description="Dense open cluster in Scutum"
-            ),
-            DSOTarget(
-                name="Hercules Cluster",
-                catalog_id="M13",
-                object_type="cluster",
-                ra_hours=16.695,
-                dec_degrees=36.459,
-                magnitude=5.8,
-                size_arcmin=20.0,
-                description="Globular cluster in Hercules"
-            ),
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        conn.close()
 
-            # NGC Objects
-            DSOTarget(
-                name="North America Nebula",
-                catalog_id="NGC7000",
-                object_type="nebula",
-                ra_hours=20.975,
-                dec_degrees=44.533,
-                magnitude=4.0,
-                size_arcmin=120.0,
-                description="Emission nebula in Cygnus"
-            ),
-            DSOTarget(
-                name="Rosette Nebula",
-                catalog_id="NGC2237",
-                object_type="nebula",
-                ra_hours=6.533,
-                dec_degrees=5.033,
-                magnitude=9.0,
-                size_arcmin=80.0,
-                description="Emission nebula in Monoceros"
-            ),
-            DSOTarget(
-                name="Flaming Star Nebula",
-                catalog_id="IC405",
-                object_type="nebula",
-                ra_hours=5.270,
-                dec_degrees=34.267,
-                magnitude=6.0,
-                size_arcmin=30.0,
-                description="Emission nebula in Auriga"
-            ),
-            DSOTarget(
-                name="Heart Nebula",
-                catalog_id="IC1805",
-                object_type="nebula",
-                ra_hours=2.550,
-                dec_degrees=61.450,
-                magnitude=6.5,
-                size_arcmin=60.0,
-                description="Emission nebula in Cassiopeia"
-            ),
-            DSOTarget(
-                name="Soul Nebula",
-                catalog_id="IC1848",
-                object_type="nebula",
-                ra_hours=2.900,
-                dec_degrees=60.433,
-                magnitude=6.5,
-                size_arcmin=60.0,
-                description="Emission nebula in Cassiopeia"
-            ),
-            DSOTarget(
-                name="Bubble Nebula",
-                catalog_id="NGC7635",
-                object_type="nebula",
-                ra_hours=23.342,
-                dec_degrees=61.200,
-                magnitude=10.0,
-                size_arcmin=15.0,
-                description="Emission nebula in Cassiopeia"
-            ),
-            DSOTarget(
-                name="Owl Cluster",
-                catalog_id="NGC457",
-                object_type="cluster",
-                ra_hours=1.317,
-                dec_degrees=58.283,
-                magnitude=6.4,
-                size_arcmin=13.0,
-                description="Open cluster in Cassiopeia"
-            ),
-            DSOTarget(
-                name="Double Cluster",
-                catalog_id="NGC869",
-                object_type="cluster",
-                ra_hours=2.317,
-                dec_degrees=57.133,
-                magnitude=4.3,
-                size_arcmin=30.0,
-                description="Pair of open clusters in Perseus"
-            ),
-            DSOTarget(
-                name="California Nebula",
-                catalog_id="NGC1499",
-                object_type="nebula",
-                ra_hours=4.033,
-                dec_degrees=36.367,
-                magnitude=5.0,
-                size_arcmin=145.0,
-                description="Emission nebula in Perseus"
-            ),
-            DSOTarget(
-                name="Horsehead Nebula",
-                catalog_id="IC434",
-                object_type="nebula",
-                ra_hours=5.683,
-                dec_degrees=-2.450,
-                magnitude=6.8,
-                size_arcmin=60.0,
-                description="Dark nebula in Orion"
-            ),
-            DSOTarget(
-                name="Monkey Head Nebula",
-                catalog_id="NGC2174",
-                object_type="nebula",
-                ra_hours=6.158,
-                dec_degrees=20.567,
-                magnitude=6.8,
-                size_arcmin=40.0,
-                description="Emission nebula in Orion"
-            ),
-            DSOTarget(
-                name="Cone Nebula",
-                catalog_id="NGC2264",
-                object_type="nebula",
-                ra_hours=6.683,
-                dec_degrees=9.900,
-                magnitude=3.9,
-                size_arcmin=20.0,
-                description="Emission nebula in Monoceros"
-            ),
-        ]
-
-        return catalog
-
-    def get_all_targets(self) -> List[DSOTarget]:
-        """Get all targets in catalog."""
-        return self.targets
+        return [self._db_row_to_target(row) for row in rows]
 
     def get_target_by_id(self, catalog_id: str) -> Optional[DSOTarget]:
-        """Get a specific target by catalog ID."""
-        for target in self.targets:
-            if target.catalog_id.lower() == catalog_id.lower():
-                return target
+        """
+        Get a specific target by catalog ID.
+
+        Args:
+            catalog_id: Catalog identifier (e.g., "M31", "NGC224", "IC434")
+
+        Returns:
+            DSOTarget object or None if not found
+        """
+        # Parse catalog ID to extract catalog name and number
+        # Handle formats: M31, NGC224, IC434
+        catalog_id_upper = catalog_id.upper()
+
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        # For Messier objects, search by common_name (stored as M042, M031, etc.)
+        if catalog_id_upper.startswith('M') and len(catalog_id_upper) > 1 and catalog_id_upper[1:].isdigit():
+            # Pad the Messier number to 3 digits (M42 -> M042)
+            messier_padded = f"M{int(catalog_id_upper[1:]):03d}"
+            cursor.execute("""
+                SELECT * FROM dso_catalog
+                WHERE common_name = ?
+            """, (messier_padded,))
+        elif catalog_id_upper.startswith('NGC'):
+            catalog_number = catalog_id_upper[3:]
+            cursor.execute("""
+                SELECT * FROM dso_catalog
+                WHERE catalog_name = 'NGC' AND catalog_number = ?
+            """, (catalog_number,))
+        elif catalog_id_upper.startswith('IC'):
+            catalog_number = catalog_id_upper[2:]
+            cursor.execute("""
+                SELECT * FROM dso_catalog
+                WHERE catalog_name = 'IC' AND catalog_number = ?
+            """, (catalog_number,))
+        else:
+            conn.close()
+            return None
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            return self._db_row_to_target(row)
         return None
 
-    def filter_targets(self, object_types: Optional[List[str]] = None) -> List[DSOTarget]:
+    def filter_targets(
+        self,
+        object_types: Optional[List[str]] = None,
+        min_magnitude: Optional[float] = None,
+        max_magnitude: Optional[float] = None,
+        constellation: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: int = 0
+    ) -> List[DSOTarget]:
         """
-        Filter targets by object type.
+        Filter targets by various criteria.
 
         Args:
             object_types: List of object types to include (None = all)
+            min_magnitude: Minimum magnitude (brighter)
+            max_magnitude: Maximum magnitude (fainter)
+            constellation: Constellation name filter
+            limit: Maximum number of results
+            offset: Number of results to skip (for pagination)
 
         Returns:
             Filtered list of targets
         """
-        if object_types is None or len(object_types) == 0:
-            return self.targets
+        conn = self._get_connection()
+        cursor = conn.cursor()
 
-        return [
-            target for target in self.targets
-            if target.object_type in object_types
-        ]
+        # Build query with filters
+        query = "SELECT * FROM dso_catalog WHERE 1=1"
+        params = []
+
+        if object_types and len(object_types) > 0:
+            placeholders = ','.join('?' * len(object_types))
+            query += f" AND object_type IN ({placeholders})"
+            params.extend(object_types)
+
+        if min_magnitude is not None:
+            query += " AND magnitude >= ?"
+            params.append(min_magnitude)
+
+        if max_magnitude is not None:
+            query += " AND magnitude <= ?"
+            params.append(max_magnitude)
+
+        if constellation:
+            query += " AND constellation = ?"
+            params.append(constellation)
+
+        # Order by magnitude (brightest first)
+        query += " ORDER BY magnitude ASC"
+
+        if limit:
+            query += f" LIMIT {limit} OFFSET {offset}"
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [self._db_row_to_target(row) for row in rows]

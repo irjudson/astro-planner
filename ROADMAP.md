@@ -2,6 +2,11 @@
 
 This document outlines the planned features and improvements for the Astro Planner application.
 
+**📋 NEW: Detailed technical integration plan now available!**
+See [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) for comprehensive research on weather APIs, comet/asteroid data sources, and catalog expansion with code examples and implementation steps.
+
+**Last Updated**: 2025-10-30
+
 ## 🎯 Priority 1: Seamless Telescope Integration (Seestar S50)
 
 **Goal**: Make it stupid simple to load plans onto the Seestar S50 telescope
@@ -93,19 +98,31 @@ Option C: File-Based with Auto-Upload
 
 ### Planned Features
 
-#### 2.1 Comprehensive DSO Catalogs
-**Status**: Not Started
+#### 2.1 Comprehensive DSO Catalogs ✅ RESEARCHED
+**Status**: Research Complete, Ready for Implementation
 **Priority**: High
-**Effort**: Medium
+**Effort**: Medium (6-8 weeks)
 
-**Catalogs to Add**:
+**Primary Catalog Source (FREE)**:
+- **OpenNGC** ✅: Open-source NGC/IC database with CC-BY-SA-4.0 license (commercial-friendly!)
+  - Python library: `pyongc`
+  - **13,226 objects total**: 7,840 NGC + 5,386 IC
+  - Includes Messier cross-references and common names
+  - One-time import to SQLite database
+  - **Recommended as primary catalog**
+
+**Catalogs Included in OpenNGC**:
 - **Messier Catalog**: Complete 110 objects (currently ~15)
-- **NGC Catalog**: ~7,840 objects (New General Catalogue)
-- **IC Catalog**: ~5,386 objects (Index Catalogue)
+- **NGC Catalog**: Complete 7,840 objects (New General Catalogue)
+- **IC Catalog**: Complete 5,386 objects (Index Catalogue)
+- All with RA/Dec, magnitude, size, object type, constellation
+
+**Future Catalogs (via VizieR/SIMBAD)**:
 - **Caldwell Catalog**: 109 objects for amateur astronomy
 - **Arp Catalog**: 338 peculiar galaxies
 - **Sharpless Catalog**: 313 HII regions (emission nebulae)
-- **Abell Catalog**: Planetary nebulae and galaxy clusters
+
+**See INTEGRATION_PLAN.md Section "DSO Catalog Expansion" for database schema and import code**
 
 **Database Schema**:
 ```sql
@@ -188,23 +205,30 @@ Size: ___ arcmin
 
 ### Planned Features
 
-#### 3.1 Multiple Weather Sources
-**Status**: Not Started
+#### 3.1 Multiple Weather Sources ✅ RESEARCHED
+**Status**: Research Complete, Ready for Implementation
 **Priority**: High
-**Effort**: Medium
+**Effort**: Medium (4-6 weeks)
 
-**Sources to Integrate**:
-- **Clear Outside**: Astronomy-specific forecasts (cloud cover, seeing, transparency)
-- **Meteoblue**: High-resolution weather models
-- **7Timer**: Astronomy-focused free API
-- **NOAA/NWS**: US-based official forecasts
-- **Weather Underground**: Hyperlocal conditions
-- **Satellite Imagery**: Real-time cloud cover (GOES, etc.)
+**Primary Source (FREE)**:
+- **7Timer** ✅: Astronomy-specific, includes seeing (arcseconds) and transparency (magnitude limit), 3-layer cloud cover, completely free NOAA GFS-based forecasts
+  - API: `http://www.7timer.info/bin/astro.php`
+  - No authentication required
+  - Returns JSON with 72-hour forecasts
+  - **Recommended as Phase 1 implementation**
 
-**Composite Score**:
-- Aggregate multiple sources for better accuracy
-- Show confidence level based on source agreement
-- Fallback if primary source unavailable
+**Secondary Sources**:
+- **OpenWeatherMap** (CURRENT): Keep for baseline weather, precipitation, moon phase
+- **Meteoblue** (PAID ~€200-500/year): Premium seeing predictions, consider for Phase 4
+- **Clear Outside**: No public API available (web scraping not recommended)
+
+**Composite Score Architecture**:
+- Weight 7Timer at 60% (best for astronomy)
+- Weight OpenWeatherMap at 40% (good baseline)
+- Show confidence level based on source availability
+- Automatic fallback if primary unavailable
+
+**See INTEGRATION_PLAN.md Section "Weather & Seeing Integration" for detailed implementation**
 
 #### 3.2 Astronomy-Specific Metrics
 **Status**: Not Started
@@ -257,23 +281,33 @@ Moon: 🌒 23% (sets at 10:32 PM)
 
 ### Planned Features
 
-#### 4.1 Comet Database & Ephemeris
-**Status**: Not Started
+#### 4.1 Comet Database & Ephemeris ✅ RESEARCHED
+**Status**: Research Complete, Ready for Implementation
 **Priority**: High
-**Effort**: High
+**Effort**: Medium (6-8 weeks)
 
-**Features**:
-- MPC (Minor Planet Center) integration
-- Automatic orbital element updates
-- Real-time position calculation
-- Brightness predictions
-- "Currently visible" comet list
+**Primary Data Source (FREE)**:
+- **JPL Horizons via astroquery** ✅: Official NASA ephemeris for 4,034 comets, 1.4M+ asteroids
+  - Python library: `from astroquery.jplhorizons import Horizons`
+  - No authentication required
+  - Real-time position calculation (RA/Dec/Alt/Az)
+  - Magnitude predictions
+  - Rise/set times
+  - **Recommended as primary ephemeris engine**
 
-**Data Sources**:
-- **MPC Orbital Elements**: https://minorplanetcenter.net/
-- **JPL Horizons**: NASA ephemeris service
-- **Heavens-Above**: Amateur-friendly predictions
-- **COBS (Comet Observation Database)**: Brightness estimates
+**Supporting Sources (FREE)**:
+- **MPC (Minor Planet Center)**: Weekly comet discovery updates via `astroquery.mpc`
+- **COBS (Comet Observation Database)**: Real observed brightness (more accurate than predictions)
+  - API: `https://cobs.si/api/`
+  - Override JPL predictions with recent observations (last 4 days)
+
+**Implementation Highlights**:
+- Database table for comets with orbital elements
+- Auto-update catalog weekly from MPC
+- Cache ephemeris calculations (Redis, 1 hour TTL)
+- "Currently Visible Comets" UI widget
+
+**See INTEGRATION_PLAN.md Section "Comet & Asteroid Integration" for code examples**
 
 **Comet-Specific Planning**:
 ```python
@@ -360,29 +394,39 @@ class Comet:
 
 ## 📅 Timeline & Milestones
 
-### Q1 2026: Telescope Integration
-- ✅ Export formats (DONE)
-- ✅ QR code plan sharing (DONE)
+### Q1 2026: Weather Enhancement (PRIORITY 1)
+- ✅ Research complete (2025-10-30)
+- 🎯 7Timer API integration (seeing & transparency)
+- 🎯 Composite weather scoring (multi-source)
+- 🎯 Moon phase/illumination from OpenWeatherMap
+- 🎯 UI updates with astronomy-specific metrics
+**Estimated**: 4-6 weeks | **All sources FREE**
+
+### Q2 2026: Comet & Asteroid Support (PRIORITY 2)
+- ✅ Research complete (2025-10-30)
+- 🎯 JPL Horizons via astroquery (ephemeris engine)
+- 🎯 MPC integration (comet discoveries)
+- 🎯 COBS integration (real brightness data)
+- 🎯 Database schema for solar system objects
+- 🎯 "Currently Visible Comets" UI
+- 🎯 Scheduler support for moving objects
+**Estimated**: 6-8 weeks | **All sources FREE**
+
+### Q3 2026: Expanded Catalogs (PRIORITY 3)
+- ✅ Research complete (2025-10-30)
+- 🎯 OpenNGC import (13,226 NGC/IC objects)
+- 🎯 Database migration (dict → SQLite)
+- 🎯 Advanced filtering & search API
+- 🎯 User custom target support
+- 🎯 SIMBAD enrichment (background jobs)
+**Estimated**: 6-8 weeks | **All sources FREE**
+
+### Q4 2026: Telescope Integration & Premium Features
 - 🎯 Seestar WiFi auto-discovery
 - 🎯 One-click plan transfer
-
-### Q2 2026: Expanded Catalogs
-- 🎯 Complete Messier catalog (110 objects)
-- 🎯 NGC catalog (top 1000 objects)
-- 🎯 Database migration
-- 🎯 Advanced filtering
-
-### Q3 2026: Weather Enhancements
-- 🎯 Clear Outside integration
-- 🎯 Seeing & transparency metrics
-- 🎯 Multi-day forecasts
-- 🎯 Email alerts for good conditions
-
-### Q4 2026: Solar System Objects
-- 🎯 Comet ephemeris calculations
-- 🎯 MPC orbital element integration
-- 🎯 Bright asteroid tracking
-- 🎯 Auto-updating comet list
+- 🎯 Meteoblue premium seeing (PAID option)
+- 🎯 Observation history tracking
+**Estimated**: 4-6 weeks
 
 ---
 
@@ -401,16 +445,38 @@ https://github.com/irjudson/astro-planner/issues
 
 ---
 
+## 💰 Cost Summary (2025-10-30 Research)
+
+### Free Tier (Phases 1-3)
+All core features can be implemented with **$0 monthly cost**:
+- ✅ 7Timer (weather/seeing/transparency): FREE
+- ✅ JPL Horizons (comet/asteroid ephemeris): FREE
+- ✅ MPC (comet discoveries): FREE
+- ✅ COBS (brightness observations): FREE
+- ✅ OpenNGC (13K+ DSO catalog): FREE
+- ✅ SIMBAD/VizieR (catalog enrichment): FREE
+- ✅ OpenWeatherMap (1000 calls/day): FREE
+
+### Optional Premium Tier (Phase 4)
+- Meteoblue API: ~$17-42/month
+- Redis hosting: ~$15/month
+- PostgreSQL hosting: ~$25/month
+**Total**: ~$67-92/month (for production scaling)
+
+---
+
 ## 📊 Success Metrics
 
 - **User Adoption**: 1000+ active users
 - **Plan Transfers**: 10,000+ plans loaded to telescopes
 - **Catalog Size**: 10,000+ targets available
-- **Weather Accuracy**: 85%+ forecast accuracy
+- **Weather Accuracy**: 85%+ forecast accuracy (composite scoring)
+- **Comet Coverage**: 20+ visible comets tracked automatically
 - **User Satisfaction**: 4.5/5 star rating
 
 ---
 
-*Last Updated*: 2025-10-29
+*Last Updated*: 2025-10-30 (Research complete)
 *Version*: 1.0.0
-*Status*: Active Development
+*Status*: Active Development - Ready for Phase 1 implementation
+*Next Step*: Review [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) and begin weather integration
