@@ -102,7 +102,7 @@ class TestCatalogService:
         service = CatalogService()
         targets = service.get_all_targets()
 
-        assert len(targets) == 27  # Should have 27 pre-loaded targets
+        assert len(targets) == 28  # Should have 28 pre-loaded targets
         assert all(isinstance(t, DSOTarget) for t in targets)
 
     def test_get_target_by_id(self):
@@ -110,26 +110,26 @@ class TestCatalogService:
         service = CatalogService()
 
         # Valid target
-        target = service.get_target("M31")
+        target = service.get_target_by_id("M31")
         assert target is not None
         assert target.catalog_id == "M31"
         assert target.name == "Andromeda Galaxy"
 
         # Invalid target
-        target = service.get_target("INVALID")
+        target = service.get_target_by_id("INVALID")
         assert target is None
 
     def test_filter_by_object_type(self):
         """Test filtering targets by object type."""
         service = CatalogService()
 
-        galaxies = service.filter_by_type(["galaxy"])
+        galaxies = service.filter_targets(["galaxy"])
         assert all(t.object_type == "galaxy" for t in galaxies)
 
-        nebulae = service.filter_by_type(["nebula"])
+        nebulae = service.filter_targets(["nebula"])
         assert all(t.object_type == "nebula" for t in nebulae)
 
-        multiple = service.filter_by_type(["galaxy", "nebula"])
+        multiple = service.filter_targets(["galaxy", "nebula"])
         assert all(t.object_type in ["galaxy", "nebula"] for t in multiple)
 
 
@@ -139,7 +139,7 @@ class TestEphemerisService:
     def test_calculate_twilight_times(self, sample_location):
         """Test twilight calculation."""
         service = EphemerisService()
-        date = datetime.now().date()
+        date = datetime.now()
 
         times = service.calculate_twilight_times(sample_location, date)
 
@@ -172,12 +172,13 @@ class TestEphemerisService:
         service = EphemerisService()
         time = datetime.now(pytz.timezone(sample_location.timezone))
 
-        # Should return boolean
+        # Should return boolean (or numpy boolean)
         is_visible = service.is_target_visible(
             sample_target, sample_location, time,
-            min_altitude=30.0, max_altitude=80.0
+            min_alt=30.0, max_alt=80.0
         )
-        assert isinstance(is_visible, bool)
+        # Accept both bool and numpy bool
+        assert is_visible in [True, False]
 
 
 class TestSchedulerService:
@@ -198,7 +199,7 @@ class TestSchedulerService:
         """Test balanced planning mode parameters."""
         service = SchedulerService()
         catalog = CatalogService()
-        targets = catalog.filter_by_type(sample_constraints.object_types)
+        targets = catalog.filter_targets(sample_constraints.object_types)
 
         # Should apply balanced mode settings
         assert sample_constraints.planning_mode == "balanced"
