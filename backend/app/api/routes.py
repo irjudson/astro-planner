@@ -50,22 +50,48 @@ async def generate_plan(request: PlanRequest):
 
 @router.get("/targets", response_model=List[DSOTarget])
 async def list_targets(
-    object_type: Optional[str] = Query(None, description="Filter by object type")
+    object_types: Optional[List[str]] = Query(None, description="Filter by object types (can specify multiple)"),
+    min_magnitude: Optional[float] = Query(None, description="Minimum magnitude (brighter objects have lower values)"),
+    max_magnitude: Optional[float] = Query(None, description="Maximum magnitude (fainter limit)"),
+    constellation: Optional[str] = Query(None, description="Filter by constellation (3-letter abbreviation)"),
+    limit: Optional[int] = Query(100, description="Maximum number of results (default: 100, max: 1000)", le=1000),
+    offset: int = Query(0, description="Offset for pagination (default: 0)", ge=0)
 ):
     """
-    List all available DSO targets.
+    List available DSO targets with advanced filtering.
+
+    Supports filtering by:
+    - Object type (galaxy, nebula, cluster, planetary_nebula)
+    - Magnitude range (brightness)
+    - Constellation
+    - Pagination (limit/offset)
+
+    Examples:
+    - /targets?limit=20 - Get 20 brightest objects
+    - /targets?object_types=galaxy&object_types=nebula - Get galaxies and nebulae
+    - /targets?max_magnitude=10&limit=50 - Get 50 objects brighter than magnitude 10
+    - /targets?constellation=Ori - Get all objects in Orion
 
     Args:
-        object_type: Optional filter by object type (galaxy, nebula, cluster, planetary_nebula)
+        object_types: Filter by one or more object types
+        min_magnitude: Filter by minimum magnitude (brighter)
+        max_magnitude: Filter by maximum magnitude (fainter)
+        constellation: Filter by constellation
+        limit: Maximum number of results to return
+        offset: Number of results to skip (for pagination)
 
     Returns:
-        List of DSO targets
+        List of DSO targets matching filters, sorted by brightness
     """
     try:
-        if object_type:
-            targets = catalog.filter_targets([object_type])
-        else:
-            targets = catalog.get_all_targets()
+        targets = catalog.filter_targets(
+            object_types=object_types,
+            min_magnitude=min_magnitude,
+            max_magnitude=max_magnitude,
+            constellation=constellation,
+            limit=limit,
+            offset=offset
+        )
         return targets
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching targets: {str(e)}")
@@ -86,6 +112,82 @@ async def get_target(catalog_id: str):
     if not target:
         raise HTTPException(status_code=404, detail=f"Target not found: {catalog_id}")
     return target
+
+
+@router.get("/catalog/stats")
+async def get_catalog_stats():
+    """
+    Get statistics about the DSO catalog.
+
+    Returns summary information about the catalog including:
+    - Total number of objects
+    - Count by object type
+    - Count by catalog (Messier, NGC, IC)
+    - Magnitude distribution
+
+    Returns:
+        Catalog statistics dictionary
+    """
+    try:
+        import sqlite3
+        from pathlib import Path
+
+        # Get database path
+        db_path = catalog.db_path
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Total objects
+        cursor.execute("SELECT COUNT(*) FROM dso_catalog")
+        total = cursor.fetchone()[0]
+
+        # By object type
+        cursor.execute("""
+            SELECT object_type, COUNT(*)
+            FROM dso_catalog
+            GROUP BY object_type
+            ORDER BY COUNT(*) DESC
+        """)
+        by_type = {row[0]: row[1] for row in cursor.fetchall()}
+
+        # By catalog
+        cursor.execute("""
+            SELECT catalog_name, COUNT(*)
+            FROM dso_catalog
+            GROUP BY catalog_name
+            ORDER BY COUNT(*) DESC
+        """)
+        by_catalog = {row[0]: row[1] for row in cursor.fetchall()}
+
+        # Magnitude ranges
+        cursor.execute("""
+            SELECT
+                COUNT(CASE WHEN magnitude <= 5 THEN 1 END) as very_bright,
+                COUNT(CASE WHEN magnitude > 5 AND magnitude <= 10 THEN 1 END) as bright,
+                COUNT(CASE WHEN magnitude > 10 AND magnitude <= 15 THEN 1 END) as moderate,
+                COUNT(CASE WHEN magnitude > 15 THEN 1 END) as faint
+            FROM dso_catalog
+            WHERE magnitude IS NOT NULL AND magnitude < 99
+        """)
+        mag_row = cursor.fetchone()
+        magnitude_ranges = {
+            "<=5.0 (Very Bright)": mag_row[0],
+            "5.0-10.0 (Bright)": mag_row[1],
+            "10.0-15.0 (Moderate)": mag_row[2],
+            ">15.0 (Faint)": mag_row[3]
+        }
+
+        conn.close()
+
+        return {
+            "total_objects": total,
+            "by_type": by_type,
+            "by_catalog": by_catalog,
+            "by_magnitude": magnitude_ranges,
+            "database_path": str(db_path)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching catalog stats: {str(e)}")
 
 
 @router.post("/twilight")
