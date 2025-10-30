@@ -585,9 +585,19 @@
                     <div class="export-buttons">
                         <button class="export-btn" onclick="exportPlan('json')">📄 Export JSON</button>
                         <button class="export-btn seestar-export" id="export-seestar-plan" onclick="exportPlan('seestar_plan')">🔭 Seestar Plan Mode</button>
-                        <button class="export-btn seestar-export" id="export-seestar-alp" onclick="exportPlan('seestar_alp')">📋 Seestar ALP</button>
+                        <button class="export-btn seestar-export" id="export-seestar-alp" onclick="exportPlan('seestar_alp')">🚀 seestar_alp CSV (Recommended)</button>
                         <button class="export-btn" onclick="exportPlan('text')">📝 Text Format</button>
                         <button class="export-btn" onclick="exportPlan('csv')">📊 CSV Format</button>
+                    </div>
+
+                    <div class="date-notice seestar-export" id="seestar-help" style="margin-top: 15px; display: none;">
+                        <strong>🚀 How to use with Seestar S50:</strong><br>
+                        1. Click "<strong>seestar_alp CSV</strong>" to download your observing plan<br>
+                        2. Set up <a href="https://github.com/smart-underworld/seestar_alp" target="_blank" style="color: #667eea;">seestar_alp</a> on a Raspberry Pi or computer<br>
+                        3. Connect your Seestar S50 to WiFi (Station Mode)<br>
+                        4. Import the CSV file in seestar_alp web interface<br>
+                        5. Start automated imaging - it's that simple!<br>
+                        <small style="opacity: 0.8;">The official Seestar app has no import capability. seestar_alp is the community standard for automated observing.</small>
                     </div>
                 </div>
             </div>
@@ -607,18 +617,19 @@
             const seestarOptions = document.querySelectorAll('.seestar-option');
 
             if (telescope === 'seestar_s50') {
-                // Show Seestar-specific exports
-                seestarExports.forEach(btn => {
-                    btn.style.display = 'inline-block';
+                // Show Seestar-specific exports and help
+                seestarExports.forEach(elem => {
+                    // Buttons use inline-block, divs use block
+                    elem.style.display = elem.tagName === 'BUTTON' ? 'inline-block' : 'block';
                 });
                 // Show Seestar-specific options (exposure time)
                 seestarOptions.forEach(opt => {
                     opt.style.display = 'flex';
                 });
             } else {
-                // Hide Seestar-specific exports
-                seestarExports.forEach(btn => {
-                    btn.style.display = 'none';
+                // Hide Seestar-specific exports and help
+                seestarExports.forEach(elem => {
+                    elem.style.display = 'none';
                 });
                 // Hide Seestar-specific options (exposure time)
                 seestarOptions.forEach(opt => {
@@ -883,7 +894,7 @@
             const extensions = {
                 'json': 'json',
                 'seestar_plan': 'json',
-                'seestar_alp': 'alp',
+                'seestar_alp': 'csv',  // CSV format for seestar_alp import
                 'text': 'txt',
                 'csv': 'csv'
             };
