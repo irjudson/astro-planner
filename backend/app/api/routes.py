@@ -1,8 +1,9 @@
 """API routes for the Astro Planner."""
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
+import uuid
 
 from app.models import (
     PlanRequest, ObservingPlan, DSOTarget, Location, ExportFormat
@@ -15,6 +16,9 @@ router = APIRouter()
 # Initialize services
 planner = PlannerService()
 catalog = CatalogService()
+
+# In-memory storage for shared plans (in production, use Redis or database)
+shared_plans: Dict[str, ObservingPlan] = {}
 
 
 @router.post("/plan", response_model=ObservingPlan)
@@ -122,6 +126,54 @@ async def export_plan(plan: ObservingPlan, format: str = Query(..., description=
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting plan: {str(e)}")
+
+
+@router.post("/share")
+async def share_plan(plan: ObservingPlan):
+    """
+    Save a plan and return a shareable ID.
+
+    Args:
+        plan: Observing plan to share
+
+    Returns:
+        Shareable plan ID and URL
+    """
+    try:
+        # Generate a short, unique ID
+        plan_id = str(uuid.uuid4())[:8]
+
+        # Ensure uniqueness
+        while plan_id in shared_plans:
+            plan_id = str(uuid.uuid4())[:8]
+
+        # Store the plan
+        shared_plans[plan_id] = plan
+
+        return {
+            "plan_id": plan_id,
+            "share_url": f"/plan/{plan_id}",
+            "message": "Plan saved successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error sharing plan: {str(e)}")
+
+
+@router.get("/plans/{plan_id}")
+async def get_shared_plan(plan_id: str):
+    """
+    Retrieve a shared plan by ID.
+
+    Args:
+        plan_id: Shareable plan ID
+
+    Returns:
+        Observing plan
+    """
+    if plan_id not in shared_plans:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    return shared_plans[plan_id]
 
 
 @router.get("/health")

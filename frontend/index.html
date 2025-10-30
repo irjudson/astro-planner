@@ -720,12 +720,12 @@
                     <h3>How to use:</h3>
                     <ol>
                         <li>Scan the QR code with your phone or tablet</li>
-                        <li>Your device will open the plan data</li>
-                        <li>Save or share the plan with others</li>
-                        <li>Import into seestar_alp or use with other tools</li>
+                        <li>Opens a shareable web page with your plan</li>
+                        <li>Download CSV for seestar_alp import</li>
+                        <li>Share the URL with others</li>
                     </ol>
                     <small style="opacity: 0.7; display: block; margin-top: 10px;">
-                        💡 The QR code contains your complete observing plan in JSON format
+                        💡 The QR code contains a short URL to your plan. Plans are stored temporarily on this server.
                     </small>
                 </div>
             </div>
@@ -1029,34 +1029,51 @@
             return extensions[format] || 'txt';
         }
 
-        function showQRCode() {
+        async function showQRCode() {
             if (!currentPlan) {
                 alert('Please generate a plan first');
                 return;
             }
 
-            // Clear previous QR code
-            const qrContainer = document.getElementById('qr-code');
-            qrContainer.innerHTML = '';
-
-            // Create QR code with the plan data
-            const planData = JSON.stringify(currentPlan);
-
             try {
+                // Save plan to server and get shareable URL
+                const response = await fetch('/api/share', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(currentPlan)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                // Create full URL
+                const shareUrl = `${window.location.origin}/plan/${result.plan_id}`;
+
+                // Clear previous QR code
+                const qrContainer = document.getElementById('qr-code');
+                qrContainer.innerHTML = '';
+
+                // Create QR code with the shareable URL
                 new QRCode(qrContainer, {
-                    text: planData,
+                    text: shareUrl,
                     width: 256,
                     height: 256,
                     colorDark: '#667eea',
                     colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M
+                    correctLevel: QRCode.CorrectLevel.H
                 });
 
                 // Show modal
                 document.getElementById('qr-modal').style.display = 'block';
+
             } catch (error) {
                 console.error('Error generating QR code:', error);
-                alert('Error generating QR code. The plan data might be too large.');
+                alert(`Error generating QR code: ${error.message}`);
             }
         }
 
