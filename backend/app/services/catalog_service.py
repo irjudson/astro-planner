@@ -69,10 +69,16 @@ class CatalogService:
          size_minor_arcmin, constellation, created_at, updated_at) = row
 
         # Generate catalog ID (e.g., "M31", "NGC224", "IC434")
-        catalog_id = f"{catalog_name}{catalog_number}"
-
-        # Use common name if available, otherwise generate from catalog
-        name = common_name if common_name else catalog_id
+        # For Messier objects (stored with common_name like "M031"), use that as catalog_id
+        if common_name and common_name.startswith('M') and common_name[1:].isdigit():
+            # Convert M031 -> M31 by removing leading zeros
+            messier_num = int(common_name[1:])
+            catalog_id = f"M{messier_num}"
+            name = catalog_id  # Use M31 as both catalog_id and name
+        else:
+            catalog_id = f"{catalog_name}{catalog_number}"
+            # Use common name if available, otherwise generate from catalog
+            name = common_name if common_name else catalog_id
 
         # Use major axis for size, default to 1.0 if None
         size_arcmin = size_major_arcmin if size_major_arcmin else 1.0
