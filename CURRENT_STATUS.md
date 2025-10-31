@@ -11,7 +11,10 @@ A production-ready astrophotography session planner web application optimized fo
 - **Astronomical Calculations**: Precise twilight times (civil, nautical, astronomical), altitude/azimuth positions, field rotation rates for alt-az mounts
 - **Smart Scheduling**: Greedy algorithm with urgency-based lookahead to maximize night coverage
 - **Weather Integration**: OpenWeatherMap API support (optional, falls back to optimistic defaults)
-- **27 Pre-loaded Targets**: Popular Messier, NGC, and IC objects optimized for Seestar S50
+- **12,394 DSO Targets** (NEW!): Comprehensive catalog from OpenNGC with Messier, NGC, and IC objects
+  - Advanced filtering (magnitude, type, constellation)
+  - Statistics API endpoint
+  - Pagination support (up to 1000 per request)
 
 ### Planning Modes (NEW!)
 - **Balanced Mode** (default): 20min minimum, 90min maximum per target, 0.6 score threshold, up to 15 targets
