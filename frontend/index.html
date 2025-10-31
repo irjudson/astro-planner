@@ -505,6 +505,248 @@
         .qr-instructions li {
             margin-bottom: 8px;
         }
+
+        /* Tab Navigation */
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 25px;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Catalog Browser Styles */
+        .catalog-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .catalog-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .catalog-filters {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .search-box button {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 7px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .catalog-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .catalog-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .catalog-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .catalog-item-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .catalog-item-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+        }
+
+        .catalog-item-details {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .catalog-item-details div {
+            margin: 5px 0;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .pagination button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        .pagination button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filter-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .filter-tag {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2em;
+            line-height: 1;
+            padding: 0;
+        }
+
+        select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -513,9 +755,15 @@
         <header>
             <h1>🔭 Astro Planner</h1>
             <p>Astrophotography Session Planner</p>
+            <div style="margin-top: 15px;">
+                <button class="nav-btn active" onclick="showTab('planner')" id="planner-tab-btn">📅 Planner</button>
+                <button class="nav-btn" onclick="showTab('catalog')" id="catalog-tab-btn">📚 Catalog Browser</button>
+            </div>
         </header>
 
         <div class="content">
+            <!-- Planner Tab -->
+            <div id="planner-tab" class="tab-content active">
             <!-- Location & Device (Collapsible) -->
             <div class="collapsible-section">
                 <div class="collapsible-header" onclick="toggleCollapsible('location-device')">
@@ -704,6 +952,110 @@
                     </div>
                 </div>
             </div>
+            </div>
+            <!-- End Planner Tab -->
+
+            <!-- Catalog Browser Tab -->
+            <div id="catalog-tab" class="tab-content">
+                <!-- Catalog Stats Header -->
+                <div class="catalog-header">
+                    <h2>📚 Deep Sky Object Catalog</h2>
+                    <p>Browse 12,394 deep sky objects from OpenNGC catalog (Messier, NGC, and IC objects)</p>
+                    <div class="catalog-stats" id="catalog-stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value">-</span>
+                            <span class="stat-label">Total Objects</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">-</span>
+                            <span class="stat-label">Galaxies</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">-</span>
+                            <span class="stat-label">Clusters</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">-</span>
+                            <span class="stat-label">Nebulae</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">-</span>
+                            <span class="stat-label">Planetary Nebulae</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search and Filters -->
+                <div class="catalog-filters">
+                    <h3>🔍 Search & Filter</h3>
+
+                    <div class="search-box">
+                        <input type="text" id="catalog-search" placeholder="Search by name or catalog ID (e.g., M31, NGC7000, Andromeda)">
+                        <button onclick="searchCatalog()">Search</button>
+                    </div>
+
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label for="filter-object-type">Object Type</label>
+                            <select id="filter-object-type" onchange="applyCatalogFilters()">
+                                <option value="">All Types</option>
+                                <option value="galaxy">Galaxies</option>
+                                <option value="cluster">Star Clusters</option>
+                                <option value="nebula">Nebulae</option>
+                                <option value="planetary_nebula">Planetary Nebulae</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="filter-min-magnitude">Min Brightness (mag)</label>
+                            <input type="number" id="filter-min-magnitude" placeholder="e.g., 0" step="0.1" onchange="applyCatalogFilters()">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="filter-max-magnitude">Max Brightness (mag)</label>
+                            <input type="number" id="filter-max-magnitude" placeholder="e.g., 12" step="0.1" onchange="applyCatalogFilters()">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="filter-constellation">Constellation</label>
+                            <input type="text" id="filter-constellation" placeholder="e.g., Ori, And" maxlength="3" onchange="applyCatalogFilters()">
+                        </div>
+                    </div>
+
+                    <div class="filter-tags" id="active-filters"></div>
+
+                    <div style="text-align: right; margin-top: 15px;">
+                        <button class="btn" style="padding: 10px 20px; font-size: 0.9em;" onclick="clearCatalogFilters()">Clear Filters</button>
+                    </div>
+                </div>
+
+                <!-- Loading Indicator for Catalog -->
+                <div class="loading" id="catalog-loading">
+                    <div class="spinner"></div>
+                    <p>Loading catalog...</p>
+                </div>
+
+                <!-- Catalog Results -->
+                <div id="catalog-results">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 id="catalog-results-count">Showing 0 objects</h3>
+                        <div style="font-size: 0.9em; color: #666;">
+                            Lower magnitude = brighter objects
+                        </div>
+                    </div>
+
+                    <div class="catalog-grid" id="catalog-grid"></div>
+
+                    <!-- Pagination -->
+                    <div class="pagination">
+                        <button id="prev-page" onclick="previousPage()" disabled>← Previous</button>
+                        <span id="page-info">Page 1</span>
+                        <button id="next-page" onclick="nextPage()">Next →</button>
+                    </div>
+                </div>
+            </div>
+            <!-- End Catalog Browser Tab -->
         </div>
     </div>
 
@@ -1088,6 +1440,361 @@
                 closeQRModal();
             }
         }
+
+        // ======================
+        // Catalog Browser Functions
+        // ======================
+
+        let catalogStats = null;
+        let catalogFilters = {
+            objectType: '',
+            minMagnitude: null,
+            maxMagnitude: null,
+            constellation: '',
+            searchQuery: '',
+            page: 0,
+            limit: 50
+        };
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            document.getElementById(tabName + '-tab-btn').classList.add('active');
+
+            // Load catalog stats when switching to catalog tab
+            if (tabName === 'catalog' && !catalogStats) {
+                loadCatalogStats();
+                loadCatalogObjects();
+            }
+        }
+
+        // Load catalog statistics
+        async function loadCatalogStats() {
+            try {
+                const response = await fetch('/api/catalog/stats');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                catalogStats = await response.json();
+
+                // Update stats display
+                const statsGrid = document.getElementById('catalog-stats-grid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <span class="stat-value">${catalogStats.total_objects.toLocaleString()}</span>
+                        <span class="stat-label">Total Objects</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value">${(catalogStats.by_type.galaxy || 0).toLocaleString()}</span>
+                        <span class="stat-label">Galaxies</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value">${(catalogStats.by_type.cluster || 0).toLocaleString()}</span>
+                        <span class="stat-label">Clusters</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value">${(catalogStats.by_type.nebula || 0).toLocaleString()}</span>
+                        <span class="stat-label">Nebulae</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value">${(catalogStats.by_type.planetary_nebula || 0).toLocaleString()}</span>
+                        <span class="stat-label">Planetary Nebulae</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading catalog stats:', error);
+            }
+        }
+
+        // Load catalog objects with filters
+        async function loadCatalogObjects() {
+            const loading = document.getElementById('catalog-loading');
+            const results = document.getElementById('catalog-results');
+
+            loading.classList.add('active');
+            results.style.opacity = '0.5';
+
+            try {
+                // Build query string
+                const params = new URLSearchParams();
+
+                if (catalogFilters.objectType) {
+                    params.append('object_types', catalogFilters.objectType);
+                }
+                if (catalogFilters.minMagnitude !== null && catalogFilters.minMagnitude !== '') {
+                    params.append('min_magnitude', catalogFilters.minMagnitude);
+                }
+                if (catalogFilters.maxMagnitude !== null && catalogFilters.maxMagnitude !== '') {
+                    params.append('max_magnitude', catalogFilters.maxMagnitude);
+                }
+                if (catalogFilters.constellation) {
+                    params.append('constellation', catalogFilters.constellation);
+                }
+                params.append('limit', catalogFilters.limit);
+                params.append('offset', catalogFilters.page * catalogFilters.limit);
+
+                const response = await fetch(`/api/targets?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const objects = await response.json();
+                displayCatalogObjects(objects);
+
+                loading.classList.remove('active');
+                results.style.opacity = '1';
+
+            } catch (error) {
+                console.error('Error loading catalog objects:', error);
+                loading.classList.remove('active');
+                results.style.opacity = '1';
+
+                const grid = document.getElementById('catalog-grid');
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error Loading Catalog</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display catalog objects
+        function displayCatalogObjects(objects) {
+            const grid = document.getElementById('catalog-grid');
+            const resultsCount = document.getElementById('catalog-results-count');
+            const pageInfo = document.getElementById('page-info');
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+
+            if (objects.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Objects Found</h3>
+                        <p>Try adjusting your filters or search terms.</p>
+                    </div>
+                `;
+                resultsCount.textContent = 'No objects found';
+                nextBtn.disabled = true;
+                return;
+            }
+
+            resultsCount.textContent = `Showing ${catalogFilters.page * catalogFilters.limit + 1}-${catalogFilters.page * catalogFilters.limit + objects.length} objects`;
+            pageInfo.textContent = `Page ${catalogFilters.page + 1}`;
+            prevBtn.disabled = catalogFilters.page === 0;
+            nextBtn.disabled = objects.length < catalogFilters.limit;
+
+            grid.innerHTML = objects.map(obj => {
+                const magStr = obj.magnitude && obj.magnitude < 99 ? obj.magnitude.toFixed(1) : 'N/A';
+                const sizeStr = obj.size_arcmin ? `${obj.size_arcmin.toFixed(1)}'` : 'N/A';
+                const raStr = obj.ra_hours ? `${obj.ra_hours.toFixed(2)}h` : 'N/A';
+                const decStr = obj.dec_degrees ? `${obj.dec_degrees >= 0 ? '+' : ''}${obj.dec_degrees.toFixed(2)}°` : 'N/A';
+
+                return `
+                    <div class="catalog-item" onclick="selectCatalogObject('${obj.catalog_id}')">
+                        <div class="catalog-item-header">
+                            <div class="catalog-item-name">${obj.name}</div>
+                            <div class="catalog-item-type">${obj.object_type}</div>
+                        </div>
+                        <div class="catalog-item-details">
+                            <div><strong>Catalog ID:</strong> ${obj.catalog_id}</div>
+                            <div><strong>Magnitude:</strong> ${magStr}</div>
+                            <div><strong>Size:</strong> ${sizeStr}</div>
+                            <div><strong>RA/Dec:</strong> ${raStr}, ${decStr}</div>
+                            ${obj.description ? `<div style="margin-top: 8px; font-style: italic;">${obj.description}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Select catalog object (placeholder for future functionality)
+        function selectCatalogObject(catalogId) {
+            alert(`Selected: ${catalogId}\n\nFuture enhancement: This will show detailed object information and allow adding to a custom observing plan.`);
+        }
+
+        // Apply catalog filters
+        function applyCatalogFilters() {
+            catalogFilters.objectType = document.getElementById('filter-object-type').value;
+            catalogFilters.minMagnitude = document.getElementById('filter-min-magnitude').value;
+            catalogFilters.maxMagnitude = document.getElementById('filter-max-magnitude').value;
+            catalogFilters.constellation = document.getElementById('filter-constellation').value.trim();
+            catalogFilters.page = 0;
+
+            updateActiveFilters();
+            loadCatalogObjects();
+        }
+
+        // Clear catalog filters
+        function clearCatalogFilters() {
+            document.getElementById('filter-object-type').value = '';
+            document.getElementById('filter-min-magnitude').value = '';
+            document.getElementById('filter-max-magnitude').value = '';
+            document.getElementById('filter-constellation').value = '';
+            document.getElementById('catalog-search').value = '';
+
+            catalogFilters.objectType = '';
+            catalogFilters.minMagnitude = null;
+            catalogFilters.maxMagnitude = null;
+            catalogFilters.constellation = '';
+            catalogFilters.searchQuery = '';
+            catalogFilters.page = 0;
+
+            updateActiveFilters();
+            loadCatalogObjects();
+        }
+
+        // Update active filters display
+        function updateActiveFilters() {
+            const filterTags = document.getElementById('active-filters');
+            const tags = [];
+
+            if (catalogFilters.objectType) {
+                tags.push({ label: `Type: ${catalogFilters.objectType}`, field: 'objectType' });
+            }
+            if (catalogFilters.minMagnitude !== null && catalogFilters.minMagnitude !== '') {
+                tags.push({ label: `Min Mag: ${catalogFilters.minMagnitude}`, field: 'minMagnitude' });
+            }
+            if (catalogFilters.maxMagnitude !== null && catalogFilters.maxMagnitude !== '') {
+                tags.push({ label: `Max Mag: ${catalogFilters.maxMagnitude}`, field: 'maxMagnitude' });
+            }
+            if (catalogFilters.constellation) {
+                tags.push({ label: `Constellation: ${catalogFilters.constellation}`, field: 'constellation' });
+            }
+            if (catalogFilters.searchQuery) {
+                tags.push({ label: `Search: ${catalogFilters.searchQuery}`, field: 'searchQuery' });
+            }
+
+            if (tags.length === 0) {
+                filterTags.innerHTML = '<p style="color: #999; font-size: 0.9em;">No active filters</p>';
+            } else {
+                filterTags.innerHTML = tags.map(tag => `
+                    <div class="filter-tag">
+                        ${tag.label}
+                        <button onclick="removeFilter('${tag.field}')" title="Remove filter">×</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Remove specific filter
+        function removeFilter(field) {
+            switch (field) {
+                case 'objectType':
+                    catalogFilters.objectType = '';
+                    document.getElementById('filter-object-type').value = '';
+                    break;
+                case 'minMagnitude':
+                    catalogFilters.minMagnitude = null;
+                    document.getElementById('filter-min-magnitude').value = '';
+                    break;
+                case 'maxMagnitude':
+                    catalogFilters.maxMagnitude = null;
+                    document.getElementById('filter-max-magnitude').value = '';
+                    break;
+                case 'constellation':
+                    catalogFilters.constellation = '';
+                    document.getElementById('filter-constellation').value = '';
+                    break;
+                case 'searchQuery':
+                    catalogFilters.searchQuery = '';
+                    document.getElementById('catalog-search').value = '';
+                    break;
+            }
+
+            catalogFilters.page = 0;
+            updateActiveFilters();
+            loadCatalogObjects();
+        }
+
+        // Search catalog
+        function searchCatalog() {
+            const searchInput = document.getElementById('catalog-search');
+            const searchQuery = searchInput.value.trim();
+
+            if (!searchQuery) {
+                alert('Please enter a search term');
+                return;
+            }
+
+            catalogFilters.searchQuery = searchQuery;
+            catalogFilters.page = 0;
+
+            // For now, search by catalog ID directly
+            // Future: implement full-text search on backend
+            searchByCatalogId(searchQuery);
+        }
+
+        // Search by catalog ID
+        async function searchByCatalogId(catalogId) {
+            const loading = document.getElementById('catalog-loading');
+            const results = document.getElementById('catalog-results');
+
+            loading.classList.add('active');
+            results.style.opacity = '0.5';
+
+            try {
+                const response = await fetch(`/api/targets/${catalogId}`);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        alert(`Object not found: ${catalogId}\n\nTry searching for Messier (M31), NGC (NGC7000), or IC (IC405) objects.`);
+                        loading.classList.remove('active');
+                        results.style.opacity = '1';
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const object = await response.json();
+                displayCatalogObjects([object]);
+
+                loading.classList.remove('active');
+                results.style.opacity = '1';
+
+            } catch (error) {
+                console.error('Error searching catalog:', error);
+                loading.classList.remove('active');
+                results.style.opacity = '1';
+                alert(`Error searching catalog: ${error.message}`);
+            }
+        }
+
+        // Pagination
+        function previousPage() {
+            if (catalogFilters.page > 0) {
+                catalogFilters.page--;
+                loadCatalogObjects();
+            }
+        }
+
+        function nextPage() {
+            catalogFilters.page++;
+            loadCatalogObjects();
+        }
+
+        // Handle Enter key in search box
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('catalog-search');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchCatalog();
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
