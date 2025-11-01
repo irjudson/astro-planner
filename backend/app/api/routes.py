@@ -6,10 +6,13 @@ from datetime import datetime
 import uuid
 
 from app.models import (
-    PlanRequest, ObservingPlan, DSOTarget, Location, ExportFormat
+    PlanRequest, ObservingPlan, DSOTarget, Location, ExportFormat, ScheduledTarget
 )
 from app.services.planner_service import PlannerService
 from app.services.catalog_service import CatalogService
+from app.clients.seestar_client import SeestarClient, SeestarState
+from app.services.telescope_service import TelescopeService, ExecutionState
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -17,8 +20,20 @@ router = APIRouter()
 planner = PlannerService()
 catalog = CatalogService()
 
+# Telescope control (singleton instances)
+seestar_client = SeestarClient()
+telescope_service = TelescopeService(seestar_client)
+
 # In-memory storage for shared plans (in production, use Redis or database)
 shared_plans: Dict[str, ObservingPlan] = {}
+
+# Request/Response models for telescope endpoints
+class TelescopeConnectRequest(BaseModel):
+    host: str = "seestar.local"
+    port: int = 4700  # Port 4700 for firmware v5.x
+
+class ExecutePlanRequest(BaseModel):
+    scheduled_targets: List[ScheduledTarget]
 
 
 @router.post("/plan", response_model=ObservingPlan)
@@ -278,6 +293,232 @@ async def get_shared_plan(plan_id: str):
     return shared_plans[plan_id]
 
 
+# ========================================================================
+# Telescope Control Endpoints
+# ========================================================================
+
+@router.post("/telescope/connect")
+async def connect_telescope(request: TelescopeConnectRequest):
+    """
+    Connect to Seestar S50 telescope.
+
+    Args:
+        request: Connection details (host and port)
+
+    Returns:
+        Connection status and telescope info
+    """
+    try:
+        await seestar_client.connect(request.host, request.port)
+        status = seestar_client.status
+
+        return {
+            "connected": True,
+            "host": request.host,
+            "port": request.port,
+            "state": status.state.value,
+            "firmware_version": status.firmware_version,
+            "message": "Connected to Seestar S50"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
+
+
+@router.post("/telescope/disconnect")
+async def disconnect_telescope():
+    """
+    Disconnect from telescope.
+
+    Returns:
+        Disconnection status
+    """
+    try:
+        await seestar_client.disconnect()
+        return {
+            "connected": False,
+            "message": "Disconnected from telescope"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Disconnect failed: {str(e)}")
+
+
+@router.get("/telescope/status")
+async def get_telescope_status():
+    """
+    Get current telescope status.
+
+    Returns:
+        Telescope connection and state information
+    """
+    status = seestar_client.status
+
+    return {
+        "connected": status.connected,
+        "state": status.state.value if status.state else "unknown",
+        "current_target": status.current_target,
+        "firmware_version": status.firmware_version,
+        "is_tracking": status.is_tracking,
+        "last_update": status.last_update.isoformat() if status.last_update else None,
+        "last_error": status.last_error
+    }
+
+
+@router.post("/telescope/execute")
+async def execute_plan(request: ExecutePlanRequest):
+    """
+    Execute an observation plan on the telescope.
+
+    This starts background execution of the provided scheduled targets.
+    Use /telescope/progress to monitor execution.
+
+    Args:
+        request: List of scheduled targets to execute
+
+    Returns:
+        Execution ID and initial status
+    """
+    try:
+        if not seestar_client.connected:
+            raise HTTPException(
+                status_code=400,
+                detail="Telescope not connected. Connect first using /telescope/connect"
+            )
+
+        if telescope_service.execution_state not in [
+            ExecutionState.IDLE,
+            ExecutionState.COMPLETED,
+            ExecutionState.ABORTED,
+            ExecutionState.ERROR
+        ]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Execution already in progress: {telescope_service.execution_state.value}"
+            )
+
+        # Generate execution ID
+        execution_id = str(uuid.uuid4())[:8]
+
+        # Start execution in background
+        import asyncio
+        asyncio.create_task(
+            telescope_service.execute_plan(
+                execution_id=execution_id,
+                targets=request.scheduled_targets
+            )
+        )
+
+        return {
+            "execution_id": execution_id,
+            "status": "started",
+            "total_targets": len(request.scheduled_targets),
+            "message": "Execution started. Use /telescope/progress to monitor."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Execution failed: {str(e)}")
+
+
+@router.get("/telescope/progress")
+async def get_execution_progress():
+    """
+    Get current execution progress.
+
+    Returns detailed progress information including:
+    - Current execution state
+    - Current target being executed
+    - Progress percentage
+    - Elapsed and estimated remaining time
+    - Errors encountered
+
+    Returns:
+        Execution progress details
+    """
+    progress = telescope_service.progress
+
+    if not progress:
+        return {
+            "state": telescope_service.execution_state.value,
+            "message": "No execution in progress"
+        }
+
+    return {
+        "execution_id": progress.execution_id,
+        "state": progress.state.value,
+        "total_targets": progress.total_targets,
+        "current_target_index": progress.current_target_index,
+        "targets_completed": progress.targets_completed,
+        "targets_failed": progress.targets_failed,
+        "current_target_name": progress.current_target_name,
+        "current_phase": progress.current_phase,
+        "progress_percent": round(progress.progress_percent, 1),
+        "elapsed_time": str(progress.elapsed_time) if progress.elapsed_time else None,
+        "estimated_remaining": str(progress.estimated_remaining) if progress.estimated_remaining else None,
+        "estimated_end_time": progress.estimated_end_time.isoformat() if progress.estimated_end_time else None,
+        "errors": [
+            {
+                "timestamp": err.timestamp.isoformat(),
+                "target": err.target_name,
+                "phase": err.phase,
+                "message": err.error_message,
+                "retries": err.retry_count
+            }
+            for err in progress.errors
+        ]
+    }
+
+
+@router.post("/telescope/abort")
+async def abort_execution():
+    """
+    Abort the current execution.
+
+    Stops the current imaging operation and cancels remaining targets.
+
+    Returns:
+        Abort status
+    """
+    try:
+        await telescope_service.abort_execution()
+        return {
+            "status": "aborted",
+            "message": "Execution aborted successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Abort failed: {str(e)}")
+
+
+@router.post("/telescope/park")
+async def park_telescope():
+    """
+    Park telescope at home position.
+
+    Returns:
+        Park status
+    """
+    try:
+        if not seestar_client.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        success = await telescope_service.park_telescope()
+
+        if success:
+            return {
+                "status": "parking",
+                "message": "Telescope parking"
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Failed to park telescope"
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Park failed: {str(e)}")
+
+
 @router.get("/health")
 async def health_check():
     """
@@ -289,5 +530,6 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "astro-planner-api",
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "telescope_connected": seestar_client.connected
     }

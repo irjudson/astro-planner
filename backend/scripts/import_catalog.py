@@ -83,8 +83,56 @@ def create_database_schema(conn: sqlite3.Connection) -> None:
         ON dso_catalog(catalog_name, catalog_number)
     """)
 
+    # Constellation names lookup table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS constellation_names (
+            abbreviation VARCHAR(10) PRIMARY KEY,
+            full_name VARCHAR(50) NOT NULL
+        )
+    """)
+
     conn.commit()
     print("✅ Database schema created successfully")
+
+
+def populate_constellation_names(conn: sqlite3.Connection) -> None:
+    """Populate the constellation names lookup table."""
+    cursor = conn.cursor()
+
+    constellations = {
+        "And": "Andromeda", "Ant": "Antlia", "Aps": "Apus", "Aqr": "Aquarius",
+        "Aql": "Aquila", "Ara": "Ara", "Ari": "Aries", "Aur": "Auriga",
+        "Boo": "Boötes", "Cae": "Caelum", "Cam": "Camelopardalis", "Cnc": "Cancer",
+        "CVn": "Canes Venatici", "CMa": "Canis Major", "CMi": "Canis Minor",
+        "Cap": "Capricornus", "Car": "Carina", "Cas": "Cassiopeia", "Cen": "Centaurus",
+        "Cep": "Cepheus", "Cet": "Cetus", "Cha": "Chamaeleon", "Cir": "Circinus",
+        "Col": "Columba", "Com": "Coma Berenices", "CrA": "Corona Australis",
+        "CrB": "Corona Borealis", "Crv": "Corvus", "Crt": "Crater", "Cru": "Crux",
+        "Cyg": "Cygnus", "Del": "Delphinus", "Dor": "Dorado", "Dra": "Draco",
+        "Equ": "Equuleus", "Eri": "Eridanus", "For": "Fornax", "Gem": "Gemini",
+        "Gru": "Grus", "Her": "Hercules", "Hor": "Horologium", "Hya": "Hydra",
+        "Hyi": "Hydrus", "Ind": "Indus", "Lac": "Lacerta", "Leo": "Leo",
+        "LMi": "Leo Minor", "Lep": "Lepus", "Lib": "Libra", "Lup": "Lupus",
+        "Lyn": "Lynx", "Lyr": "Lyra", "Men": "Mensa", "Mic": "Microscopium",
+        "Mon": "Monoceros", "Mus": "Musca", "Nor": "Norma", "Oct": "Octans",
+        "Oph": "Ophiuchus", "Ori": "Orion", "Pav": "Pavo", "Peg": "Pegasus",
+        "Per": "Perseus", "Phe": "Phoenix", "Pic": "Pictor", "Psc": "Pisces",
+        "PsA": "Piscis Austrinus", "Pup": "Puppis", "Pyx": "Pyxis", "Ret": "Reticulum",
+        "Sge": "Sagitta", "Sgr": "Sagittarius", "Sco": "Scorpius", "Scl": "Sculptor",
+        "Sct": "Scutum", "Ser": "Serpens", "Sex": "Sextans", "Tau": "Taurus",
+        "Tel": "Telescopium", "Tri": "Triangulum", "TrA": "Triangulum Australe",
+        "Tuc": "Tucana", "UMa": "Ursa Major", "UMi": "Ursa Minor", "Vel": "Vela",
+        "Vir": "Virgo", "Vol": "Volans", "Vul": "Vulpecula"
+    }
+
+    for abbr, full in constellations.items():
+        cursor.execute("""
+            INSERT OR IGNORE INTO constellation_names (abbreviation, full_name)
+            VALUES (?, ?)
+        """, (abbr, full))
+
+    conn.commit()
+    print(f"✅ Populated {len(constellations)} constellation names")
 
 
 def map_object_type(ongc_type: str) -> str:
@@ -423,10 +471,14 @@ def main():
         print("⚠️  Rebuilding database (dropping existing tables)...")
         cursor = conn.cursor()
         cursor.execute("DROP TABLE IF EXISTS dso_catalog")
+        cursor.execute("DROP TABLE IF EXISTS constellation_names")
         conn.commit()
 
     # Create schema
     create_database_schema(conn)
+
+    # Populate constellation names
+    populate_constellation_names(conn)
 
     # Import catalogs
     ngc_count = import_ngc_objects(conn, limit=args.limit)

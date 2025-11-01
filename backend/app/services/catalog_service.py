@@ -83,14 +83,24 @@ class CatalogService:
         # Use major axis for size, default to 1.0 if None
         size_arcmin = size_major_arcmin if size_major_arcmin else 1.0
 
-        # Generate description
-        type_name = object_type.replace('_', ' ').title()
-        description = f"{type_name}"
-        if constellation:
-            description += f" in {constellation}"
-
         # Default magnitude if None
         mag = magnitude if magnitude else 99.0
+
+        # Generate description
+        type_name = object_type.replace('_', ' ').title()
+        # Look up full constellation name
+        full_constellation = self._get_constellation_full_name(constellation) if constellation else None
+        description = f"{type_name} in {full_constellation}" if full_constellation else type_name
+
+        # Add common name if available and different from Messier/catalog designation
+        if common_name and not (common_name.startswith('M') and common_name[1:].isdigit()):
+            description += f" - {common_name}"
+
+        # Add additional info for better descriptions
+        if mag and mag < 99:
+            description += f" (mag {mag:.1f})"
+        if size_arcmin and size_arcmin > 1:
+            description += f", {size_arcmin:.1f}' across"
 
         return DSOTarget(
             name=name,
@@ -107,6 +117,22 @@ class CatalogService:
         """Get database connection."""
         conn = sqlite3.connect(self.db_path)
         return conn
+
+    def _get_constellation_full_name(self, abbreviation: str) -> str:
+        """Look up full constellation name from abbreviation."""
+        if not abbreviation:
+            return None
+
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT full_name FROM constellation_names
+            WHERE abbreviation = ?
+        """, (abbreviation,))
+        result = cursor.fetchone()
+        conn.close()
+
+        return result[0] if result else abbreviation  # Fall back to abbr if not found
 
     def get_all_targets(self, limit: Optional[int] = None, offset: int = 0) -> List[DSOTarget]:
         """
