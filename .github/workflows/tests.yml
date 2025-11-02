@@ -42,10 +42,10 @@ jobs:
         ruff check backend/app --select E,F,W --ignore E501
       continue-on-error: true
 
-    - name: Initialize test database
+    - name: Initialize database with full catalog
       run: |
         cd backend
-        python scripts/init_test_db.py
+        python scripts/import_catalog.py
 
     - name: Run pytest
       run: |
