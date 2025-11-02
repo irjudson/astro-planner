@@ -79,7 +79,8 @@ class TestTargetEndpoints:
         assert response.status_code == 200
         target = response.json()
         assert target["catalog_id"] == target_id
-        assert target["name"] == "Andromeda Galaxy"
+        # OpenNGC catalog uses catalog IDs as names (M31, NGC224, etc.)
+        assert target["name"] == "M31"
 
     def test_get_nonexistent_target(self, client):
         """Test getting a target that doesn't exist."""

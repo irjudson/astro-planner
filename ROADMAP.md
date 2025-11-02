@@ -2,6 +2,11 @@
 
 This document outlines the planned features and improvements for the Astro Planner application.
 
+**📋 NEW: Detailed technical integration plan now available!**
+See [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) for comprehensive research on weather APIs, comet/asteroid data sources, and catalog expansion with code examples and implementation steps.
+
+**Last Updated**: 2025-10-30
+
 ## 🎯 Priority 1: Seamless Telescope Integration (Seestar S50)
 
 **Goal**: Make it stupid simple to load plans onto the Seestar S50 telescope
@@ -81,31 +86,47 @@ Option C: File-Based with Auto-Upload
 
 ---
 
-## 📚 Priority 2: Expanded Object Catalogs
+## 📚 Priority 2: Expanded Object Catalogs ✅ COMPLETED!
 
 **Goal**: Provide access to thousands of DSO targets beyond the current 27
 
-### Current State
-- ✅ 27 hand-picked popular targets (Messier, NGC, IC)
-- ❌ Fixed catalog (requires code changes to add objects)
-- ❌ No user-added targets
-- ❌ Limited to brightest/largest objects
+### Current State (Updated 2025-10-30)
+- ✅ **12,394 objects** from OpenNGC catalog (459x increase!)
+- ✅ SQLite database with optimized indexes
+- ✅ Advanced filtering API (type, magnitude, constellation, pagination)
+- ✅ Messier (M), NGC, and IC catalog support
+- ✅ Smart catalog ID resolution
+- ✅ Statistics endpoint for catalog metrics
+- ⏳ Frontend UI updates (pending)
+- ⏳ User-added targets (future enhancement)
 
-### Planned Features
+### Completed Features
 
-#### 2.1 Comprehensive DSO Catalogs
-**Status**: Not Started
-**Priority**: High
-**Effort**: Medium
+#### 2.1 Comprehensive DSO Catalogs ✅ COMPLETED
+**Status**: Implemented and Deployed
+**Completed**: 2025-10-30
+**Actual Effort**: 1 day (faster than estimated!)
 
-**Catalogs to Add**:
+**Primary Catalog Source (FREE)**:
+- **OpenNGC** ✅: Open-source NGC/IC database with CC-BY-SA-4.0 license (commercial-friendly!)
+  - Python library: `pyongc`
+  - **13,226 objects total**: 7,840 NGC + 5,386 IC
+  - Includes Messier cross-references and common names
+  - One-time import to SQLite database
+  - **Recommended as primary catalog**
+
+**Catalogs Included in OpenNGC**:
 - **Messier Catalog**: Complete 110 objects (currently ~15)
-- **NGC Catalog**: ~7,840 objects (New General Catalogue)
-- **IC Catalog**: ~5,386 objects (Index Catalogue)
+- **NGC Catalog**: Complete 7,840 objects (New General Catalogue)
+- **IC Catalog**: Complete 5,386 objects (Index Catalogue)
+- All with RA/Dec, magnitude, size, object type, constellation
+
+**Future Catalogs (via VizieR/SIMBAD)**:
 - **Caldwell Catalog**: 109 objects for amateur astronomy
 - **Arp Catalog**: 338 peculiar galaxies
 - **Sharpless Catalog**: 313 HII regions (emission nebulae)
-- **Abell Catalog**: Planetary nebulae and galaxy clusters
+
+**See INTEGRATION_PLAN.md Section "DSO Catalog Expansion" for database schema and import code**
 
 **Database Schema**:
 ```sql
@@ -135,41 +156,110 @@ CREATE TABLE dso_catalog (
 - Add catalog selection UI
 - Filter by catalog, brightness, size, difficulty
 
-#### 2.2 User-Added Targets
-**Status**: Not Started
+#### 2.2 Catalog Enrichment (Future Phase)
+**Status**: Ideas for Future Implementation
+**Priority**: Medium
+**Effort**: Medium
+
+**Ideas for Enhancement**:
+1. **Traditional Common Names**
+   - Add "Andromeda Galaxy" for M31
+   - "Orion Nebula" for M42
+   - Import from SIMBAD or manual curation
+   - Display both catalog ID and common name in UI
+
+2. **Additional Catalogs**
+   - Caldwell Catalog (109 objects for amateur astronomy)
+   - Arp Catalog (338 peculiar galaxies)
+   - Sharpless Catalog (313 HII regions)
+   - Barnard Dark Nebulae
+   - Collinder Open Clusters
+
+3. **Imaging Metadata**
+   - Difficulty rating (Easy/Medium/Hard)
+   - Recommended focal length
+   - Recommended exposure time
+   - Best months for imaging
+   - Popular filters (Ha, OIII, SII)
+   - Sample images/thumbnails
+
+4. **Search Enhancements**
+   - Full-text search by name
+   - Search by coordinate range
+   - "Objects near M31" (angular distance search)
+   - Search by season/month
+   - Search by equipment compatibility
+
+5. **Data Quality Improvements**
+   - Replace magnitude=99.0 defaults with NULL
+   - Add more accurate size data
+   - Cross-reference with SIMBAD for enrichment
+   - Periodic catalog updates (quarterly sync)
+
+#### 2.3 User-Added Targets
+**Status**: Future Enhancement
 **Priority**: Medium
 **Effort**: Low
 
 **Features**:
 - Add custom targets via UI
 - Import from Stellarium, SkySafari formats
-- Share custom target lists
-- Community-contributed targets
+- Share custom target lists with community
+- Personal observing history tracking
+- "Targets I've imaged" collection
 
 **UI Mockup**:
 ```
 [Add Custom Target]
 Name: _______________
+Catalog ID (optional): ___
 RA: ___h ___m ___s
 Dec: ___° ___' ___"
 Object Type: [Dropdown]
 Magnitude: ___
 Size: ___ arcmin
+Notes: _________________
 [Save] [Cancel]
 ```
 
-#### 2.3 Advanced Filtering & Search
-**Status**: Not Started
-**Priority**: Medium
-**Effort**: Low
+#### 2.4 Frontend Catalog Browser
+**Status**: Next Priority
+**Priority**: High
+**Effort**: Medium (2-3 weeks)
 
 **Features**:
-- Search by name, catalog ID, coordinates
-- Filter by constellation, season
-- Filter by imaging difficulty
-- Filter by required equipment (focal length, aperture)
-- "Show only targets visible tonight"
-- "Show only targets I haven't imaged"
+1. **Catalog Browser UI**
+   - Grid/list view of objects
+   - Advanced filter sidebar
+   - Sort by magnitude, size, type
+   - Pagination with infinite scroll
+   - Quick filters (bright objects, tonight's targets)
+
+2. **Object Detail Page**
+   - Full object information
+   - Visibility chart for current location
+   - Rise/set times
+   - Altitude graph over night
+   - "Add to plan" button
+   - Similar objects nearby
+
+3. **Search Interface**
+   - Search by name or catalog ID
+   - Autocomplete suggestions
+   - Recent searches
+   - Popular objects shortcut
+
+4. **Statistics Dashboard**
+   - Visual charts of catalog composition
+   - Magnitude distribution histogram
+   - Object type pie chart
+   - Constellation distribution map
+
+5. **Mobile Optimization**
+   - Touch-friendly catalog browsing
+   - Swipe gestures for filtering
+   - Offline caching of favorites
+   - Dark mode for field use
 
 ---
 
@@ -188,23 +278,30 @@ Size: ___ arcmin
 
 ### Planned Features
 
-#### 3.1 Multiple Weather Sources
-**Status**: Not Started
+#### 3.1 Multiple Weather Sources ✅ RESEARCHED
+**Status**: Research Complete, Ready for Implementation
 **Priority**: High
-**Effort**: Medium
+**Effort**: Medium (4-6 weeks)
 
-**Sources to Integrate**:
-- **Clear Outside**: Astronomy-specific forecasts (cloud cover, seeing, transparency)
-- **Meteoblue**: High-resolution weather models
-- **7Timer**: Astronomy-focused free API
-- **NOAA/NWS**: US-based official forecasts
-- **Weather Underground**: Hyperlocal conditions
-- **Satellite Imagery**: Real-time cloud cover (GOES, etc.)
+**Primary Source (FREE)**:
+- **7Timer** ✅: Astronomy-specific, includes seeing (arcseconds) and transparency (magnitude limit), 3-layer cloud cover, completely free NOAA GFS-based forecasts
+  - API: `http://www.7timer.info/bin/astro.php`
+  - No authentication required
+  - Returns JSON with 72-hour forecasts
+  - **Recommended as Phase 1 implementation**
 
-**Composite Score**:
-- Aggregate multiple sources for better accuracy
-- Show confidence level based on source agreement
-- Fallback if primary source unavailable
+**Secondary Sources**:
+- **OpenWeatherMap** (CURRENT): Keep for baseline weather, precipitation, moon phase
+- **Meteoblue** (PAID ~€200-500/year): Premium seeing predictions, consider for Phase 4
+- **Clear Outside**: No public API available (web scraping not recommended)
+
+**Composite Score Architecture**:
+- Weight 7Timer at 60% (best for astronomy)
+- Weight OpenWeatherMap at 40% (good baseline)
+- Show confidence level based on source availability
+- Automatic fallback if primary unavailable
+
+**See INTEGRATION_PLAN.md Section "Weather & Seeing Integration" for detailed implementation**
 
 #### 3.2 Astronomy-Specific Metrics
 **Status**: Not Started
@@ -257,23 +354,33 @@ Moon: 🌒 23% (sets at 10:32 PM)
 
 ### Planned Features
 
-#### 4.1 Comet Database & Ephemeris
-**Status**: Not Started
+#### 4.1 Comet Database & Ephemeris ✅ RESEARCHED
+**Status**: Research Complete, Ready for Implementation
 **Priority**: High
-**Effort**: High
+**Effort**: Medium (6-8 weeks)
 
-**Features**:
-- MPC (Minor Planet Center) integration
-- Automatic orbital element updates
-- Real-time position calculation
-- Brightness predictions
-- "Currently visible" comet list
+**Primary Data Source (FREE)**:
+- **JPL Horizons via astroquery** ✅: Official NASA ephemeris for 4,034 comets, 1.4M+ asteroids
+  - Python library: `from astroquery.jplhorizons import Horizons`
+  - No authentication required
+  - Real-time position calculation (RA/Dec/Alt/Az)
+  - Magnitude predictions
+  - Rise/set times
+  - **Recommended as primary ephemeris engine**
 
-**Data Sources**:
-- **MPC Orbital Elements**: https://minorplanetcenter.net/
-- **JPL Horizons**: NASA ephemeris service
-- **Heavens-Above**: Amateur-friendly predictions
-- **COBS (Comet Observation Database)**: Brightness estimates
+**Supporting Sources (FREE)**:
+- **MPC (Minor Planet Center)**: Weekly comet discovery updates via `astroquery.mpc`
+- **COBS (Comet Observation Database)**: Real observed brightness (more accurate than predictions)
+  - API: `https://cobs.si/api/`
+  - Override JPL predictions with recent observations (last 4 days)
+
+**Implementation Highlights**:
+- Database table for comets with orbital elements
+- Auto-update catalog weekly from MPC
+- Cache ephemeris calculations (Redis, 1 hour TTL)
+- "Currently Visible Comets" UI widget
+
+**See INTEGRATION_PLAN.md Section "Comet & Asteroid Integration" for code examples**
 
 **Comet-Specific Planning**:
 ```python
@@ -360,29 +467,62 @@ class Comet:
 
 ## 📅 Timeline & Milestones
 
-### Q1 2026: Telescope Integration
-- ✅ Export formats (DONE)
-- ✅ QR code plan sharing (DONE)
+### ✅ COMPLETED: Catalog Expansion (October 2025)
+- ✅ Research complete (2025-10-30)
+- ✅ OpenNGC import (12,394 NGC/IC objects)
+- ✅ Database migration (dict → SQLite)
+- ✅ Advanced filtering & search API
+- ✅ Messier/NGC/IC catalog support
+- ✅ Statistics endpoint
+- ✅ API documentation
+**Completed**: 1 day | **All sources FREE** | **Branch**: `feature/catalog-expansion`
+
+### 🎯 NEXT: Frontend Catalog Browser (November 2025)
+**Priority**: HIGH
+- 🎯 Catalog browser UI component
+- 🎯 Advanced filtering interface
+- 🎯 Object detail pages
+- 🎯 Statistics dashboard with charts
+- 🎯 Mobile-optimized browsing
+**Estimated**: 2-3 weeks | **Depends on**: Catalog expansion (done!)
+
+### Q1 2026: Weather Enhancement
+**Priority**: HIGH
+- ✅ Research complete (2025-10-30)
+- 🎯 7Timer API integration (seeing & transparency)
+- 🎯 Composite weather scoring (multi-source)
+- 🎯 Moon phase/illumination from OpenWeatherMap
+- 🎯 UI updates with astronomy-specific metrics
+**Estimated**: 4-6 weeks | **All sources FREE**
+
+### Q2 2026: Comet & Asteroid Support
+**Priority**: HIGH
+- ✅ Research complete (2025-10-30)
+- 🎯 JPL Horizons via astroquery (ephemeris engine)
+- 🎯 MPC integration (comet discoveries)
+- 🎯 COBS integration (real brightness data)
+- 🎯 Database schema for solar system objects
+- 🎯 "Currently Visible Comets" UI
+- 🎯 Scheduler support for moving objects
+**Estimated**: 6-8 weeks | **All sources FREE**
+
+### Q3 2026: Catalog Enrichment & Additional Features
+**Priority**: MEDIUM
+- 🎯 Traditional common names (SIMBAD integration)
+- 🎯 Additional catalogs (Caldwell, Arp, Sharpless)
+- 🎯 Imaging metadata (difficulty, recommendations)
+- 🎯 User custom targets
+- 🎯 Observing history tracking
+**Estimated**: 4-6 weeks | **All sources FREE**
+
+### Q4 2026: Telescope Integration & Premium Features
+**Priority**: MEDIUM
 - 🎯 Seestar WiFi auto-discovery
 - 🎯 One-click plan transfer
-
-### Q2 2026: Expanded Catalogs
-- 🎯 Complete Messier catalog (110 objects)
-- 🎯 NGC catalog (top 1000 objects)
-- 🎯 Database migration
-- 🎯 Advanced filtering
-
-### Q3 2026: Weather Enhancements
-- 🎯 Clear Outside integration
-- 🎯 Seeing & transparency metrics
-- 🎯 Multi-day forecasts
-- 🎯 Email alerts for good conditions
-
-### Q4 2026: Solar System Objects
-- 🎯 Comet ephemeris calculations
-- 🎯 MPC orbital element integration
-- 🎯 Bright asteroid tracking
-- 🎯 Auto-updating comet list
+- 🎯 Live session tracking
+- 🎯 Meteoblue premium seeing (PAID option)
+- 🎯 Multi-telescope support
+**Estimated**: 6-8 weeks
 
 ---
 
@@ -401,16 +541,38 @@ https://github.com/irjudson/astro-planner/issues
 
 ---
 
+## 💰 Cost Summary (2025-10-30 Research)
+
+### Free Tier (Phases 1-3)
+All core features can be implemented with **$0 monthly cost**:
+- ✅ 7Timer (weather/seeing/transparency): FREE
+- ✅ JPL Horizons (comet/asteroid ephemeris): FREE
+- ✅ MPC (comet discoveries): FREE
+- ✅ COBS (brightness observations): FREE
+- ✅ OpenNGC (13K+ DSO catalog): FREE
+- ✅ SIMBAD/VizieR (catalog enrichment): FREE
+- ✅ OpenWeatherMap (1000 calls/day): FREE
+
+### Optional Premium Tier (Phase 4)
+- Meteoblue API: ~$17-42/month
+- Redis hosting: ~$15/month
+- PostgreSQL hosting: ~$25/month
+**Total**: ~$67-92/month (for production scaling)
+
+---
+
 ## 📊 Success Metrics
 
 - **User Adoption**: 1000+ active users
 - **Plan Transfers**: 10,000+ plans loaded to telescopes
 - **Catalog Size**: 10,000+ targets available
-- **Weather Accuracy**: 85%+ forecast accuracy
+- **Weather Accuracy**: 85%+ forecast accuracy (composite scoring)
+- **Comet Coverage**: 20+ visible comets tracked automatically
 - **User Satisfaction**: 4.5/5 star rating
 
 ---
 
-*Last Updated*: 2025-10-29
+*Last Updated*: 2025-10-30 (Research complete)
 *Version*: 1.0.0
-*Status*: Active Development
+*Status*: Active Development - Ready for Phase 1 implementation
+*Next Step*: Review [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) and begin weather integration

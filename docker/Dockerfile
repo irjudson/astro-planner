@@ -21,11 +21,13 @@ RUN pip install --no-cache-dir -r requirements-test.txt
 # Copy application code
 COPY backend/app ./app
 COPY backend/tests ./tests
+COPY backend/scripts ./scripts
 COPY backend/pytest.ini ./pytest.ini
 COPY frontend ./frontend
 
-# Create data directory
+# Create data directory and import catalog
 RUN mkdir -p /app/data
+RUN python scripts/import_catalog.py --database /app/data/catalogs.db
 
 # Expose port
 EXPOSE 9247
