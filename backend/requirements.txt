@@ -12,5 +12,5 @@ python-multipart==0.0.17
 aiofiles==24.1.0
 
 # Catalog expansion
-pyongc==0.6.0
+pyongc==1.2.0
 astroquery==0.4.7
