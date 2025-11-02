@@ -1,0 +1,970 @@
+/* 🎨 TRON THEME - Futuristic Dark UI with Neon Accents */
+
+:root {
+    --tron-bg-primary: #0a0e27;
+    --tron-bg-secondary: #0f172a;
+    --tron-bg-card: #1e293b;
+    --tron-cyan: #00d9ff;
+    --tron-blue: #0ea5e9;
+    --tron-purple: #8b5cf6;
+    --tron-pink: #ec4899;
+    --tron-green: #10b981;
+    --tron-red: #ef4444;
+    --tron-orange: #f97316;
+    /* Improved text colors for better readability */
+    --tron-text-primary: #f1f5f9;        /* Brighter for better contrast */
+    --tron-text-secondary: #cbd5e1;      /* Much brighter than before */
+    --tron-text-muted: #94a3b8;          /* Brighter for labels */
+    --tron-border: #475569;              /* Slightly brighter for visibility */
+    --tron-glow-cyan: 0 0 20px rgba(0, 217, 255, 0.5);
+    --tron-glow-blue: 0 0 20px rgba(14, 165, 233, 0.5);
+    --tron-glow-purple: 0 0 20px rgba(139, 92, 246, 0.5);
+}
+
+/* Override body background with grid pattern */
+body {
+    font-family: 'Courier New', 'Consolas', monospace !important;
+    background: var(--tron-bg-primary) !important;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 217, 255, 0.03) 2px, rgba(0, 217, 255, 0.03) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0, 217, 255, 0.03) 2px, rgba(0, 217, 255, 0.03) 4px),
+        radial-gradient(circle at 50% 50%, #0f172a 0%, #0a0e27 100%) !important;
+    color: var(--tron-text-primary) !important;
+}
+
+/* Catch-all for content area elements - override ALL inline backgrounds */
+.content > div,
+.content section,
+.content div > div,
+#planner-tab > div,
+#catalog-tab > div,
+#observe-tab > div {
+    background-color: transparent !important;
+}
+
+/* Specific overrides that should have backgrounds */
+.content .subsection,
+.content .stat-card,
+.content .summary-item,
+.content .target-card,
+.content .catalog-item,
+.content .collapsible-header,
+.content .session-summary,
+.content .catalog-header,
+.content .catalog-filters {
+    background: var(--tron-bg-card) !important;
+}
+
+/* Container with neon border */
+.container {
+    background: var(--tron-bg-secondary) !important;
+    border: 2px solid var(--tron-cyan) !important;
+    box-shadow: var(--tron-glow-cyan), inset 0 0 30px rgba(0, 217, 255, 0.05) !important;
+}
+
+/* Header with gradient and glow */
+header {
+    background: linear-gradient(135deg, var(--tron-cyan) 0%, var(--tron-blue) 50%, var(--tron-purple) 100%) !important;
+    border-bottom: 2px solid var(--tron-cyan) !important;
+    box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3) !important;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Section headings with neon glow */
+.section h2,
+h2 {
+    color: var(--tron-cyan) !important;
+    border-bottom: 2px solid var(--tron-border) !important;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.6) !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
+}
+
+/* Content area */
+.content {
+    background: var(--tron-bg-secondary) !important;
+}
+
+/* Form inputs with neon borders */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+select {
+    background: var(--tron-bg-card) !important;
+    color: var(--tron-text-primary) !important;
+    border: 1px solid var(--tron-border) !important;
+    transition: all 0.3s ease !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+select:focus {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.4) !important;
+    outline: none !important;
+}
+
+/* Labels - improved readability */
+label {
+    color: var(--tron-text-primary) !important;  /* Changed to primary for better contrast */
+    font-weight: 600 !important;                  /* Bolder for better visibility */
+    letter-spacing: 0.5px !important;             /* Slightly reduced for readability */
+    text-shadow: 0 0 8px rgba(0, 217, 255, 0.2) !important;  /* Subtle glow */
+}
+
+/* Buttons with neon glow effect */
+button {
+    background: linear-gradient(135deg, var(--tron-blue), var(--tron-cyan)) !important;
+    color: white !important;
+    border: 1px solid var(--tron-cyan) !important;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+button:hover {
+    box-shadow: var(--tron-glow-cyan) !important;
+    transform: translateY(-2px) !important;
+    border-color: white !important;
+}
+
+button:disabled {
+    background: var(--tron-bg-card) !important;
+    color: var(--tron-text-muted) !important;
+    border-color: var(--tron-border) !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+}
+
+/* Tab navigation with neon accents */
+.tab-nav {
+    border-bottom: 2px solid var(--tron-border) !important;
+    background: var(--tron-bg-card) !important;
+}
+
+.tab-button {
+    background: transparent !important;
+    color: var(--tron-text-secondary) !important;
+    border: none !important;
+    border-bottom: 3px solid transparent !important;
+    transition: all 0.3s ease !important;
+}
+
+.tab-button:hover {
+    color: var(--tron-cyan) !important;
+    border-bottom-color: var(--tron-cyan) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.tab-button.active {
+    color: var(--tron-cyan) !important;
+    border-bottom-color: var(--tron-cyan) !important;
+    box-shadow: 0 -2px 10px rgba(0, 217, 255, 0.4) !important;
+    background: rgba(0, 217, 255, 0.05) !important;
+}
+
+/* Cards with neon borders */
+.target-card,
+.stat-card,
+.filter-section {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(0, 217, 255, 0.03) !important;
+    transition: all 0.3s ease !important;
+}
+
+.target-card:hover,
+.stat-card:hover {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 6px 25px rgba(0, 217, 255, 0.2) !important;
+    transform: translateY(-3px) !important;
+}
+
+/* Target list items */
+.target-item {
+    background: var(--tron-bg-card) !important;
+    border-left: 3px solid var(--tron-blue) !important;
+    border-bottom: 1px solid var(--tron-border) !important;
+    color: var(--tron-text-primary) !important;
+    transition: all 0.2s ease !important;
+}
+
+.target-item:hover {
+    background: rgba(0, 217, 255, 0.05) !important;
+    border-left-color: var(--tron-cyan) !important;
+    box-shadow: 0 2px 10px rgba(0, 217, 255, 0.2) !important;
+}
+
+/* Progress bars with neon glow */
+.progress-bar {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, var(--tron-cyan), var(--tron-blue)) !important;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.6) !important;
+}
+
+/* Status indicators */
+.status-connected {
+    color: var(--tron-green) !important;
+    text-shadow: 0 0 10px var(--tron-green) !important;
+}
+
+.status-disconnected {
+    color: var(--tron-red) !important;
+    text-shadow: 0 0 10px var(--tron-red) !important;
+}
+
+.status-warning {
+    color: var(--tron-orange) !important;
+    text-shadow: 0 0 10px var(--tron-orange) !important;
+}
+
+/* Telescope control section */
+#telescopeSection,
+#telescopeControlPanel,
+.telescope-section,
+.telescope-panel {
+    background: var(--tron-bg-card) !important;
+    border: 2px solid var(--tron-purple) !important;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2), var(--tron-glow-purple) !important;
+}
+
+/* Telescope grid layout */
+.telescope-grid {
+    background: transparent !important;
+}
+
+/* Telescope panels */
+.telescope-panel {
+    padding: 20px !important;
+}
+
+.telescope-panel h3 {
+    color: var(--tron-cyan) !important;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.5) !important;
+    margin-bottom: 15px !important;
+}
+
+/* Connection row */
+.connection-row {
+    background: transparent !important;
+}
+
+.connection-row input {
+    background: var(--tron-bg-secondary) !important;
+    border: 1px solid var(--tron-border) !important;
+    color: var(--tron-text-primary) !important;
+}
+
+.connection-row input:focus {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.3) !important;
+    outline: none !important;
+}
+
+/* Telescope buttons */
+.telescope-btn {
+    background: linear-gradient(135deg, var(--tron-purple), var(--tron-blue)) !important;
+    border: 1px solid var(--tron-cyan) !important;
+    color: var(--tron-text-primary) !important;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.telescope-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue)) !important;
+    box-shadow: 0 0 25px rgba(0, 217, 255, 0.6) !important;
+    transform: translateY(-2px) !important;
+}
+
+.telescope-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+.telescope-btn.primary {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border-color: #34d399 !important;
+}
+
+.telescope-btn.primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #34d399, #10b981) !important;
+    box-shadow: 0 0 25px rgba(52, 211, 153, 0.6) !important;
+}
+
+.telescope-btn.danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    border-color: #f87171 !important;
+}
+
+.telescope-btn.danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f87171, #ef4444) !important;
+    box-shadow: 0 0 25px rgba(248, 113, 113, 0.6) !important;
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50% !important;
+    margin-right: 8px !important;
+}
+
+.status-disconnected {
+    background: #64748b !important;
+    box-shadow: 0 0 8px rgba(100, 116, 139, 0.5) !important;
+}
+
+.status-connected {
+    background: #10b981 !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.8) !important;
+    animation: pulse-green 2s infinite !important;
+}
+
+.status-error {
+    background: #ef4444 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.8) !important;
+    animation: pulse-red 1s infinite !important;
+}
+
+@keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes pulse-red {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Progress panel */
+.progress-panel {
+    margin-top: 20px !important;
+}
+
+.progress-info {
+    background: transparent !important;
+    display: grid !important;
+    gap: 10px !important;
+}
+
+.progress-item {
+    background: var(--tron-bg-secondary) !important;
+    border: 1px solid var(--tron-border) !important;
+    padding: 10px !important;
+    border-radius: 6px !important;
+}
+
+.progress-item label {
+    color: var(--tron-text-muted) !important;
+    font-size: 0.85em !important;
+    display: block !important;
+    margin-bottom: 5px !important;
+}
+
+.progress-item value {
+    color: var(--tron-cyan) !important;
+    font-weight: 600 !important;
+    font-size: 1.1em !important;
+}
+
+/* Progress bar */
+.progress-bar-container {
+    background: var(--tron-bg-secondary) !important;
+    border: 1px solid var(--tron-border) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    margin: 15px 0 !important;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--tron-cyan), var(--tron-blue), var(--tron-purple)) !important;
+    background-size: 200% 100% !important;
+    animation: progressGlow 2s ease infinite !important;
+    color: white !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    line-height: 30px !important;
+    box-shadow: 0 0 20px rgba(0, 217, 255, 0.5) !important;
+    transition: width 0.3s ease !important;
+}
+
+@keyframes progressGlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Error panel */
+#error-panel-main {
+    background: transparent !important;
+}
+
+.error-list {
+    background: var(--tron-bg-secondary) !important;
+    border: 1px solid var(--tron-red) !important;
+    border-radius: 6px !important;
+    padding: 10px !important;
+}
+
+.error-item {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-left: 3px solid var(--tron-red) !important;
+    color: var(--tron-text-primary) !important;
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+}
+
+/* Status info panel */
+#status-info-panel {
+    background: var(--tron-bg-card) !important;
+    border: 2px solid var(--tron-purple) !important;
+}
+
+#status-info-panel > div {
+    background: var(--tron-bg-secondary) !important;
+}
+
+#status-info-panel p,
+#status-info-panel li {
+    color: var(--tron-text-secondary) !important;
+}
+
+#status-info-panel strong {
+    color: var(--tron-cyan) !important;
+}
+
+/* Override any inline styles on Observe tab paragraphs */
+#observe-tab p[style*="color"] {
+    color: var(--tron-text-secondary) !important;
+}
+
+#observe-tab div[style*="background"] {
+    background: var(--tron-bg-secondary) !important;
+}
+
+/* Catalog item actions */
+.catalog-item-actions {
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+    padding-top: 12px !important;
+    border-top: 1px solid var(--tron-border) !important;
+}
+
+.preview-btn,
+.select-btn {
+    flex: 1 !important;
+    padding: 8px 12px !important;
+    border: 1px solid var(--tron-cyan) !important;
+    background: linear-gradient(135deg, var(--tron-bg-secondary), var(--tron-bg-card)) !important;
+    color: var(--tron-cyan) !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    font-size: 0.9em !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+}
+
+.preview-btn:hover,
+.select-btn:hover {
+    background: linear-gradient(135deg, var(--tron-cyan), var(--tron-blue)) !important;
+    color: var(--tron-bg-primary) !important;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.5) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Preview modal specific */
+.preview-container {
+    background: var(--tron-bg-card) !important;
+}
+
+#preview-modal .modal-content {
+    background: var(--tron-bg-card) !important;
+    border: 2px solid var(--tron-purple) !important;
+    box-shadow: 0 8px 40px rgba(139, 92, 246, 0.3) !important;
+}
+
+.resource-link {
+    transition: all 0.3s ease !important;
+}
+
+.resource-link:hover {
+    background: var(--tron-bg-secondary) !important;
+    border-color: var(--tron-cyan) !important;
+    color: white !important;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.3) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--tron-bg-card);
+    border: 1px solid var(--tron-border);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--tron-cyan), var(--tron-blue));
+    border-radius: 5px;
+    border: 1px solid var(--tron-cyan);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--tron-cyan);
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+/* Tables */
+table {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+thead {
+    background: linear-gradient(135deg, var(--tron-bg-secondary), var(--tron-bg-card)) !important;
+    border-bottom: 2px solid var(--tron-cyan) !important;
+}
+
+th {
+    color: var(--tron-cyan) !important;
+    border-bottom: 1px solid var(--tron-border) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-size: 0.85em !important;
+}
+
+td {
+    color: var(--tron-text-primary) !important;
+    border-bottom: 1px solid var(--tron-border) !important;
+}
+
+tr:hover {
+    background: rgba(0, 217, 255, 0.05) !important;
+}
+
+/* Loading spinner */
+@keyframes tron-spin {
+    0% { transform: rotate(0deg); box-shadow: 0 0 20px var(--tron-cyan); }
+    50% { box-shadow: 0 0 30px var(--tron-cyan); }
+    100% { transform: rotate(360deg); box-shadow: 0 0 20px var(--tron-cyan); }
+}
+
+.loading,
+.spinner {
+    border-color: var(--tron-border) var(--tron-border) var(--tron-cyan) var(--tron-cyan) !important;
+    animation: tron-spin 1s linear infinite !important;
+}
+
+/* Error/success messages - improved contrast */
+.error {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border: 1px solid var(--tron-red) !important;
+    border-left: 4px solid var(--tron-red) !important;
+    color: #fecaca !important;  /* Brighter red text */
+    padding: 12px !important;
+    border-radius: 4px !important;
+}
+
+.success {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border: 1px solid var(--tron-green) !important;
+    border-left: 4px solid var(--tron-green) !important;
+    color: #86efac !important;  /* Brighter green text */
+    padding: 12px !important;
+    border-radius: 4px !important;
+}
+
+.info {
+    background: rgba(0, 217, 255, 0.15) !important;
+    border: 1px solid var(--tron-cyan) !important;
+    border-left: 4px solid var(--tron-cyan) !important;
+    color: #67e8f9 !important;  /* Brighter cyan text */
+    padding: 12px !important;
+    border-radius: 4px !important;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    accent-color: var(--tron-cyan);
+    cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+    filter: drop-shadow(0 0 5px rgba(0, 217, 255, 0.6));
+}
+
+/* Links */
+a {
+    color: var(--tron-cyan) !important;
+    text-decoration: none !important;
+    transition: all 0.3s ease !important;
+}
+
+a:hover {
+    color: white !important;
+    text-shadow: 0 0 10px var(--tron-cyan) !important;
+}
+
+/* Modal/Dialog */
+.modal,
+.dialog {
+    background: var(--tron-bg-secondary) !important;
+    border: 2px solid var(--tron-cyan) !important;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.7), var(--tron-glow-cyan) !important;
+}
+
+/* Code blocks */
+pre,
+code {
+    background: var(--tron-bg-primary) !important;
+    border: 1px solid var(--tron-border) !important;
+    color: var(--tron-green) !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+/* Pulse animation for live elements */
+@keyframes tron-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.live-indicator,
+.pulsing {
+    animation: tron-pulse 2s ease-in-out infinite !important;
+}
+
+/* Grid overlay effect for background */
+.grid-overlay {
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 50px, rgba(0, 217, 255, 0.05) 50px, rgba(0, 217, 255, 0.05) 51px),
+        repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(0, 217, 255, 0.05) 50px, rgba(0, 217, 255, 0.05) 51px);
+}
+
+/* Additional text elements for better readability */
+p, span, div {
+    color: var(--tron-text-primary) !important;
+}
+
+h1, h3, h4, h5, h6 {
+    color: var(--tron-text-primary) !important;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.3) !important;
+}
+
+/* Small text and descriptions */
+small, .small-text {
+    color: var(--tron-text-secondary) !important;
+}
+
+/* Strong/bold text with emphasis */
+strong, b {
+    color: var(--tron-cyan) !important;
+    font-weight: 700 !important;
+}
+
+/* Badges and tags */
+.badge, .tag {
+    background: linear-gradient(135deg, var(--tron-blue), var(--tron-cyan)) !important;
+    color: white !important;
+    padding: 4px 12px !important;
+    border-radius: 12px !important;
+    font-size: 0.85em !important;
+    font-weight: 600 !important;
+    border: 1px solid var(--tron-cyan) !important;
+    box-shadow: 0 2px 8px rgba(0, 217, 255, 0.3) !important;
+}
+
+/* Select dropdowns - improved visibility */
+select option {
+    background: var(--tron-bg-card) !important;
+    color: var(--tron-text-primary) !important;
+}
+
+/* Form groups and containers */
+.form-group, .input-group {
+    margin-bottom: 20px !important;
+}
+
+/* Disabled elements */
+input:disabled,
+select:disabled,
+textarea:disabled {
+    background: var(--tron-bg-primary) !important;
+    color: var(--tron-text-muted) !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+/* Placeholder text */
+::placeholder {
+    color: var(--tron-text-muted) !important;
+    opacity: 0.7 !important;
+}
+
+/* Text areas */
+textarea {
+    background: var(--tron-bg-card) !important;
+    color: var(--tron-text-primary) !important;
+    border: 1px solid var(--tron-border) !important;
+    transition: all 0.3s ease !important;
+}
+
+textarea:focus {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.4) !important;
+    outline: none !important;
+}
+
+/* Better visibility for specific data displays */
+.data-value, .metric-value {
+    color: var(--tron-cyan) !important;
+    font-weight: 700 !important;
+    font-size: 1.1em !important;
+}
+
+/* Improve section visibility */
+section {
+    color: var(--tron-text-primary) !important;
+}
+
+/* Alert/warning boxes */
+.alert, .warning {
+    background: rgba(249, 115, 22, 0.15) !important;
+    border: 1px solid var(--tron-orange) !important;
+    border-left: 4px solid var(--tron-orange) !important;
+    color: #fdba74 !important;
+    padding: 12px !important;
+    border-radius: 4px !important;
+}
+
+/* Fix white boxes in planner and catalog */
+.collapsible-section {
+    background: var(--tron-bg-card) !important;
+    border: 2px solid var(--tron-border) !important;
+}
+
+.collapsible-header {
+    background: var(--tron-bg-secondary) !important;
+    border-bottom: 1px solid var(--tron-border) !important;
+}
+
+.collapsible-header:hover {
+    background: var(--tron-bg-card) !important;
+}
+
+.collapsible-header h3 {
+    color: var(--tron-cyan) !important;
+}
+
+.collapsible-toggle {
+    color: var(--tron-cyan) !important;
+}
+
+.subsection {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+    padding: 20px !important;
+    border-radius: 8px !important;
+}
+
+.subsection h4 {
+    color: var(--tron-cyan) !important;
+    border-bottom: 1px solid var(--tron-border) !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 15px !important;
+}
+
+.date-notice {
+    background: rgba(255, 193, 7, 0.15) !important;
+    border: 1px solid var(--tron-orange) !important;
+    border-left: 4px solid var(--tron-orange) !important;
+    color: #fcd34d !important;
+}
+
+.weather-warning {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border: 1px solid var(--tron-red) !important;
+    border-left: 4px solid var(--tron-red) !important;
+}
+
+.weather-warning h3,
+.weather-warning p {
+    color: #fca5a5 !important;
+}
+
+/* Filter section in catalog */
+.filter-section h3 {
+    color: var(--tron-cyan) !important;
+}
+
+/* Catalog grid items */
+.catalog-item {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+    color: var(--tron-text-primary) !important;
+}
+
+.catalog-item:hover {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3) !important;
+}
+
+/* Object type badges */
+.object-type {
+    background: linear-gradient(135deg, var(--tron-blue), var(--tron-cyan)) !important;
+    color: white !important;
+    padding: 4px 10px !important;
+    border-radius: 12px !important;
+    font-size: 0.8em !important;
+    font-weight: 600 !important;
+}
+
+/* Magnitude and size displays */
+.magnitude, .size {
+    color: var(--tron-text-secondary) !important;
+}
+
+/* Planner results and session summary */
+.session-summary {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+.summary-item {
+    background: var(--tron-bg-secondary) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+.summary-item strong {
+    color: var(--tron-cyan) !important;
+}
+
+.target-name {
+    color: var(--tron-text-primary) !important;
+}
+
+.target-score {
+    color: var(--tron-text-secondary) !important;
+}
+
+.target-type {
+    background: linear-gradient(135deg, var(--tron-blue), var(--tron-cyan)) !important;
+}
+
+.detail-item strong {
+    color: var(--tron-cyan) !important;
+}
+
+/* QR code section */
+.qr-modal-content {
+    background: var(--tron-bg-card) !important;
+    border: 2px solid var(--tron-cyan) !important;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.7), var(--tron-glow-cyan) !important;
+}
+
+.qr-instructions {
+    background: var(--tron-bg-secondary) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+.qr-instructions h3 {
+    color: var(--tron-cyan) !important;
+}
+
+.qr-instructions li {
+    color: var(--tron-text-primary) !important;
+}
+
+/* Tab navigation buttons */
+.nav-btn {
+    background: rgba(30, 41, 59, 0.6) !important;
+    border: 2px solid var(--tron-border) !important;
+}
+
+.nav-btn:hover {
+    background: var(--tron-bg-card) !important;
+    border-color: var(--tron-cyan) !important;
+}
+
+.nav-btn.active {
+    background: linear-gradient(135deg, var(--tron-blue), var(--tron-cyan)) !important;
+    color: white !important;
+    border-color: var(--tron-cyan) !important;
+    box-shadow: var(--tron-glow-cyan) !important;
+}
+
+/* Catalog browser */
+.catalog-header {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+.catalog-stats {
+    gap: 15px !important;
+}
+
+.stat-card {
+    background: var(--tron-bg-secondary) !important;
+    border: 2px solid var(--tron-border) !important;
+    transition: all 0.3s ease !important;
+}
+
+.stat-card:hover {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3) !important;
+}
+
+.stat-value {
+    color: var(--tron-cyan) !important;
+}
+
+.stat-label {
+    color: var(--tron-text-secondary) !important;
+}
+
+.catalog-filters {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+/* Catalog grid items */
+.catalog-grid {
+    gap: 20px !important;
+}
+
+.catalog-grid-item {
+    background: var(--tron-bg-card) !important;
+    border: 1px solid var(--tron-border) !important;
+}
+
+.catalog-grid-item:hover {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3) !important;
+    transform: translateY(-3px) !important;
+}
+
+/* Export buttons */
+.export-btn {
+    background: linear-gradient(135deg, var(--tron-green), #059669) !important;
+    border: 1px solid var(--tron-green) !important;
+}
+
+.export-btn:hover {
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+    transform: translateY(-2px) !important;
+}

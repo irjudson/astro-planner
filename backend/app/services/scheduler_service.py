@@ -413,12 +413,8 @@ class SchedulerService:
             Tuple of (exposure_seconds, frame_count)
         """
         # Base exposure on magnitude
-        if target.magnitude < 6:
-            exposure = 5  # Bright objects
-        elif target.magnitude < 8:
-            exposure = 8
-        else:
-            exposure = 10  # Faint objects (max for Seestar)
+        # Seestar S50 max exposure is 10s, use 10s for all targets
+        exposure = 10
 
         # Calculate how many frames fit in duration
         # Account for readout time (assume 2s overhead per frame)

@@ -74,7 +74,13 @@ class PlannerService:
         session.total_imaging_minutes = int(imaging_duration.total_seconds() / 60)
 
         # Filter targets by object type
-        targets = self.catalog.filter_targets(request.constraints.object_types)
+        # Limit to brighter objects (mag < 12) and top 200 candidates for performance
+        # Seestar S50 works best with magnitude 8-11 targets anyway
+        targets = self.catalog.filter_targets(
+            object_types=request.constraints.object_types,
+            max_magnitude=12.0,  # Practical limit for Seestar S50
+            limit=200  # Enough variety while keeping performance fast
+        )
 
         # Get weather forecast
         weather_forecast = self.weather.get_forecast(
