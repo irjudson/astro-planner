@@ -25,9 +25,9 @@ COPY backend/scripts ./scripts
 COPY backend/pytest.ini ./pytest.ini
 COPY frontend ./frontend
 
-# Create data directory and import catalog
+# Create data directory and initialize test database
 RUN mkdir -p /app/data
-RUN python scripts/import_catalog.py --database /app/data/catalogs.db
+RUN python scripts/init_test_db.py
 
 # Expose port
 EXPOSE 9247
