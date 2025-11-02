@@ -59,7 +59,7 @@ def test_list_targets():
 def test_get_target():
     """Test getting a specific target."""
     print_section("Testing Get Specific Target")
-    target_id = "M31"
+    target_id = "NGC31"
     try:
         response = requests.get(f"{BASE_URL}/targets/{target_id}")
         response.raise_for_status()
