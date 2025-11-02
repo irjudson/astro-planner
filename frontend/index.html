@@ -932,6 +932,8 @@
             border-radius: 4px;
         }
     </style>
+    <!-- Tron Theme CSS - loaded AFTER inline styles to ensure proper override -->
+    <link rel="stylesheet" href="tron-theme.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -1127,13 +1129,22 @@
                     </div>
 
                     <div class="date-notice seestar-export" id="seestar-help" style="margin-top: 15px; display: none;">
-                        <strong>🚀 How to use with Seestar S50:</strong><br>
+                        <strong>🚀 Two Ways to Use with Seestar S50:</strong><br><br>
+
+                        <strong>Option 1: Direct Control (Recommended - Built into this app!)</strong><br>
+                        1. Generate your observing plan above<br>
+                        2. Go to the <strong>Observe</strong> tab<br>
+                        3. Enter your Seestar's IP address (default: 192.168.2.47) and click <strong>Connect</strong><br>
+                        4. Click <strong>Execute Plan</strong> to start fully automated imaging<br>
+                        5. Watch real-time progress as your Seestar captures each target<br>
+                        <small style="opacity: 0.8;">✨ No external software needed! This app connects directly to your Seestar S50.</small><br><br>
+
+                        <strong>Option 2: Export for seestar_alp</strong><br>
                         1. Click "<strong>seestar_alp CSV</strong>" to download your observing plan<br>
                         2. Set up <a href="https://github.com/smart-underworld/seestar_alp" target="_blank" style="color: #667eea;">seestar_alp</a> on a Raspberry Pi or computer<br>
                         3. Connect your Seestar S50 to WiFi (Station Mode)<br>
-                        4. Import the CSV file in seestar_alp web interface<br>
-                        5. Start automated imaging - it's that simple!<br>
-                        <small style="opacity: 0.8;">The official Seestar app has no import capability. seestar_alp is the community standard for automated observing.</small>
+                        4. Import the CSV file in seestar_alp web interface and start imaging<br>
+                        <small style="opacity: 0.8;">Note: The official Seestar app has no import capability. seestar_alp is the community standard.</small>
                     </div>
                 </div>
 
@@ -1438,6 +1449,51 @@
         </div>
     </div>
 
+    <!-- Object Preview Modal -->
+    <div id="preview-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="preview-title">🔭 Object Preview</h2>
+                <button class="close-btn" onclick="closePreviewModal()">&times;</button>
+            </div>
+            <div class="preview-container">
+                <!-- Aladin Lite Sky Viewer -->
+                <div id="aladin-lite-div" style="width: 100%; height: 400px; background: #0a0e27; border: 2px solid #475569; border-radius: 8px;"></div>
+
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #00d9ff; margin-bottom: 15px;">Additional Resources</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <a id="simbad-link" href="#" target="_blank" class="resource-link" style="padding: 10px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; text-decoration: none; color: #00d9ff; text-align: center;">
+                            📚 SIMBAD Database
+                        </a>
+                        <a id="wikisky-link" href="#" target="_blank" class="resource-link" style="padding: 10px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; text-decoration: none; color: #00d9ff; text-align: center;">
+                            🌌 WikiSky
+                        </a>
+                        <a id="astrobin-link" href="#" target="_blank" class="resource-link" style="padding: 10px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; text-decoration: none; color: #00d9ff; text-align: center;">
+                            📸 AstroBin Search
+                        </a>
+                    </div>
+                </div>
+
+                <div class="date-notice" style="margin-top: 20px; background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444;">
+                    <strong>⚠️ Your Mileage May Vary</strong><br>
+                    These preview images are professional captures or survey data. Your actual images will vary based on:
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Light pollution</strong> - Bortle scale at your location greatly affects results</li>
+                        <li><strong>Equipment</strong> - Different telescopes and cameras capture different detail</li>
+                        <li><strong>Exposure time</strong> - Longer exposures reveal more detail</li>
+                        <li><strong>Processing</strong> - Post-processing techniques dramatically affect final images</li>
+                        <li><strong>Atmospheric conditions</strong> - Seeing, transparency, and weather impact quality</li>
+                    </ul>
+                    <small style="opacity: 0.8; display: block; margin-top: 10px;">
+                        💡 <strong>Tip:</strong> Use previews as a guide for framing and composition, not as expectations for your raw captures!
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
     <script>
         // Set today's date as default
         document.getElementById('observing-date').valueAsDate = new Date();
@@ -1787,11 +1843,80 @@
             document.getElementById('qr-modal').style.display = 'none';
         }
 
-        // Close modal when clicking outside of it
+        // Object preview functions
+        let aladinInstance = null;
+
+        function showObjectPreview(name, catalogId, raDeg, decDeg, sizeArcmin) {
+            const modal = document.getElementById('preview-modal');
+            const title = document.getElementById('preview-title');
+
+            // Update title
+            title.textContent = `🔭 ${name} (${catalogId})`;
+
+            // Update resource links
+            document.getElementById('simbad-link').href = `http://simbad.u-strasbg.fr/simbad/sim-id?Ident=${encodeURIComponent(catalogId)}`;
+            document.getElementById('wikisky-link').href = `http://www.wikisky.org/?ra=${raDeg}&de=${decDeg}&zoom=9&img_source=DSS2`;
+            document.getElementById('astrobin-link').href = `https://www.astrobin.com/search/?q=${encodeURIComponent(name)}`;
+
+            // Show modal
+            modal.style.display = 'block';
+
+            // Initialize Aladin Lite viewer
+            setTimeout(() => {
+                try {
+                    const aladinDiv = document.getElementById('aladin-lite-div');
+
+                    // Calculate FOV based on object size (with some padding)
+                    const fov = Math.max(sizeArcmin / 60 * 2, 0.5); // At least 0.5 degrees
+
+                    // Initialize or reuse Aladin instance
+                    if (!aladinInstance) {
+                        aladinInstance = A.aladin(aladinDiv, {
+                            survey: 'P/DSS2/color',
+                            fov: fov,
+                            target: `${raDeg} ${decDeg}`,
+                            showReticle: true,
+                            showZoomControl: true,
+                            showFullscreenControl: true,
+                            showLayersControl: true,
+                            showGotoControl: false,
+                            showShareControl: false,
+                            showCatalog: true,
+                            reticleColor: '#00d9ff',
+                            reticleSize: 32
+                        });
+                    } else {
+                        aladinInstance.gotoRaDec(raDeg, decDeg);
+                        aladinInstance.setFoV(fov);
+                    }
+                } catch (error) {
+                    console.error('Error initializing Aladin Lite:', error);
+                    document.getElementById('aladin-lite-div').innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #f1f5f9; text-align: center;">
+                            <div>
+                                <p style="margin-bottom: 10px;">⚠️ Sky viewer failed to load</p>
+                                <p style="font-size: 0.9em; opacity: 0.8;">Use the resource links below to view this object</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            }, 100);
+        }
+
+        function closePreviewModal() {
+            document.getElementById('preview-modal').style.display = 'none';
+        }
+
+        // Close modals when clicking outside of them
         window.onclick = function(event) {
-            const modal = document.getElementById('qr-modal');
-            if (event.target === modal) {
+            const qrModal = document.getElementById('qr-modal');
+            const previewModal = document.getElementById('preview-modal');
+
+            if (event.target === qrModal) {
                 closeQRModal();
+            }
+            if (event.target === previewModal) {
+                closePreviewModal();
             }
         }
 
@@ -1956,8 +2081,11 @@
                 const raStr = obj.ra_hours ? `${obj.ra_hours.toFixed(2)}h` : 'N/A';
                 const decStr = obj.dec_degrees ? `${obj.dec_degrees >= 0 ? '+' : ''}${obj.dec_degrees.toFixed(2)}°` : 'N/A';
 
+                // Convert RA hours to degrees for image services
+                const raDeg = obj.ra_hours ? (obj.ra_hours * 15).toFixed(4) : null;
+
                 return `
-                    <div class="catalog-item" onclick="selectCatalogObject('${obj.catalog_id}')">
+                    <div class="catalog-item">
                         <div class="catalog-item-header">
                             <div class="catalog-item-name">${obj.name}</div>
                             <div class="catalog-item-type">${obj.object_type}</div>
@@ -1968,6 +2096,16 @@
                             <div><strong>Size:</strong> ${sizeStr}</div>
                             <div><strong>RA/Dec:</strong> ${raStr}, ${decStr}</div>
                             ${obj.description ? `<div style="margin-top: 8px; font-style: italic;">${obj.description}</div>` : ''}
+                        </div>
+                        <div class="catalog-item-actions">
+                            ${raDeg && obj.dec_degrees ? `
+                                <button class="preview-btn" onclick="event.stopPropagation(); showObjectPreview('${obj.name}', '${obj.catalog_id}', ${raDeg}, ${obj.dec_degrees}, ${obj.size_arcmin || 60})">
+                                    🔭 Preview
+                                </button>
+                            ` : ''}
+                            <button class="select-btn" onclick="event.stopPropagation(); selectCatalogObject('${obj.catalog_id}')">
+                                ℹ️ Details
+                            </button>
                         </div>
                     </div>
                 `;
