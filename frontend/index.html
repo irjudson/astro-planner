@@ -1705,7 +1705,12 @@
             document.getElementById('session-summary').innerHTML = summaryHtml;
 
             // Display targets
-            const targetsHtml = plan.scheduled_targets.map((st, i) => `
+            const targetsHtml = plan.scheduled_targets.map((st, i) => {
+                // Convert RA hours to degrees for preview
+                const raDeg = st.target.ra_hours ? (st.target.ra_hours * 15).toFixed(4) : null;
+                const sizeArcmin = st.target.size_arcmin || 60;
+
+                return `
                 <div class="target-card">
                     <div class="target-header">
                         <div>
@@ -1731,8 +1736,16 @@
                         </div>
                     </div>
                     ${st.target.description ? `<p style="margin-top:10px; font-style:italic;">${st.target.description}</p>` : ''}
+                    ${raDeg && st.target.dec_degrees ? `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--tron-border);">
+                            <button class="preview-btn" onclick="showObjectPreview('${st.target.name}', '${st.target.catalog_id}', ${raDeg}, ${st.target.dec_degrees}, ${sizeArcmin})">
+                                🔭 Preview Object
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.getElementById('target-list').innerHTML = targetsHtml || '<p>No targets scheduled</p>';
         }
