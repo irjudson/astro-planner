@@ -47,32 +47,33 @@ def create_test_database():
             size_major_arcmin FLOAT,
             size_minor_arcmin FLOAT,
             constellation VARCHAR(20),
-            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
             UNIQUE(catalog_name, catalog_number)
         )
     """)
 
-    # Add sample test objects
+    # Add sample test objects (without description - it's generated dynamically)
     test_objects = [
-        ('NGC', '31', 'Andromeda Galaxy', 0.712, 41.269, 'galaxy', 3.4, 13.5, 178.0, 63.0, 'And', 'Andromeda Galaxy - nearest major galaxy'),
-        ('NGC', '224', 'Andromeda Galaxy', 0.712, 41.269, 'galaxy', 3.4, 13.5, 178.0, 63.0, 'And', 'Andromeda Galaxy (alternate designation)'),
-        ('NGC', '598', 'Triangulum Galaxy', 1.564, 30.660, 'galaxy', 5.7, 14.2, 68.7, 41.6, 'Tri', 'Triangulum Galaxy - M33'),
-        ('NGC', '5194', 'Whirlpool Galaxy', 13.498, 47.195, 'galaxy', 8.4, 13.0, 11.2, 6.9, 'CVn', 'Whirlpool Galaxy - M51'),
-        ('NGC', '5272', 'M3', 13.703, 28.377, 'globular cluster', 6.2, 11.0, 18.0, 18.0, 'CVn', 'Globular cluster M3'),
-        ('NGC', '6720', 'Ring Nebula', 18.897, 33.029, 'planetary nebula', 8.8, 9.7, 1.4, 1.0, 'Lyr', 'Ring Nebula - M57'),
-        ('NGC', '6853', 'Dumbbell Nebula', 19.993, 22.721, 'planetary nebula', 7.5, 9.9, 8.0, 5.6, 'Vul', 'Dumbbell Nebula - M27'),
-        ('NGC', '7078', 'M15', 21.499, 12.167, 'globular cluster', 6.2, 11.0, 18.0, 18.0, 'Peg', 'Globular cluster M15'),
-        ('NGC', '7089', 'M2', 21.558, -0.823, 'globular cluster', 6.3, 11.0, 16.0, 16.0, 'Aqr', 'Globular cluster M2'),
-        ('IC', '1613', None, 1.079, 2.133, 'galaxy', 9.2, 14.5, 16.2, 14.5, 'Cet', 'Irregular dwarf galaxy'),
+        ('NGC', '31', 'Andromeda Galaxy', 0.712, 41.269, 'galaxy', 3.4, 13.5, 178.0, 63.0, 'And'),
+        ('NGC', '224', 'Andromeda Galaxy', 0.712, 41.269, 'galaxy', 3.4, 13.5, 178.0, 63.0, 'And'),
+        ('NGC', '598', 'Triangulum Galaxy', 1.564, 30.660, 'galaxy', 5.7, 14.2, 68.7, 41.6, 'Tri'),
+        ('NGC', '5194', 'Whirlpool Galaxy', 13.498, 47.195, 'galaxy', 8.4, 13.0, 11.2, 6.9, 'CVn'),
+        ('NGC', '5272', 'M3', 13.703, 28.377, 'globular_cluster', 6.2, 11.0, 18.0, 18.0, 'CVn'),
+        ('NGC', '6720', 'Ring Nebula', 18.897, 33.029, 'planetary_nebula', 8.8, 9.7, 1.4, 1.0, 'Lyr'),
+        ('NGC', '6853', 'Dumbbell Nebula', 19.993, 22.721, 'planetary_nebula', 7.5, 9.9, 8.0, 5.6, 'Vul'),
+        ('NGC', '7078', 'M15', 21.499, 12.167, 'globular_cluster', 6.2, 11.0, 18.0, 18.0, 'Peg'),
+        ('NGC', '7089', 'M2', 21.558, -0.823, 'globular_cluster', 6.3, 11.0, 16.0, 16.0, 'Aqr'),
+        ('IC', '1613', None, 1.079, 2.133, 'galaxy', 9.2, 14.5, 16.2, 14.5, 'Cet'),
     ]
 
     cursor.executemany("""
         INSERT OR IGNORE INTO dso_catalog
         (catalog_name, catalog_number, common_name, ra_hours, dec_degrees,
          object_type, magnitude, surface_brightness, size_major_arcmin,
-         size_minor_arcmin, constellation, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         size_minor_arcmin, constellation)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, test_objects)
 
     conn.commit()
