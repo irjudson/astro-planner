@@ -25,9 +25,12 @@ COPY backend/scripts ./scripts
 COPY backend/pytest.ini ./pytest.ini
 COPY frontend ./frontend
 
-# Create data directory and initialize test database
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Create data directory (database will be initialized at runtime)
 RUN mkdir -p /app/data
-RUN python scripts/init_test_db.py
 
 # Expose port
 EXPOSE 9247
@@ -36,6 +39,9 @@ EXPOSE 9247
 ENV PYTHONUNBUFFERED=1
 ENV HOST=0.0.0.0
 ENV PORT=9247
+
+# Set entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Run the application
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9247"]
