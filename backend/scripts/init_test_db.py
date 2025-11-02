@@ -54,6 +54,30 @@ def create_test_database():
         )
     """)
 
+    # Create constellation names table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS constellation_names (
+            abbreviation VARCHAR(10) PRIMARY KEY,
+            full_name VARCHAR(50) NOT NULL
+        )
+    """)
+
+    # Add constellation names for test objects
+    constellation_names = [
+        ('And', 'Andromeda'),
+        ('Tri', 'Triangulum'),
+        ('CVn', 'Canes Venatici'),
+        ('Lyr', 'Lyra'),
+        ('Vul', 'Vulpecula'),
+        ('Peg', 'Pegasus'),
+        ('Aqr', 'Aquarius'),
+        ('Cet', 'Cetus'),
+    ]
+    cursor.executemany("""
+        INSERT OR IGNORE INTO constellation_names (abbreviation, full_name)
+        VALUES (?, ?)
+    """, constellation_names)
+
     # Add sample test objects (without description - it's generated dynamically)
     test_objects = [
         ('NGC', '31', 'Andromeda Galaxy', 0.712, 41.269, 'galaxy', 3.4, 13.5, 178.0, 63.0, 'And'),
