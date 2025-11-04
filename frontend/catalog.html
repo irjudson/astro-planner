@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog Browser - Astro Planner</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .catalog-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .catalog-type-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .tab-button.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .tab-button:hover:not(.active) {
+            background: #e0e0e0;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .results-count {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .catalog-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .catalog-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .card-designation {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        .object-type-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .badge-galaxy { background: #e3f2fd; color: #1976d2; }
+        .badge-nebula { background: #fce4ec; color: #c2185b; }
+        .badge-cluster { background: #fff3e0; color: #f57c00; }
+        .badge-comet { background: #e8f5e9; color: #388e3c; }
+        .badge-planetary { background: #f3e5f5; color: #7b1fa2; }
+
+        .card-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #95a5a6;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .detail-value {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .comet-orbital-data {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .orbital-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .orbital-label {
+            color: #7f8c8d;
+        }
+
+        .orbital-value {
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">Astro Planner</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="plan.html">Plan</a></li>
+                <li><a href="catalog.html" class="active">Catalog</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="catalog-container">
+        <h1>Catalog Browser</h1>
+
+        <div class="catalog-type-tabs">
+            <button class="tab-button active" data-catalog="dso">Deep Sky Objects</button>
+            <button class="tab-button" data-catalog="comet">Comets</button>
+        </div>
+
+        <div class="filters">
+            <div id="dso-filters">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="object-type">Object Type</label>
+                        <select id="object-type">
+                            <option value="">All Types</option>
+                            <option value="galaxy">Galaxy</option>
+                            <option value="nebula">Nebula</option>
+                            <option value="cluster">Cluster</option>
+                            <option value="planetary nebula">Planetary Nebula</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="max-magnitude">Max Magnitude</label>
+                        <input type="number" id="max-magnitude" placeholder="e.g., 12.0" step="0.1">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="constellation">Constellation</label>
+                        <input type="text" id="constellation" placeholder="e.g., Orion">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="search">Search</label>
+                        <input type="text" id="search" placeholder="Name or catalog ID">
+                    </div>
+                </div>
+            </div>
+
+            <div id="comet-filters" style="display: none;">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="comet-type">Comet Type</label>
+                        <select id="comet-type">
+                            <option value="">All Types</option>
+                            <option value="short-period">Short Period</option>
+                            <option value="long-period">Long Period</option>
+                            <option value="hyperbolic">Hyperbolic</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="comet-max-mag">Max Magnitude</label>
+                        <input type="number" id="comet-max-mag" placeholder="e.g., 12.0" step="0.1">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="comet-search">Search</label>
+                        <input type="text" id="comet-search" placeholder="Designation or name">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="loadCatalog()" class="btn btn-primary" style="margin-top: 10px;">
+                Apply Filters
+            </button>
+        </div>
+
+        <div class="results-header">
+            <div class="results-count" id="results-count">Loading...</div>
+        </div>
+
+        <div id="catalog-results" class="catalog-grid">
+            <div class="loading">Loading catalog...</div>
+        </div>
+
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:9247/api';
+        let currentCatalog = 'dso';
+        let currentPage = 1;
+        const itemsPerPage = 20;
+
+        // Tab switching
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                currentCatalog = button.dataset.catalog;
+                currentPage = 1;
+
+                // Show/hide appropriate filters
+                document.getElementById('dso-filters').style.display = currentCatalog === 'dso' ? 'block' : 'none';
+                document.getElementById('comet-filters').style.display = currentCatalog === 'comet' ? 'block' : 'none';
+
+                loadCatalog();
+            });
+        });
+
+        async function loadCatalog() {
+            const resultsDiv = document.getElementById('catalog-results');
+            const countDiv = document.getElementById('results-count');
+
+            resultsDiv.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                if (currentCatalog === 'dso') {
+                    await loadDSOCatalog();
+                } else {
+                    await loadCometCatalog();
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Error loading catalog: ${error.message}</div>`;
+                countDiv.textContent = 'Error';
+            }
+        }
+
+        async function loadDSOCatalog() {
+            const objectType = document.getElementById('object-type').value;
+            const maxMag = document.getElementById('max-magnitude').value;
+            const constellation = document.getElementById('constellation').value;
+            const search = document.getElementById('search').value;
+
+            const params = new URLSearchParams();
+            if (objectType) params.append('object_type', objectType);
+            if (maxMag) params.append('max_magnitude', maxMag);
+            if (constellation) params.append('constellation', constellation);
+            if (search) params.append('search', search);
+            params.append('limit', itemsPerPage);
+            params.append('offset', (currentPage - 1) * itemsPerPage);
+
+            const response = await fetch(`${API_BASE}/catalog/search?${params}`);
+            const data = await response.json();
+
+            displayDSOResults(data.targets || []);
+            updatePagination(data.total || 0);
+        }
+
+        async function loadCometCatalog() {
+            const params = new URLSearchParams();
+            const maxMag = document.getElementById('comet-max-mag').value;
+            if (maxMag) params.append('max_magnitude', maxMag);
+            params.append('limit', itemsPerPage);
+            params.append('offset', (currentPage - 1) * itemsPerPage);
+
+            const response = await fetch(`${API_BASE}/comets?${params}`);
+            const data = await response.json();
+
+            displayCometResults(data || []);
+            updatePagination(data.length);  // Note: comet API doesn't return total count
+        }
+
+        function displayDSOResults(targets) {
+            const resultsDiv = document.getElementById('catalog-results');
+            const countDiv = document.getElementById('results-count');
+
+            if (targets.length === 0) {
+                resultsDiv.innerHTML = '<div class="loading">No objects found</div>';
+                countDiv.textContent = '0 objects';
+                return;
+            }
+
+            countDiv.textContent = `${targets.length} object${targets.length !== 1 ? 's' : ''}`;
+
+            resultsDiv.innerHTML = targets.map(target => `
+                <div class="catalog-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${target.common_name || target.catalog_id}</div>
+                            <div class="card-designation">${target.catalog_name} ${target.catalog_id}</div>
+                        </div>
+                        <span class="object-type-badge badge-${target.object_type.replace(' ', '-')}">${target.object_type}</span>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Magnitude</span>
+                            <span class="detail-value">${target.magnitude ? target.magnitude.toFixed(1) : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Size</span>
+                            <span class="detail-value">${target.size_arcmin ? target.size_arcmin.toFixed(1) + "'" : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">RA</span>
+                            <span class="detail-value">${formatRA(target.ra_hours)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Dec</span>
+                            <span class="detail-value">${formatDec(target.dec_degrees)}</span>
+                        </div>
+                    </div>
+
+                    ${target.constellation ? `<div style="margin-top: 10px; color: #7f8c8d; font-size: 14px;">Constellation: ${target.constellation}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function displayCometResults(comets) {
+            const resultsDiv = document.getElementById('catalog-results');
+            const countDiv = document.getElementById('results-count');
+
+            if (comets.length === 0) {
+                resultsDiv.innerHTML = '<div class="loading">No comets found</div>';
+                countDiv.textContent = '0 comets';
+                return;
+            }
+
+            countDiv.textContent = `${comets.length} comet${comets.length !== 1 ? 's' : ''}`;
+
+            resultsDiv.innerHTML = comets.map(comet => `
+                <div class="catalog-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">${comet.name || comet.designation}</div>
+                            <div class="card-designation">${comet.designation}</div>
+                        </div>
+                        <span class="object-type-badge badge-comet">${comet.comet_type || 'Comet'}</span>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Magnitude</span>
+                            <span class="detail-value">${comet.current_magnitude ? comet.current_magnitude.toFixed(1) : 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Activity</span>
+                            <span class="detail-value">${comet.activity_status || 'Unknown'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Perihelion</span>
+                            <span class="detail-value">${comet.orbital_elements.perihelion_distance_au.toFixed(2)} AU</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Eccentricity</span>
+                            <span class="detail-value">${comet.orbital_elements.eccentricity.toFixed(3)}</span>
+                        </div>
+                    </div>
+
+                    <div class="comet-orbital-data">
+                        <div class="orbital-item">
+                            <span class="orbital-label">Inclination</span>
+                            <span class="orbital-value">${comet.orbital_elements.inclination_deg.toFixed(1)}°</span>
+                        </div>
+                        <div class="orbital-item">
+                            <span class="orbital-label">Data Source</span>
+                            <span class="orbital-value">${comet.data_source || 'Unknown'}</span>
+                        </div>
+                    </div>
+
+                    ${comet.notes ? `<div style="margin-top: 10px; color: #7f8c8d; font-size: 13px; font-style: italic;">${comet.notes}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updatePagination(total) {
+            const paginationDiv = document.getElementById('pagination');
+            const totalPages = Math.ceil(total / itemsPerPage);
+
+            if (totalPages <= 1) {
+                paginationDiv.innerHTML = '';
+                return;
+            }
+
+            let html = `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += '<span>...</span>';
+                }
+            }
+
+            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
+
+            paginationDiv.innerHTML = html;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            loadCatalog();
+        }
+
+        function formatRA(hours) {
+            if (hours == null) return 'N/A';
+            const h = Math.floor(hours);
+            const m = Math.floor((hours - h) * 60);
+            const s = Math.floor(((hours - h) * 60 - m) * 60);
+            return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+        }
+
+        function formatDec(degrees) {
+            if (degrees == null) return 'N/A';
+            const sign = degrees >= 0 ? '+' : '-';
+            const absDeg = Math.abs(degrees);
+            const d = Math.floor(absDeg);
+            const m = Math.floor((absDeg - d) * 60);
+            const s = Math.floor(((absDeg - d) * 60 - m) * 60);
+            return `${sign}${d.toString().padStart(2, '0')}° ${m.toString().padStart(2, '0')}' ${s.toString().padStart(2, '0')}"`;
+        }
+
+        // Load catalog on page load
+        loadCatalog();
+    </script>
+</body>
+</html>
