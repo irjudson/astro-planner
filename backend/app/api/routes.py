@@ -14,7 +14,13 @@ from app.clients.seestar_client import SeestarClient, SeestarState
 from app.services.telescope_service import TelescopeService, ExecutionState
 from pydantic import BaseModel
 
+# Import comet router
+from app.api.comets import router as comet_router
+
 router = APIRouter()
+
+# Include comet endpoints
+router.include_router(comet_router)
 
 # Initialize services
 planner = PlannerService()

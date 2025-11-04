@@ -11,6 +11,7 @@ from app.services import (
     EphemerisService, CatalogService, WeatherService,
     SchedulerService, ExportService
 )
+from app.services.comet_service import CometService
 
 
 class PlannerService:
@@ -20,6 +21,7 @@ class PlannerService:
         """Initialize all required services."""
         self.ephemeris = EphemerisService()
         self.catalog = CatalogService()
+        self.comet_service = CometService()
         self.weather = WeatherService()
         self.scheduler = SchedulerService()
         self.exporter = ExportService()
@@ -81,6 +83,43 @@ class PlannerService:
             max_magnitude=12.0,  # Practical limit for Seestar S50
             limit=200  # Enough variety while keeping performance fast
         )
+
+        # Add visible comets if "comet" is in object types
+        if request.constraints.object_types and "comet" in request.constraints.object_types:
+            try:
+                # Get visible comets during the observing session
+                # Use midpoint of imaging window for visibility check
+                midpoint_time = session.imaging_start + (session.imaging_end - session.imaging_start) / 2
+                # Convert to naive UTC datetime for comet service
+                midpoint_utc = midpoint_time.astimezone(pytz.UTC).replace(tzinfo=None)
+
+                visible_comets = self.comet_service.get_visible_comets(
+                    location=request.location,
+                    time_utc=midpoint_utc,
+                    min_altitude=request.constraints.min_altitude_degrees,
+                    max_magnitude=12.0  # Same limit as DSO targets
+                )
+
+                # Convert comet visibility objects to DSOTarget format for scheduler compatibility
+                # This is a simplified conversion - comets need special handling for moving targets
+                for comet_vis in visible_comets:
+                    from app.models import DSOTarget
+                    comet_target = DSOTarget(
+                        catalog_name="Comet",
+                        catalog_id=comet_vis.comet.designation,
+                        common_name=comet_vis.comet.name or comet_vis.comet.designation,
+                        object_type="comet",
+                        ra_hours=comet_vis.ephemeris.ra_hours,
+                        dec_degrees=comet_vis.ephemeris.dec_degrees,
+                        magnitude=comet_vis.ephemeris.magnitude,
+                        size_arcmin=None,  # Comets vary
+                        constellation=None,  # Would need to compute
+                        notes=f"Distance: {comet_vis.ephemeris.helio_distance_au:.2f} AU from Sun, {comet_vis.ephemeris.geo_distance_au:.2f} AU from Earth"
+                    )
+                    targets.append(comet_target)
+            except Exception as e:
+                # Log error but don't fail the entire plan
+                print(f"Warning: Failed to add comets to plan: {e}")
 
         # Get weather forecast
         weather_forecast = self.weather.get_forecast(

@@ -43,6 +43,58 @@ class DSOTarget(BaseModel):
     description: Optional[str] = Field(default=None, description="Object description")
 
 
+class OrbitalElements(BaseModel):
+    """Keplerian orbital elements for a comet."""
+    epoch_jd: float = Field(description="Epoch of elements (Julian Date)")
+    perihelion_distance_au: float = Field(description="Perihelion distance in AU")
+    eccentricity: float = Field(description="Orbital eccentricity")
+    inclination_deg: float = Field(description="Inclination in degrees")
+    arg_perihelion_deg: float = Field(description="Argument of perihelion (ω) in degrees")
+    ascending_node_deg: float = Field(description="Longitude of ascending node (Ω) in degrees")
+    perihelion_time_jd: float = Field(description="Time of perihelion passage (Julian Date)")
+
+
+class CometTarget(BaseModel):
+    """Comet target information."""
+    designation: str = Field(description="Official designation (e.g., C/2020 F3)")
+    name: Optional[str] = Field(default=None, description="Common name (e.g., NEOWISE)")
+    orbital_elements: OrbitalElements = Field(description="Orbital elements")
+    absolute_magnitude: Optional[float] = Field(default=None, description="Absolute magnitude H")
+    magnitude_slope: float = Field(default=4.0, description="Magnitude slope parameter")
+    current_magnitude: Optional[float] = Field(default=None, description="Current estimated magnitude")
+    comet_type: Optional[str] = Field(default=None, description="Type: short-period, long-period, hyperbolic")
+    activity_status: Optional[str] = Field(default=None, description="Activity status: active, inactive, unknown")
+    discovery_date: Optional[str] = Field(default=None, description="Discovery date (ISO)")
+    data_source: Optional[str] = Field(default="manual", description="Data source: MPC, JPL, manual")
+    notes: Optional[str] = Field(default=None, description="Observing notes")
+
+
+class CometEphemeris(BaseModel):
+    """Ephemeris (computed position) for a comet at a specific time."""
+    designation: str = Field(description="Comet designation")
+    date_utc: datetime = Field(description="UTC date/time of ephemeris")
+    date_jd: float = Field(description="Julian Date")
+    ra_hours: float = Field(description="Right ascension in hours")
+    dec_degrees: float = Field(description="Declination in degrees")
+    geo_distance_au: float = Field(description="Distance from Earth in AU")
+    helio_distance_au: float = Field(description="Distance from Sun in AU")
+    magnitude: Optional[float] = Field(default=None, description="Estimated magnitude")
+    elongation_deg: Optional[float] = Field(default=None, description="Solar elongation in degrees")
+    phase_angle_deg: Optional[float] = Field(default=None, description="Phase angle in degrees")
+
+
+class CometVisibility(BaseModel):
+    """Visibility information for a comet at a specific location and time."""
+    comet: CometTarget
+    ephemeris: CometEphemeris
+    altitude_deg: float = Field(description="Altitude in degrees")
+    azimuth_deg: float = Field(description="Azimuth in degrees")
+    is_visible: bool = Field(description="Whether comet is above horizon")
+    is_dark_enough: bool = Field(description="Whether sky is dark enough (astronomical twilight)")
+    elongation_ok: bool = Field(description="Whether solar elongation is sufficient")
+    recommended: bool = Field(description="Whether comet is recommended for observing")
+
+
 class TargetScore(BaseModel):
     """Scoring components for a target."""
     visibility_score: float = Field(ge=0, le=1, description="Visibility score (0-1)")

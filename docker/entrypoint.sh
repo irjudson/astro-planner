@@ -5,6 +5,8 @@ set -e
 if [ ! -f /app/data/catalogs.db ]; then
     echo "Database not found. Initializing test database..."
     python scripts/init_test_db.py
+    echo "Adding comet tables..."
+    python scripts/add_comet_tables.py
     echo "Database initialized successfully."
 else
     echo "Database already exists at /app/data/catalogs.db"
