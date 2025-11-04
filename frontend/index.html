@@ -2032,7 +2032,7 @@
                     params.append('limit', catalogFilters.limit);
                     params.append('offset', catalogFilters.page * catalogFilters.limit);
 
-                    const response = await fetch(`/api/comets?${params.toString()}`);
+                    const response = await fetch(`/api/comets/?${params.toString()}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
