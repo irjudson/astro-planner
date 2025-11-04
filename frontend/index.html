@@ -1083,6 +1083,16 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <div class="checkbox-item" style="border: 2px solid #ff9800; border-radius: 6px; padding: 12px; background-color: #fff8e1;">
+                            <input type="checkbox" id="daytime-planning" value="daytime">
+                            <label for="daytime-planning" style="font-weight: bold; color: #f57c00;">Daytime Planning Mode</label>
+                            <div style="margin-top: 8px; font-size: 0.9em; color: #666; font-style: italic;">
+                                Plan observations from sunrise to sunset instead of during nighttime darkness. For Sun (requires proper solar filter!), Moon, and bright planets like Venus.
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="text-align: center; margin-top: 30px;">
                         <button class="btn" onclick="generatePlan()">Generate Observing Plan</button>
                     </div>
@@ -1268,6 +1278,8 @@
                                 <option value="nebula">Nebulae</option>
                                 <option value="planetary_nebula">Planetary Nebulae</option>
                                 <option value="comet">Comets</option>
+                                <option value="asteroid">Asteroids</option>
+                                <option value="planet">Planets</option>
                                 <option value="other">Other</option>
                             </select>
                         </div>
@@ -1572,18 +1584,21 @@
             const observingDate = document.getElementById('observing-date').value;
 
             const objectTypes = [];
-            document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+            // Only get object type checkboxes (type-*)
+            document.querySelectorAll('input[id^="type-"]:checked').forEach(cb => {
                 objectTypes.push(cb.value);
             });
 
             const planningMode = document.getElementById('planning-mode').value;
+            const daytimePlanning = document.getElementById('daytime-planning').checked;
 
             const constraints = {
                 min_altitude: parseFloat(document.getElementById('min-altitude').value),
                 max_altitude: parseFloat(document.getElementById('max-altitude').value),
                 setup_time_minutes: parseInt(document.getElementById('setup-time').value),
                 object_types: objectTypes,
-                planning_mode: planningMode
+                planning_mode: planningMode,
+                daytime_planning: daytimePlanning
             };
 
             const request = {
@@ -2022,7 +2037,7 @@
             try {
                 let objects;
 
-                // Check if filtering for comets
+                // Check if filtering for comets or asteroids
                 if (catalogFilters.objectType === 'comet') {
                     // Call comet API
                     const params = new URLSearchParams();
@@ -2033,6 +2048,27 @@
                     params.append('offset', catalogFilters.page * catalogFilters.limit);
 
                     const response = await fetch(`/api/comets/?${params.toString()}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    objects = await response.json();
+                } else if (catalogFilters.objectType === 'asteroid') {
+                    // Call asteroid API
+                    const params = new URLSearchParams();
+                    if (catalogFilters.maxMagnitude !== null && catalogFilters.maxMagnitude !== '') {
+                        params.append('max_magnitude', catalogFilters.maxMagnitude);
+                    }
+                    params.append('limit', catalogFilters.limit);
+                    params.append('offset', catalogFilters.page * catalogFilters.limit);
+
+                    const response = await fetch(`/api/asteroids/?${params.toString()}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    objects = await response.json();
+                } else if (catalogFilters.objectType === 'planet') {
+                    // Call planet API (simple, no pagination needed - only 8 planets)
+                    const response = await fetch('/api/planets/');
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
@@ -2109,8 +2145,10 @@
             nextBtn.disabled = objects.length < catalogFilters.limit;
 
             grid.innerHTML = objects.map(obj => {
-                // Check if this is a comet (has designation field) or DSO (has catalog_id field)
-                const isComet = obj.designation !== undefined;
+                // Check object type: comets have comet_type, asteroids have asteroid_type/number, planets have planet_type, DSOs have catalog_id
+                const isComet = obj.comet_type !== undefined;
+                const isAsteroid = obj.asteroid_type !== undefined || (obj.number !== undefined && obj.designation !== undefined);
+                const isPlanet = obj.planet_type !== undefined;
 
                 if (isComet) {
                     // Comet display
@@ -2134,6 +2172,73 @@
                             </div>
                             <div class="catalog-item-actions">
                                 <button class="select-btn" onclick="event.stopPropagation(); selectCatalogObject('${obj.designation}')">
+                                    ℹ️ Details
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (isAsteroid) {
+                    // Asteroid display
+                    const magStr = obj.current_magnitude && obj.current_magnitude < 99 ? obj.current_magnitude.toFixed(1) : 'N/A';
+                    const semiMajorStr = obj.orbital_elements?.semi_major_axis_au ? obj.orbital_elements.semi_major_axis_au.toFixed(2) + ' AU' : 'N/A';
+                    const eccStr = obj.orbital_elements?.eccentricity ? obj.orbital_elements.eccentricity.toFixed(3) : 'N/A';
+                    const diameterStr = obj.diameter_km ? obj.diameter_km.toFixed(1) + ' km' : 'N/A';
+                    const displayName = obj.name ? `${obj.name} (${obj.designation})` : obj.designation;
+                    const numberStr = obj.number ? `${obj.number}` : '';
+
+                    return `
+                        <div class="catalog-item">
+                            <div class="catalog-item-header">
+                                <div class="catalog-item-name">${displayName}</div>
+                                <div class="catalog-item-type">${obj.asteroid_type || 'asteroid'}</div>
+                            </div>
+                            <div class="catalog-item-details">
+                                ${numberStr ? `<div><strong>Number:</strong> ${numberStr}</div>` : ''}
+                                <div><strong>Designation:</strong> ${obj.designation}</div>
+                                <div><strong>Magnitude:</strong> ${magStr}</div>
+                                <div><strong>Diameter:</strong> ${diameterStr}</div>
+                                <div><strong>Semi-major axis:</strong> ${semiMajorStr}</div>
+                                <div><strong>Eccentricity:</strong> ${eccStr}</div>
+                                ${obj.spectral_type ? `<div><strong>Spectral Type:</strong> ${obj.spectral_type}</div>` : ''}
+                                ${obj.notes ? `<div style="margin-top: 8px; font-style: italic;">${obj.notes}</div>` : ''}
+                            </div>
+                            <div class="catalog-item-actions">
+                                <button class="select-btn" onclick="event.stopPropagation(); selectCatalogObject('${obj.designation}')">
+                                    ℹ️ Details
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else if (isPlanet) {
+                    // Planet display
+                    const diameterStr = obj.diameter_km ? obj.diameter_km.toFixed(0) + ' km' : 'N/A';
+                    const orbitalPeriodStr = obj.orbital_period_days ? (obj.orbital_period_days / 365.25).toFixed(2) + ' years' : 'N/A';
+                    const rotationStr = obj.rotation_period_hours ? obj.rotation_period_hours.toFixed(1) + ' hours' : 'N/A';
+                    const moonsStr = obj.num_moons > 0 ? obj.num_moons : 'None';
+                    const ringsStr = obj.has_rings ? 'Yes' : 'No';
+
+                    // Special styling for Sun with safety warning
+                    const isSun = obj.name === 'Sun';
+                    const sunWarningStyle = isSun ? 'border-left: 4px solid #ff4444; background-color: #fff5f5;' : '';
+                    const sunWarning = isSun ? `<div style="background-color: #ffebee; border: 2px solid #ff4444; border-radius: 4px; padding: 8px; margin-top: 8px; font-weight: bold; color: #c62828;">⚠️ DANGER: Solar observing requires proper solar filter! Never observe without certified solar filter!</div>` : '';
+
+                    return `
+                        <div class="catalog-item" style="${sunWarningStyle}">
+                            <div class="catalog-item-header">
+                                <div class="catalog-item-name">${obj.name}</div>
+                                <div class="catalog-item-type">${obj.planet_type}</div>
+                            </div>
+                            <div class="catalog-item-details">
+                                <div><strong>Diameter:</strong> ${diameterStr}</div>
+                                <div><strong>Orbital Period:</strong> ${orbitalPeriodStr}</div>
+                                <div><strong>Rotation Period:</strong> ${rotationStr}</div>
+                                <div><strong>Moons:</strong> ${moonsStr}</div>
+                                <div><strong>Rings:</strong> ${ringsStr}</div>
+                                ${obj.notes ? `<div style="margin-top: 8px; font-style: italic;">${obj.notes}</div>` : ''}
+                                ${sunWarning}
+                            </div>
+                            <div class="catalog-item-actions">
+                                <button class="select-btn" onclick="event.stopPropagation(); selectCatalogObject('${obj.name}')">
                                     ℹ️ Details
                                 </button>
                             </div>

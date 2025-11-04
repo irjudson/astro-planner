@@ -53,6 +53,26 @@ class PlannerService:
             request.location, observing_date
         )
 
+        # Determine imaging window based on daytime_planning flag
+        if request.constraints.daytime_planning:
+            # Daytime planning: observe from sunrise to sunset on the SAME day
+            # twilight_times gives us sunset on observing_date and sunrise on observing_date+1
+            # For daytime planning, we need sunrise on observing_date, so get previous day's twilight
+            prev_day = observing_date - timedelta(days=1)
+            prev_twilight = self.ephemeris.calculate_twilight_times(request.location, prev_day)
+            # Use sunrise from "next day" of previous twilight (which is our observing_date)
+            # and sunset from current day
+            imaging_start = prev_twilight['sunrise'] + timedelta(
+                minutes=request.constraints.setup_time_minutes
+            )
+            imaging_end = twilight_times['sunset']
+        else:
+            # Normal nighttime planning: observe during astronomical darkness
+            imaging_start = twilight_times['astronomical_twilight_end'] + timedelta(
+                minutes=request.constraints.setup_time_minutes
+            )
+            imaging_end = twilight_times['astronomical_twilight_start']
+
         # Create session info
         session = SessionInfo(
             observing_date=request.observing_date,
@@ -64,10 +84,8 @@ class PlannerService:
             nautical_twilight_start=twilight_times['nautical_twilight_start'],
             civil_twilight_start=twilight_times['civil_twilight_start'],
             sunrise=twilight_times['sunrise'],
-            imaging_start=twilight_times['astronomical_twilight_end'] + timedelta(
-                minutes=request.constraints.setup_time_minutes
-            ),
-            imaging_end=twilight_times['astronomical_twilight_start'],
+            imaging_start=imaging_start,
+            imaging_end=imaging_end,
             total_imaging_minutes=0  # Will be calculated
         )
 
