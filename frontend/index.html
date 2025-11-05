@@ -1743,11 +1743,26 @@
 
                 <div class="weather-forecast">
                     <strong>Weather Forecast</strong>
-                    ${plan.weather_forecast.length > 0 ?
-                        `<p>Avg Cloud Cover: ${(plan.weather_forecast.reduce((a,b) => a + b.cloud_cover, 0) / plan.weather_forecast.length).toFixed(0)}%, ` +
-                        `Humidity: ${(plan.weather_forecast.reduce((a,b) => a + b.humidity, 0) / plan.weather_forecast.length).toFixed(0)}%</p>` :
-                        '<p>No weather data available</p>'
-                    }
+                    ${plan.weather_forecast.length > 0 ? (() => {
+                        const avgCloudCover = (plan.weather_forecast.reduce((a,b) => a + b.cloud_cover, 0) / plan.weather_forecast.length).toFixed(0);
+                        const avgHumidity = (plan.weather_forecast.reduce((a,b) => a + b.humidity, 0) / plan.weather_forecast.length).toFixed(0);
+
+                        // Check if we have astronomy-specific data (seeing, transparency)
+                        const hasAstronomyData = plan.weather_forecast.some(f => f.seeing_arcseconds != null);
+
+                        let astronomyMetrics = '';
+                        if (hasAstronomyData) {
+                            // Filter forecasts that have astronomy data
+                            const astroForecasts = plan.weather_forecast.filter(f => f.seeing_arcseconds != null);
+                            if (astroForecasts.length > 0) {
+                                const avgSeeing = (astroForecasts.reduce((a,b) => a + b.seeing_arcseconds, 0) / astroForecasts.length).toFixed(1);
+                                const avgTransparency = (astroForecasts.reduce((a,b) => a + b.transparency_magnitude, 0) / astroForecasts.length).toFixed(1);
+                                astronomyMetrics = `<br>Seeing: ${avgSeeing}" (arcsec), Transparency: mag ${avgTransparency}`;
+                            }
+                        }
+
+                        return `<p>Cloud Cover: ${avgCloudCover}%, Humidity: ${avgHumidity}%${astronomyMetrics}</p>`;
+                    })() : '<p>No weather data available</p>'}
                 </div>
             `;
             document.getElementById('session-summary').innerHTML = summaryHtml;

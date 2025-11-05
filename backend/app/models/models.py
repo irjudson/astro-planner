@@ -225,6 +225,9 @@ class WeatherForecast(BaseModel):
     temperature: float = Field(description="Temperature in Celsius")
     wind_speed: float = Field(ge=0, description="Wind speed in m/s")
     conditions: str = Field(description="Weather conditions description")
+    seeing_arcseconds: Optional[float] = Field(default=None, description="Atmospheric seeing in arcseconds (lower is better)")
+    transparency_magnitude: Optional[float] = Field(default=None, description="Sky transparency as limiting magnitude (higher is better)")
+    source: str = Field(default="openweathermap", description="Data source: openweathermap, 7timer, or composite")
 
 
 class SessionInfo(BaseModel):
