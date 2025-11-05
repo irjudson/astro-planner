@@ -105,13 +105,26 @@
 
         .checkbox-item {
             display: flex;
-            align-items: center;
+            flex-direction: column;
         }
 
         .checkbox-item input[type="checkbox"] {
             margin-right: 8px;
             width: 18px;
             height: 18px;
+        }
+
+        .checkbox-item label {
+            display: flex;
+            align-items: center;
+        }
+
+        .input-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+            margin-left: 26px;
+            line-height: 1.4;
         }
 
         .btn {
@@ -1084,11 +1097,21 @@
                     </div>
 
                     <div class="form-group">
-                        <div class="checkbox-item" style="border: 2px solid #ff9800; border-radius: 6px; padding: 12px; background-color: #fff8e1;">
+                        <div class="checkbox-item">
                             <input type="checkbox" id="daytime-planning" value="daytime">
-                            <label for="daytime-planning" style="font-weight: bold; color: #f57c00;">Daytime Planning Mode</label>
-                            <div style="margin-top: 8px; font-size: 0.9em; color: #666; font-style: italic;">
-                                Plan observations from sunrise to sunset instead of during nighttime darkness. For Sun (requires proper solar filter!), Moon, and bright planets like Venus.
+                            <label for="daytime-planning">Daytime Planning Mode</label>
+                            <div class="input-hint">
+                                Plan from sunrise to sunset for solar/lunar observations. Note: Solar observing requires proper solar filter.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="park-when-done" value="park" checked>
+                            <label for="park-when-done">Park telescope when done</label>
+                            <div class="input-hint">
+                                Closes the telescope cover after completing all targets. Uncheck if using a filter tube or dew shield.
                             </div>
                         </div>
                     </div>
@@ -1139,22 +1162,13 @@
                     </div>
 
                     <div class="date-notice seestar-export" id="seestar-help" style="margin-top: 15px; display: none;">
-                        <strong>🚀 Two Ways to Use with Seestar S50:</strong><br><br>
+                        <strong>Using Your Plan:</strong><br><br>
 
-                        <strong>Option 1: Direct Control (Recommended - Built into this app!)</strong><br>
-                        1. Generate your observing plan above<br>
-                        2. Go to the <strong>Observe</strong> tab<br>
-                        3. Enter your Seestar's IP address (default: 192.168.2.47) and click <strong>Connect</strong><br>
-                        4. Click <strong>Execute Plan</strong> to start fully automated imaging<br>
-                        5. Watch real-time progress as your Seestar captures each target<br>
-                        <small style="opacity: 0.8;">✨ No external software needed! This app connects directly to your Seestar S50.</small><br><br>
+                        <strong>Direct Control (Recommended)</strong><br>
+                        Go to the <strong>Observe</strong> tab, connect to your Seestar, and click Execute Plan. No external software needed.<br><br>
 
-                        <strong>Option 2: Export for seestar_alp</strong><br>
-                        1. Click "<strong>seestar_alp CSV</strong>" to download your observing plan<br>
-                        2. Set up <a href="https://github.com/smart-underworld/seestar_alp" target="_blank" style="color: #667eea;">seestar_alp</a> on a Raspberry Pi or computer<br>
-                        3. Connect your Seestar S50 to WiFi (Station Mode)<br>
-                        4. Import the CSV file in seestar_alp web interface and start imaging<br>
-                        <small style="opacity: 0.8;">Note: The official Seestar app has no import capability. seestar_alp is the community standard.</small>
+                        <strong>Export for seestar_alp</strong><br>
+                        Click "seestar_alp CSV" above to download. Import the CSV file into <a href="https://github.com/smart-underworld/seestar_alp" target="_blank" style="color: #667eea;">seestar_alp</a> for automated sequencing.
                     </div>
                 </div>
 
@@ -2219,8 +2233,8 @@
 
                     // Special styling for Sun with safety warning
                     const isSun = obj.name === 'Sun';
-                    const sunWarningStyle = isSun ? 'border-left: 4px solid #ff4444; background-color: #fff5f5;' : '';
-                    const sunWarning = isSun ? `<div style="background-color: #ffebee; border: 2px solid #ff4444; border-radius: 4px; padding: 8px; margin-top: 8px; font-weight: bold; color: #c62828;">⚠️ DANGER: Solar observing requires proper solar filter! Never observe without certified solar filter!</div>` : '';
+                    const sunWarningStyle = isSun ? 'border-left: 3px solid #f57c00;' : '';
+                    const sunWarning = isSun ? `<div class="input-hint" style="margin-top: 8px; color: #e65100;">⚠️ Requires proper solar filter</div>` : '';
 
                     return `
                         <div class="catalog-item" style="${sunWarningStyle}">
@@ -2555,12 +2569,16 @@
                 return;
             }
 
+            // Get park when done setting
+            const parkWhenDone = document.getElementById('park-when-done').checked;
+
             try {
                 const response = await fetch('/api/telescope/execute', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        scheduled_targets: currentPlan.scheduled_targets
+                        scheduled_targets: currentPlan.scheduled_targets,
+                        park_when_done: parkWhenDone
                     })
                 });
 
@@ -2798,12 +2816,16 @@
                 return;
             }
 
+            // Get park when done setting
+            const parkWhenDone = document.getElementById('park-when-done').checked;
+
             try {
                 const response = await fetch('/api/telescope/execute', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        scheduled_targets: currentPlan.scheduled_targets
+                        scheduled_targets: currentPlan.scheduled_targets,
+                        park_when_done: parkWhenDone
                     })
                 });
 
