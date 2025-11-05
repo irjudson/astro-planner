@@ -44,6 +44,7 @@ class TelescopeConnectRequest(BaseModel):
 
 class ExecutePlanRequest(BaseModel):
     scheduled_targets: List[ScheduledTarget]
+    park_when_done: bool = True  # Default to True (park telescope when complete)
 
 
 @router.post("/plan", response_model=ObservingPlan)
@@ -413,7 +414,8 @@ async def execute_plan(request: ExecutePlanRequest):
         asyncio.create_task(
             telescope_service.execute_plan(
                 execution_id=execution_id,
-                targets=request.scheduled_targets
+                targets=request.scheduled_targets,
+                park_when_done=request.park_when_done
             )
         )
 

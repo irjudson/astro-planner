@@ -157,7 +157,8 @@ class TelescopeService:
         self,
         execution_id: str,
         targets: List[ScheduledTarget],
-        configure_settings: bool = True
+        configure_settings: bool = True,
+        park_when_done: bool = True
     ) -> ExecutionProgress:
         """Execute an observation plan.
 
@@ -241,6 +242,16 @@ class TelescopeService:
                     state=ExecutionState.COMPLETED,
                     progress_percent=100.0
                 )
+
+            # Park telescope if requested
+            if park_when_done and self._execution_state == ExecutionState.COMPLETED:
+                self.logger.info("Parking telescope as requested")
+                self._update_progress(current_phase="Parking telescope")
+                try:
+                    await self.park_telescope()
+                    self.logger.info("Telescope parked successfully")
+                except Exception as e:
+                    self.logger.warning(f"Failed to park telescope: {e}")
 
             self.logger.info(
                 f"Execution {execution_id} finished: "
