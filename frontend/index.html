@@ -131,8 +131,7 @@
         }
 
         .checkbox-with-hint label {
-            display: flex;
-            align-items: center;
+            cursor: pointer;
         }
 
         .input-hint {
@@ -1114,8 +1113,10 @@
 
                     <div class="form-group">
                         <div class="checkbox-with-hint">
-                            <input type="checkbox" id="daytime-planning" value="daytime">
-                            <label for="daytime-planning">Daytime Planning Mode</label>
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" id="daytime-planning" value="daytime">
+                                <label for="daytime-planning">Daytime Planning Mode</label>
+                            </div>
                             <div class="input-hint">
                                 Plan from sunrise to sunset for solar/lunar observations. Note: Solar observing requires proper solar filter.
                             </div>
@@ -1124,8 +1125,10 @@
 
                     <div class="form-group">
                         <div class="checkbox-with-hint">
-                            <input type="checkbox" id="park-when-done" value="park" checked>
-                            <label for="park-when-done">Park telescope when done</label>
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" id="park-when-done" value="park" checked>
+                                <label for="park-when-done">Park telescope when done</label>
+                            </div>
                             <div class="input-hint">
                                 Closes the telescope cover after completing all targets. Uncheck if using a filter tube or dew shield.
                             </div>
