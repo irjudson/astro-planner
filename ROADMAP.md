@@ -437,6 +437,113 @@ class Comet:
 
 ---
 
+## 🎨 Priority 5: Post-Capture Processing
+
+**Goal**: Complete the workflow: Plan → Browse → Observe → Process
+
+### Vision
+Integrated post-processing to eliminate gaps in the workflow. Upload session files, apply presets or custom pipelines, and download processed images—all within the same app that planned the observation.
+
+### Current State
+- ❌ No processing capabilities
+- ❌ Users must use external tools (PixInsight, Siril, Photoshop)
+- ❌ No session-to-processing link
+
+### Planned Features
+
+#### 5.1 Post-Capture Processing (Phase 1) ✅ DESIGNED
+**Status**: Design Complete
+**Priority**: Medium-High
+**Effort**: 4-6 weeks
+**Target**: Q2-Q3 2026
+
+**Design Document**: See [PROCESSING_DESIGN.md](PROCESSING_DESIGN.md) for comprehensive technical design
+
+**Phase 1: MVP (Q2 2026)**
+- File upload (FITS, ZIP archives)
+- Session parsing and metadata extraction
+- Quick preset: "Quick DSO Process"
+  - Calibration (dark/flat/bias application)
+  - Histogram stretch (auto black/white points)
+  - Color balance
+  - Export JPEG/TIFF
+- Basic preview with before/after comparison
+- Background processing with progress tracking
+
+**Phase 2: Custom Pipelines (Q3 2026)**
+- Interactive pipeline builder UI
+- Drag-and-drop processing steps
+- Advanced operations:
+  - Gradient removal
+  - Star reduction
+  - Noise reduction
+  - Sharpening
+  - Custom parameter adjustment
+- Step-by-step preview
+- Save/load processing "recipes"
+- Before/after slider comparison
+
+**Phase 3: Analysis & Integration (Q4 2026)**
+- Session quality analysis:
+  - FWHM/seeing measurements
+  - Star count statistics
+  - Frame quality scoring
+  - SNR calculations
+- Link processing sessions to observation plans
+- Batch processing multiple sessions
+- Export to PixInsight/Photoshop formats
+- Session report generation
+
+**Free Tools Stack** (Total Cost: $0):
+- **Siril** (GPL-3.0): Command-line stacking & calibration
+- **Astropy** (BSD): FITS I/O and header manipulation
+- **OpenCV** (Apache-2.0): Image processing & noise reduction
+- **scikit-image** (BSD): Advanced algorithms
+- **NumPy** (BSD): Array operations
+- **Celery + Redis**: Async task queue for background processing
+
+**Technical Architecture**:
+```
+Frontend (Upload) → FastAPI → Redis Queue → Celery Workers → Siril/Astropy
+                                                            ↓
+                                                       Processed Files
+```
+
+**User Workflow** (Quick Preset):
+```
+1. Upload session ZIP (stacked FITS from Seestar S50)
+2. Click "Quick Process"
+3. System auto-applies calibration + stretch + color balance
+4. Preview result in browser
+5. Download JPEG (8-bit) or TIFF (16-bit)
+```
+
+**User Workflow** (Custom Pipeline):
+```
+1. Upload session files
+2. Build custom pipeline:
+   - Add "Gradient Removal" step
+   - Add "Star Reduction" step
+   - Adjust histogram stretch parameters
+3. Preview at each step
+4. Save pipeline as "recipe"
+5. Download processed image + log
+```
+
+**Storage Strategy**:
+- Uploaded files: 7-day retention
+- Processed outputs: 30-day retention
+- Session metadata: 90-day retention
+- User can delete anytime
+
+**Open Research Questions**:
+1. Confirm Seestar S50 exact file structure
+2. Validate Siril CLI automation
+3. Test FITS display in browser (fits-viewer.js)
+4. Measure typical session sizes for storage planning
+
+---
+
 ## 🔄 Technical Improvements
 
 ### 5.1 Backend Enhancements
@@ -495,7 +602,17 @@ class Comet:
 - 🎯 UI updates with astronomy-specific metrics
 **Estimated**: 4-6 weeks | **All sources FREE**
 
-### Q2 2026: Comet & Asteroid Support
+### Q2 2026: Post-Capture Processing (Phase 1 - MVP)
+**Priority**: MEDIUM-HIGH
+- ✅ Design complete (2025-11-05)
+- 🎯 File upload and session management
+- 🎯 Quick DSO preset (calibrate + stretch + color balance)
+- 🎯 Background processing with Celery/Redis
+- 🎯 Basic preview and download (JPEG/TIFF)
+- 🎯 WebSocket progress updates
+**Estimated**: 4-6 weeks | **All tools FREE**
+
+### Q2-Q3 2026: Comet & Asteroid Support
 **Priority**: HIGH
 - ✅ Research complete (2025-10-30)
 - 🎯 JPL Horizons via astroquery (ephemeris engine)
@@ -506,7 +623,16 @@ class Comet:
 - 🎯 Scheduler support for moving objects
 **Estimated**: 6-8 weeks | **All sources FREE**
 
-### Q3 2026: Catalog Enrichment & Additional Features
+### Q3 2026: Post-Capture Processing (Phase 2 - Custom Pipelines)
+**Priority**: MEDIUM
+- 🎯 Interactive pipeline builder UI
+- 🎯 Advanced processing steps (gradient, star reduction, denoise)
+- 🎯 Step-by-step preview with parameter adjustment
+- 🎯 Save/load processing recipes
+- 🎯 Before/after comparison slider
+**Estimated**: 4-6 weeks | **All tools FREE**
+
+### Q3-Q4 2026: Catalog Enrichment & Additional Features
 **Priority**: MEDIUM
 - 🎯 Traditional common names (SIMBAD integration)
 - 🎯 Additional catalogs (Caldwell, Arp, Sharpless)
@@ -514,6 +640,15 @@ class Comet:
 - 🎯 User custom targets
 - 🎯 Observing history tracking
 **Estimated**: 4-6 weeks | **All sources FREE**
+
+### Q4 2026: Processing Analysis & Integration (Phase 3)
+**Priority**: MEDIUM
+- 🎯 Session quality analysis (FWHM, star counts, SNR)
+- 🎯 Link processing to observation plans
+- 🎯 Batch processing multiple sessions
+- 🎯 Export to PixInsight/Photoshop formats
+- 🎯 Session report generation
+**Estimated**: 4-6 weeks | **All tools FREE**
 
 ### Q4 2026: Telescope Integration & Premium Features
 **Priority**: MEDIUM
@@ -541,7 +676,7 @@ https://github.com/irjudson/astro-planner/issues
 
 ---
 
-## 💰 Cost Summary (2025-10-30 Research)
+## 💰 Cost Summary (2025-11-05 Research)
 
 ### Free Tier (Phases 1-3)
 All core features can be implemented with **$0 monthly cost**:
@@ -552,6 +687,10 @@ All core features can be implemented with **$0 monthly cost**:
 - ✅ OpenNGC (13K+ DSO catalog): FREE
 - ✅ SIMBAD/VizieR (catalog enrichment): FREE
 - ✅ OpenWeatherMap (1000 calls/day): FREE
+- ✅ Siril (FITS processing/calibration): FREE
+- ✅ Astropy (FITS I/O): FREE
+- ✅ OpenCV (image processing): FREE
+- ✅ scikit-image (advanced algorithms): FREE
 
 ### Optional Premium Tier (Phase 4)
 - Meteoblue API: ~$17-42/month
@@ -572,7 +711,9 @@ All core features can be implemented with **$0 monthly cost**:
 
 ---
 
-*Last Updated*: 2025-10-30 (Research complete)
-*Version*: 1.0.0
+*Last Updated*: 2025-11-05 (Processing design complete)
+*Version*: 1.1.0
 *Status*: Active Development - Ready for Phase 1 implementation
-*Next Step*: Review [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) and begin weather integration
+*Next Steps*:
+- Review [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) for weather/comet integration
+- Review [PROCESSING_DESIGN.md](PROCESSING_DESIGN.md) for post-capture processing design
