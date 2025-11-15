@@ -7,13 +7,15 @@ from app.tasks.celery_app import celery_app
 from app.services.processing_service import ProcessingService
 
 
-@celery_app.task(bind=True, name="process_session")
-def process_session_task(self, session_id: int, pipeline_id: int, job_id: int) -> Dict[str, Any]:
+@celery_app.task(bind=True, name="process_file")
+def process_file_task(self, file_id: int, pipeline_id: int, job_id: int) -> Dict[str, Any]:
     """
-    Celery task that orchestrates Docker container for processing.
+    Celery task that processes a single FITS file.
 
-    This task runs in the celery worker and launches
-    a separate processing container for actual work.
+    Args:
+        file_id: ID of the ProcessingFile to process
+        pipeline_id: ID of the ProcessingPipeline to use
+        job_id: ID of the ProcessingJob tracking this work
     """
     service = ProcessingService()
 
@@ -23,7 +25,7 @@ def process_session_task(self, session_id: int, pipeline_id: int, job_id: int) -
 
     try:
         result = loop.run_until_complete(
-            service.execute_pipeline(session_id, pipeline_id, job_id)
+            service.execute_pipeline(file_id, pipeline_id, job_id)
         )
         return result
     finally:
