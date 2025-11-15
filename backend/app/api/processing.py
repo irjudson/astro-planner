@@ -11,7 +11,7 @@ from datetime import datetime
 
 from app.database import get_db
 from app.models.processing_models import ProcessingFile, ProcessingPipeline, ProcessingJob
-from app.tasks.processing_tasks import process_session_task  # Will be updated to process files directly
+from app.tasks.processing_tasks import process_file_task
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/process", tags=["processing"])
@@ -279,6 +279,6 @@ async def process_file_direct(
     db.refresh(job)
 
     # Queue task (uses file_id in job model)
-    process_session_task.delay(processing_file.id, pipeline.id, job.id)
+    process_file_task.delay(processing_file.id, pipeline.id, job.id)
 
     return job

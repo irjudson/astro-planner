@@ -1,4 +1,4 @@
-"""Processing service with direct FITS processing."""
+"""Processing service with direct FITS file processing."""
 
 import json
 import os
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessingService:
-    """Orchestrates processing pipeline execution using direct processing."""
+    """Orchestrates processing pipeline execution using direct file processing."""
 
     def __init__(self):
         self.processor = DirectProcessor()
@@ -27,49 +27,39 @@ class ProcessingService:
 
     async def execute_pipeline(
         self,
-        session_id: int,
+        file_id: int,
         pipeline_id: int,
         job_id: int
     ) -> Dict[str, Any]:
-        """Execute a processing pipeline in an isolated Docker container."""
+        """Execute a processing pipeline on a single file."""
 
         db = SessionLocal()
         try:
-            # Load session and pipeline
-            session = db.query(ProcessingSession).filter(ProcessingSession.id == session_id).first()
+            # Load file, pipeline, and job
+            processing_file = db.query(ProcessingFile).filter(ProcessingFile.id == file_id).first()
             pipeline = db.query(ProcessingPipeline).filter(ProcessingPipeline.id == pipeline_id).first()
             job = db.query(ProcessingJob).filter(ProcessingJob.id == job_id).first()
 
-            if not session or not pipeline or not job:
-                raise ValueError("Session, pipeline, or job not found")
+            if not processing_file or not pipeline or not job:
+                raise ValueError("File, pipeline, or job not found")
 
             # Update job status
             job.status = "starting"
             job.started_at = datetime.utcnow()
             db.commit()
 
-            # Get processing base directory from session metadata
-            processing_base = Path(session.session_metadata.get("processing_base", str(self.data_dir)) if session.session_metadata else str(self.data_dir))
+            # Get the input file path
+            input_file = Path(processing_file.file_path)
+            if not input_file.exists():
+                raise ValueError(f"Input file not found: {input_file}")
 
-            # Create job directory inside the session folder
-            session_dir = processing_base / f"session_{session_id}"
-            session_dir.mkdir(parents=True, exist_ok=True)
-
-            job_dir = session_dir / f"job_{job_id}"
+            # Create job directory
+            job_dir = self.data_dir / f"job_{job_id}"
             job_dir.mkdir(parents=True, exist_ok=True)
 
-            # Create subdirectories
-            (job_dir / "outputs").mkdir(exist_ok=True)
-
-            # Find stacked file from session
-            stacked_file = None
-            for file in session.files:
-                if file.file_type == "stacked":
-                    stacked_file = Path(file.file_path)
-                    break
-
-            if not stacked_file:
-                raise ValueError("No stacked FITS file found in session")
+            # Create output directory
+            output_dir = job_dir / "outputs"
+            output_dir.mkdir(exist_ok=True)
 
             # Update job status
             job.gpu_used = False  # No GPU support in direct mode
@@ -82,11 +72,10 @@ class ProcessingService:
             logger.info(f"Processing job {job_id} with direct processor")
             log_messages = []
 
-            output_dir = job_dir / "outputs"
             try:
-                log_messages.append(f"Loading FITS file: {stacked_file}")
+                log_messages.append(f"Loading FITS file: {input_file}")
                 output_files_paths = self.processor.process_fits(
-                    input_file=stacked_file,
+                    input_file=input_file,
                     output_dir=output_dir,
                     pipeline_steps=pipeline.pipeline_steps
                 )
@@ -103,12 +92,8 @@ class ProcessingService:
             # Copy final outputs to processing_base with descriptive names
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-            # Get object name from the first file in session
-            object_name = "processed"
-            if session.files:
-                first_file = Path(session.files[0].file_path)
-                # Extract object name from filename or use parent directory name
-                object_name = first_file.parent.name
+            # Get object name from the input file
+            object_name = input_file.parent.name if input_file.parent.name else "processed"
 
             # Get pipeline name for the filename
             pipeline_name = pipeline.name.lower().replace(" ", "_")
@@ -120,7 +105,7 @@ class ProcessingService:
                     # Create descriptive filename
                     ext = output_file.suffix
                     final_name = f"{object_name}_{pipeline_name}_{timestamp}{ext}"
-                    final_path = processing_base / final_name
+                    final_path = self.data_dir / final_name
 
                     # Copy to processing base directory
                     shutil.copy2(output_file, final_path)
@@ -158,46 +143,6 @@ class ProcessingService:
         finally:
             db.close()
 
-    def _build_container_config(self, job_dir: Path, use_gpu: bool) -> Dict[str, Any]:
-        """Build Docker container configuration."""
-
-        config = {
-            "image": self.processing_image,
-            "command": ["--config", "/job/job_config.json"],
-            "volumes": {
-                str(job_dir): {"bind": "/job", "mode": "rw"}
-            },
-            "environment": {
-                "JOB_DIR": "/job"
-            },
-            # Resource limits
-            "mem_limit": "4g",
-            "memswap_limit": "4g",
-            "cpu_quota": 200000,  # 2 CPU cores
-            # Security
-            "network_disabled": True,  # No network access needed
-            "security_opt": ["no-new-privileges"],
-            # Cleanup
-            "auto_remove": True,
-            "detach": False,  # Wait for completion
-            # Logging
-            "stdout": True,
-            "stderr": True
-        }
-
-        # Add GPU support if available
-        if use_gpu:
-            config["device_requests"] = [
-                docker.types.DeviceRequest(
-                    count=-1,  # Use all GPUs
-                    capabilities=[['gpu', 'compute', 'utility']]
-                )
-            ]
-            config["environment"]["CUDA_VISIBLE_DEVICES"] = "0"
-            config["environment"]["NVIDIA_VISIBLE_DEVICES"] = "all"
-
-        return config
-
     async def cancel_job(self, job_id: int) -> bool:
         """Cancel a running job."""
         db = SessionLocal()
@@ -205,15 +150,6 @@ class ProcessingService:
             job = db.query(ProcessingJob).filter(ProcessingJob.id == job_id).first()
             if not job:
                 return False
-
-            # If container is running, stop it
-            if job.container_id and self.docker_available:
-                try:
-                    container = self.docker_client.containers.get(job.container_id)
-                    container.stop(timeout=10)
-                    container.remove()
-                except Exception as e:
-                    logger.warning(f"Could not stop container {job.container_id}: {e}")
 
             # Update job status
             job.status = "cancelled"
