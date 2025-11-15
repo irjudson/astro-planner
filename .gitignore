@@ -206,3 +206,17 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 data/
+
+# Native development
+logs/
+*.pid
+
+# PostgreSQL data directory
+pg_data/
+
+# Test databases and temporary files
+host_catalog.db
+*.bsp
+
+# Development scripts
+dev-*.sh
