@@ -1,11 +1,10 @@
 """Comet catalog and ephemeris service."""
 
-import sqlite3
-from pathlib import Path
 from typing import List, Optional
 from datetime import datetime, timezone
 import numpy as np
 
+from sqlalchemy.orm import Session
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_body, solar_system_ephemeris
 from astropy import units as u
@@ -18,37 +17,15 @@ from app.models import (
     OrbitalElements,
     Location,
 )
+from app.models.catalog_models import CometCatalog
 
 
 class CometService:
     """Service for managing comet catalog and computing ephemerides."""
 
-    def __init__(self, db_path: str = None):
-        """Initialize comet service with SQLite database."""
-        # Auto-detect database path
-        if db_path is None:
-            # Try Docker path first, then local dev path
-            docker_path = Path("/app/data/catalogs.db")
-            local_path = Path("backend/data/catalogs.db")
-            if docker_path.exists():
-                db_path = str(docker_path)
-            else:
-                db_path = str(local_path)
-
-        self.db_path = db_path
-        self._ensure_db_exists()
-
-    def _ensure_db_exists(self) -> None:
-        """Ensure database file exists."""
-        db_file = Path(self.db_path)
-        if not db_file.exists():
-            db_file.parent.mkdir(parents=True, exist_ok=True)
-            # Database will be created automatically when first accessed
-
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection."""
-        conn = sqlite3.connect(self.db_path)
-        return conn
+    def __init__(self, db: Session):
+        """Initialize comet service with database session."""
+        self.db = db
 
     def add_comet(self, comet: CometTarget) -> int:
         """
@@ -60,33 +37,33 @@ class CometService:
         Returns:
             Database ID of inserted comet
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-
         oe = comet.orbital_elements
-        cursor.execute("""
-            INSERT INTO comet_catalog (
-                designation, name, discovery_date,
-                epoch_jd, perihelion_distance_au, eccentricity,
-                inclination_deg, arg_perihelion_deg, ascending_node_deg,
-                perihelion_time_jd, absolute_magnitude, magnitude_slope,
-                current_magnitude, activity_status,
-                comet_type, data_source, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            comet.designation, comet.name, comet.discovery_date,
-            oe.epoch_jd, oe.perihelion_distance_au, oe.eccentricity,
-            oe.inclination_deg, oe.arg_perihelion_deg, oe.ascending_node_deg,
-            oe.perihelion_time_jd, comet.absolute_magnitude, comet.magnitude_slope,
-            comet.current_magnitude, comet.activity_status,
-            comet.comet_type, comet.data_source, comet.notes
-        ))
 
-        comet_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+        db_comet = CometCatalog(
+            designation=comet.designation,
+            name=comet.name,
+            discovery_date=comet.discovery_date,
+            epoch_jd=oe.epoch_jd,
+            perihelion_distance_au=oe.perihelion_distance_au,
+            eccentricity=oe.eccentricity,
+            inclination_deg=oe.inclination_deg,
+            arg_perihelion_deg=oe.arg_perihelion_deg,
+            ascending_node_deg=oe.ascending_node_deg,
+            perihelion_time_jd=oe.perihelion_time_jd,
+            absolute_magnitude=comet.absolute_magnitude,
+            magnitude_slope=comet.magnitude_slope,
+            current_magnitude=comet.current_magnitude,
+            activity_status=comet.activity_status,
+            comet_type=comet.comet_type,
+            data_source=comet.data_source,
+            notes=comet.notes
+        )
 
-        return comet_id
+        self.db.add(db_comet)
+        self.db.commit()
+        self.db.refresh(db_comet)
+
+        return db_comet.id
 
     def get_comet_by_designation(self, designation: str) -> Optional[CometTarget]:
         """
@@ -98,27 +75,14 @@ class CometService:
         Returns:
             CometTarget or None if not found
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        db_comet = self.db.query(CometCatalog).filter(
+            CometCatalog.designation == designation
+        ).first()
 
-        cursor.execute("""
-            SELECT designation, name, discovery_date,
-                   epoch_jd, perihelion_distance_au, eccentricity,
-                   inclination_deg, arg_perihelion_deg, ascending_node_deg,
-                   perihelion_time_jd, absolute_magnitude, magnitude_slope,
-                   current_magnitude, activity_status,
-                   comet_type, data_source, notes
-            FROM comet_catalog
-            WHERE designation = ?
-        """, (designation,))
-
-        row = cursor.fetchone()
-        conn.close()
-
-        if not row:
+        if not db_comet:
             return None
 
-        return self._row_to_comet(row)
+        return self._db_to_comet(db_comet)
 
     def get_all_comets(self, limit: Optional[int] = None, offset: int = 0) -> List[CometTarget]:
         """
@@ -131,58 +95,38 @@ class CometService:
         Returns:
             List of CometTarget objects
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        query = self.db.query(CometCatalog).order_by(CometCatalog.current_magnitude.asc())
 
-        query = """
-            SELECT designation, name, discovery_date,
-                   epoch_jd, perihelion_distance_au, eccentricity,
-                   inclination_deg, arg_perihelion_deg, ascending_node_deg,
-                   perihelion_time_jd, absolute_magnitude, magnitude_slope,
-                   current_magnitude, activity_status,
-                   comet_type, data_source, notes
-            FROM comet_catalog ORDER BY current_magnitude ASC
-        """
         if limit:
-            query += f" LIMIT {limit} OFFSET {offset}"
+            query = query.limit(limit).offset(offset)
 
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        conn.close()
+        db_comets = query.all()
+        return [self._db_to_comet(comet) for comet in db_comets]
 
-        return [self._row_to_comet(row) for row in rows]
-
-    def _row_to_comet(self, row: tuple) -> CometTarget:
-        """Convert database row to CometTarget."""
-        (designation, name, discovery_date,
-         epoch_jd, perihelion_distance_au, eccentricity,
-         inclination_deg, arg_perihelion_deg, ascending_node_deg,
-         perihelion_time_jd, absolute_magnitude, magnitude_slope,
-         current_magnitude, activity_status,
-         comet_type, data_source, notes) = row
-
+    def _db_to_comet(self, db_comet: CometCatalog) -> CometTarget:
+        """Convert database model to CometTarget."""
         orbital_elements = OrbitalElements(
-            epoch_jd=epoch_jd,
-            perihelion_distance_au=perihelion_distance_au,
-            eccentricity=eccentricity,
-            inclination_deg=inclination_deg,
-            arg_perihelion_deg=arg_perihelion_deg,
-            ascending_node_deg=ascending_node_deg,
-            perihelion_time_jd=perihelion_time_jd
+            epoch_jd=db_comet.epoch_jd,
+            perihelion_distance_au=db_comet.perihelion_distance_au,
+            eccentricity=db_comet.eccentricity,
+            inclination_deg=db_comet.inclination_deg,
+            arg_perihelion_deg=db_comet.arg_perihelion_deg,
+            ascending_node_deg=db_comet.ascending_node_deg,
+            perihelion_time_jd=db_comet.perihelion_time_jd
         )
 
         return CometTarget(
-            designation=designation,
-            name=name,
+            designation=db_comet.designation,
+            name=db_comet.name,
             orbital_elements=orbital_elements,
-            absolute_magnitude=absolute_magnitude,
-            magnitude_slope=magnitude_slope,
-            current_magnitude=current_magnitude,
-            comet_type=comet_type,
-            activity_status=activity_status,
-            discovery_date=discovery_date,
-            data_source=data_source,
-            notes=notes
+            absolute_magnitude=db_comet.absolute_magnitude,
+            magnitude_slope=db_comet.magnitude_slope,
+            current_magnitude=db_comet.current_magnitude,
+            comet_type=db_comet.comet_type,
+            activity_status=db_comet.activity_status,
+            discovery_date=db_comet.discovery_date,
+            data_source=db_comet.data_source,
+            notes=db_comet.notes
         )
 
     def compute_ephemeris(

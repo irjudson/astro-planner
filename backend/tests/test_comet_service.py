@@ -7,9 +7,9 @@ from app.models import CometTarget, OrbitalElements, Location
 
 
 @pytest.fixture
-def comet_service(temp_db):
+def comet_service(override_get_db):
     """Create comet service instance with isolated test database."""
-    return CometService(db_path=temp_db)
+    return CometService(override_get_db)
 
 
 @pytest.fixture

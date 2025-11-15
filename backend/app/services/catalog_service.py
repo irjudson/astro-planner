@@ -1,100 +1,47 @@
 """DSO catalog management service."""
 
-import sqlite3
-from pathlib import Path
 from typing import List, Optional
+from sqlalchemy.orm import Session
 from app.models import DSOTarget
+from app.models.catalog_models import DSOCatalog, ConstellationName
 
 
 class CatalogService:
     """Service for managing deep sky object catalog."""
 
-    def __init__(self, db_path: str = None):
-        """Initialize catalog service with SQLite database."""
-        # Auto-detect database path
-        if db_path is None:
-            # Try Docker path first, then local dev path
-            docker_path = Path("/app/data/catalogs.db")
-            local_path = Path("backend/data/catalogs.db")
-            if docker_path.exists():
-                db_path = str(docker_path)
-            else:
-                db_path = str(local_path)
+    def __init__(self, db: Session):
+        """Initialize catalog service with database session."""
+        self.db = db
 
-        self.db_path = db_path
-        self._ensure_db_exists()
-
-    def _ensure_db_exists(self) -> None:
-        """Ensure database file exists, create with default catalog if not."""
-        db_file = Path(self.db_path)
-        if not db_file.exists():
-            # Database doesn't exist - try to create it
-            db_file.parent.mkdir(parents=True, exist_ok=True)
-            # Run import script to create database
-            import subprocess
-            import sys
-
-            # Determine the correct path to the import script
-            # In Docker, we're in /app, so scripts/ is directly accessible
-            # Outside Docker, we might be in backend/ or root
-            script_paths = [
-                "scripts/import_catalog.py",  # Docker path
-                "backend/scripts/import_catalog.py",  # Local dev path
-            ]
-
-            script_path = None
-            for path in script_paths:
-                if Path(path).exists():
-                    script_path = path
-                    break
-
-            if not script_path:
-                # Can't find import script, just create empty database
-                print(f"Warning: Import script not found. Creating empty database at {self.db_path}")
-                return
-
-            try:
-                subprocess.run([
-                    sys.executable, script_path,
-                    "--database", str(self.db_path)
-                ], check=True)
-            except subprocess.CalledProcessError as e:
-                print(f"Warning: Failed to import catalog: {e}")
-                print(f"Please run manually: python {script_path} --database {self.db_path}")
-
-    def _db_row_to_target(self, row: tuple) -> DSOTarget:
-        """Convert database row to DSOTarget model."""
-        (id, catalog_name, catalog_number, common_name, ra_hours, dec_degrees,
-         object_type, magnitude, surface_brightness, size_major_arcmin,
-         size_minor_arcmin, constellation, created_at, updated_at) = row
-
+    def _db_row_to_target(self, dso: DSOCatalog) -> DSOTarget:
+        """Convert database model to DSOTarget."""
         # Generate catalog ID (e.g., "M31", "NGC224", "IC434")
         # For Messier objects (stored with common_name like "M031"), use that as catalog_id
-        if common_name and common_name.startswith('M') and common_name[1:].isdigit():
+        if dso.common_name and dso.common_name.startswith('M') and dso.common_name[1:].isdigit():
             # Convert M031 -> M31 by removing leading zeros
-            messier_num = int(common_name[1:])
+            messier_num = int(dso.common_name[1:])
             catalog_id = f"M{messier_num}"
             name = catalog_id  # Use M31 as both catalog_id and name
         else:
-            catalog_id = f"{catalog_name}{catalog_number}"
+            catalog_id = f"{dso.catalog_name}{dso.catalog_number}"
             # Use common name if available, otherwise generate from catalog
-            name = common_name if common_name else catalog_id
+            name = dso.common_name if dso.common_name else catalog_id
 
         # Use major axis for size, default to 1.0 if None
-        size_arcmin = size_major_arcmin if size_major_arcmin else 1.0
+        size_arcmin = dso.size_major_arcmin if dso.size_major_arcmin else 1.0
 
         # Default magnitude if None
-        mag = magnitude if magnitude else 99.0
+        mag = dso.magnitude if dso.magnitude else 99.0
 
         # Generate description
-        type_name = object_type.replace('_', ' ').title()
+        type_name = dso.object_type.replace('_', ' ').title()
         # Look up full constellation name
-        full_constellation = self._get_constellation_full_name(constellation) if constellation else None
+        full_constellation = self._get_constellation_full_name(dso.constellation) if dso.constellation else None
         description = f"{type_name} in {full_constellation}" if full_constellation else type_name
 
         # Add common name if available and different from Messier/catalog designation
-        if common_name and not (common_name.startswith('M') and common_name[1:].isdigit()):
-            description += f" - {common_name}"
+        if dso.common_name and not (dso.common_name.startswith('M') and dso.common_name[1:].isdigit()):
+            description += f" - {dso.common_name}"
 
         # Add additional info for better descriptions
         if mag and mag < 99:
@@ -105,34 +52,24 @@ class CatalogService:
         return DSOTarget(
             name=name,
             catalog_id=catalog_id,
-            object_type=object_type,
-            ra_hours=ra_hours,
-            dec_degrees=dec_degrees,
+            object_type=dso.object_type,
+            ra_hours=dso.ra_hours,
+            dec_degrees=dso.dec_degrees,
             magnitude=mag,
             size_arcmin=size_arcmin,
             description=description
         )
-
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection."""
-        conn = sqlite3.connect(self.db_path)
-        return conn
 
     def _get_constellation_full_name(self, abbreviation: str) -> str:
         """Look up full constellation name from abbreviation."""
         if not abbreviation:
             return None
 
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT full_name FROM constellation_names
-            WHERE abbreviation = ?
-        """, (abbreviation,))
-        result = cursor.fetchone()
-        conn.close()
+        constellation = self.db.query(ConstellationName).filter(
+            ConstellationName.abbreviation == abbreviation
+        ).first()
 
-        return result[0] if result else abbreviation  # Fall back to abbr if not found
+        return constellation.full_name if constellation else abbreviation
 
     def get_all_targets(self, limit: Optional[int] = None, offset: int = 0) -> List[DSOTarget]:
         """
@@ -145,18 +82,13 @@ class CatalogService:
         Returns:
             List of DSOTarget objects
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        query = self.db.query(DSOCatalog).order_by(DSOCatalog.magnitude.asc())
 
-        query = "SELECT * FROM dso_catalog ORDER BY magnitude ASC"
         if limit:
-            query += f" LIMIT {limit} OFFSET {offset}"
+            query = query.limit(limit).offset(offset)
 
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        conn.close()
-
-        return [self._db_row_to_target(row) for row in rows]
+        dso_objects = query.all()
+        return [self._db_row_to_target(dso) for dso in dso_objects]
 
     def get_target_by_id(self, catalog_id: str) -> Optional[DSOTarget]:
         """
@@ -172,38 +104,30 @@ class CatalogService:
         # Handle formats: M31, NGC224, IC434
         catalog_id_upper = catalog_id.upper()
 
-        conn = self._get_connection()
-        cursor = conn.cursor()
-
         # For Messier objects, search by common_name (stored as M042, M031, etc.)
         if catalog_id_upper.startswith('M') and len(catalog_id_upper) > 1 and catalog_id_upper[1:].isdigit():
             # Pad the Messier number to 3 digits (M42 -> M042)
             messier_padded = f"M{int(catalog_id_upper[1:]):03d}"
-            cursor.execute("""
-                SELECT * FROM dso_catalog
-                WHERE common_name = ?
-            """, (messier_padded,))
+            dso = self.db.query(DSOCatalog).filter(
+                DSOCatalog.common_name == messier_padded
+            ).first()
         elif catalog_id_upper.startswith('NGC'):
-            catalog_number = catalog_id_upper[3:]
-            cursor.execute("""
-                SELECT * FROM dso_catalog
-                WHERE catalog_name = 'NGC' AND catalog_number = ?
-            """, (catalog_number,))
+            catalog_number = int(catalog_id_upper[3:])
+            dso = self.db.query(DSOCatalog).filter(
+                DSOCatalog.catalog_name == 'NGC',
+                DSOCatalog.catalog_number == catalog_number
+            ).first()
         elif catalog_id_upper.startswith('IC'):
-            catalog_number = catalog_id_upper[2:]
-            cursor.execute("""
-                SELECT * FROM dso_catalog
-                WHERE catalog_name = 'IC' AND catalog_number = ?
-            """, (catalog_number,))
+            catalog_number = int(catalog_id_upper[2:])
+            dso = self.db.query(DSOCatalog).filter(
+                DSOCatalog.catalog_name == 'IC',
+                DSOCatalog.catalog_number == catalog_number
+            ).first()
         else:
-            conn.close()
             return None
 
-        row = cursor.fetchone()
-        conn.close()
-
-        if row:
-            return self._db_row_to_target(row)
+        if dso:
+            return self._db_row_to_target(dso)
         return None
 
     def filter_targets(
@@ -229,38 +153,25 @@ class CatalogService:
         Returns:
             Filtered list of targets
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-
-        # Build query with filters
-        query = "SELECT * FROM dso_catalog WHERE 1=1"
-        params = []
+        query = self.db.query(DSOCatalog)
 
         if object_types and len(object_types) > 0:
-            placeholders = ','.join('?' * len(object_types))
-            query += f" AND object_type IN ({placeholders})"
-            params.extend(object_types)
+            query = query.filter(DSOCatalog.object_type.in_(object_types))
 
         if min_magnitude is not None:
-            query += " AND magnitude >= ?"
-            params.append(min_magnitude)
+            query = query.filter(DSOCatalog.magnitude >= min_magnitude)
 
         if max_magnitude is not None:
-            query += " AND magnitude <= ?"
-            params.append(max_magnitude)
+            query = query.filter(DSOCatalog.magnitude <= max_magnitude)
 
         if constellation:
-            query += " AND constellation = ?"
-            params.append(constellation)
+            query = query.filter(DSOCatalog.constellation == constellation)
 
         # Order by magnitude (brightest first)
-        query += " ORDER BY magnitude ASC"
+        query = query.order_by(DSOCatalog.magnitude.asc())
 
         if limit:
-            query += f" LIMIT {limit} OFFSET {offset}"
+            query = query.limit(limit).offset(offset)
 
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        conn.close()
-
-        return [self._db_row_to_target(row) for row in rows]
+        dso_objects = query.all()
+        return [self._db_row_to_target(dso) for dso in dso_objects]
