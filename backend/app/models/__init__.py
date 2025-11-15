@@ -23,6 +23,8 @@ from .models import (
     ObservingPlan,
     ExportFormat,
 )
+from .catalog_models import DSOCatalog, CometCatalog, ConstellationName
+from .processing_models import ProcessingSession, ProcessingFile, ProcessingPipeline, ProcessingJob
 
 __all__ = [
     "Location",
@@ -46,4 +48,13 @@ __all__ = [
     "SessionInfo",
     "ObservingPlan",
     "ExportFormat",
+    # Catalog models
+    "DSOCatalog",
+    "CometCatalog",
+    "ConstellationName",
+    # Processing models
+    "ProcessingSession",
+    "ProcessingFile",
+    "ProcessingPipeline",
+    "ProcessingJob",
 ]

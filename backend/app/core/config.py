@@ -7,6 +7,10 @@ from functools import lru_cache
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
+    # Database Configuration
+    database_url: str = "postgresql://pg:buffalo-jump@host.docker.internal:5432/astro-planner"
+    test_database_url: str = "postgresql://pg:buffalo-jump@localhost:5432/test_astro_planner"
+
     # Server Configuration
     host: str = "0.0.0.0"
     port: int = 9247
@@ -41,6 +45,10 @@ class Settings(BaseSettings):
     # Scheduling
     lookahead_minutes: int = 30
     min_target_duration_minutes: int = 20
+
+    # Processing
+    fits_dir: str = "./fits"  # Directory for FITS file storage
+    processing_dir: str = "./data/processing"  # Directory for processing work
 
     class Config:
         env_file = ".env"
