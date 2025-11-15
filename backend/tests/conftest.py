@@ -54,10 +54,70 @@ def setup_test_db_schema():
     # Create all tables: upgrade to head
     command.upgrade(alembic_cfg, "head")
 
+    # Load catalog data into test database
+    _load_test_catalog_data()
+
     yield
 
     # Cleanup: downgrade to base (remove all tables)
     command.downgrade(alembic_cfg, "base")
+
+
+def _load_test_catalog_data():
+    """Load catalog data into test database from production database.
+
+    This copies DSO and constellation data from the production database
+    to the test database so tests have realistic catalog data to work with.
+    """
+    from sqlalchemy import create_engine
+    from app.models.catalog_models import DSOCatalog, ConstellationName, CometCatalog
+
+    try:
+        # Create engines for both databases
+        prod_engine = create_engine(settings.database_url)
+        test_engine = create_engine(settings.test_database_url)
+
+        # Copy DSO catalog data
+        with prod_engine.connect() as prod_conn:
+            with test_engine.connect() as test_conn:
+                # Copy constellation names first (referenced by DSO catalog)
+                from sqlalchemy.orm import Session
+                prod_session = Session(bind=prod_conn)
+                test_session = Session(bind=test_conn)
+
+                # Copy constellations
+                constellations = prod_session.query(ConstellationName).all()
+                for const in constellations:
+                    test_const = ConstellationName(
+                        abbreviation=const.abbreviation,
+                        full_name=const.full_name
+                    )
+                    test_session.add(test_const)
+
+                # Copy DSO catalog
+                dsos = prod_session.query(DSOCatalog).all()
+                for dso in dsos:
+                    test_dso = DSOCatalog(
+                        catalog_name=dso.catalog_name,
+                        catalog_number=dso.catalog_number,
+                        common_name=dso.common_name,
+                        object_type=dso.object_type,
+                        ra_hours=dso.ra_hours,
+                        dec_degrees=dso.dec_degrees,
+                        constellation=dso.constellation,
+                        magnitude=dso.magnitude,
+                        size_major_arcmin=dso.size_major_arcmin,
+                        size_minor_arcmin=dso.size_minor_arcmin
+                    )
+                    test_session.add(test_dso)
+
+                test_session.commit()
+                print(f"Loaded {len(constellations)} constellations and {len(dsos)} DSOs into test database")
+
+    except Exception as e:
+        # If copy fails, that's okay - tests will just have empty catalogs
+        print(f"Warning: Could not copy catalog data to test database: {e}")
+        pass
 
 @pytest.fixture(scope="function")
 def override_get_db():

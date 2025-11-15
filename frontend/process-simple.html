@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process FITS - Astro Planner</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0a0e27;
+            color: #e0e6ed;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            color: #4a9eff;
+        }
+
+        .section {
+            background: #151b2e;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #1e2538;
+        }
+
+        .section h2 {
+            margin-bottom: 16px;
+            font-size: 18px;
+            color: #7dc8ff;
+        }
+
+        /* File Browser */
+        .file-browser {
+            margin-bottom: 24px;
+        }
+
+        .browse-input {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            background: #0a0e27;
+            border: 1px solid #2a3447;
+            border-radius: 6px;
+            color: #e0e6ed;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #3a8eef;
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            background: #2a3447;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: #2a3447;
+        }
+
+        button.secondary:hover {
+            background: #3a4557;
+        }
+
+        .selected-file {
+            padding: 12px;
+            background: #0a0e27;
+            border: 2px solid #4a9eff;
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+
+        /* Processing Options */
+        .processing-options {
+            margin-bottom: 24px;
+        }
+
+        .option-card {
+            display: block;
+            background: #0a0e27;
+            border: 2px solid #2a3447;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-card:hover {
+            border-color: #4a9eff;
+            transform: translateX(4px);
+        }
+
+        .option-card.selected {
+            border-color: #4a9eff;
+            background: #0f1423;
+        }
+
+        .option-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .option-card.disabled:hover {
+            transform: none;
+            border-color: #2a3447;
+        }
+
+        .option-content h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #7dc8ff;
+        }
+
+        .option-content p {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #a0a6b0;
+        }
+
+        .option-content small {
+            display: block;
+            font-size: 12px;
+            color: #6a7280;
+            margin-top: 4px;
+        }
+
+        /* Progress */
+        .progress-section {
+            display: none;
+        }
+
+        .progress-section.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #0a0e27;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4a9eff, #7dc8ff);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .status-text {
+            text-align: center;
+            color: #a0a6b0;
+        }
+
+        /* Result */
+        .result-section {
+            display: none;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .result-preview {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .success-icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔭 Process FITS Files</h1>
+
+        <!-- File Selection -->
+        <div class="section">
+            <h2>1. Select File</h2>
+            <div class="file-browser">
+                <div class="browse-input">
+                    <input type="text" id="file-path" placeholder="/fits/M31/Light_001_stacked.fits" />
+                    <button onclick="browseFiles()" class="secondary">Browse...</button>
+                </div>
+                <div id="selected-file"></div>
+            </div>
+        </div>
+
+        <!-- Processing Options -->
+        <div class="section">
+            <h2>2. Choose Processing Type</h2>
+            <div class="processing-options">
+                <div class="option-card selected" data-type="quick_preview" onclick="selectOption(this)">
+                    <div class="option-content">
+                        <h3>📸 Quick Preview</h3>
+                        <p>Auto-stretch and export to JPEG</p>
+                        <small><strong>Best for:</strong> Sharing on social media, quick look at results</small>
+                        <small><strong>Output:</strong> JPEG (8-bit, 95% quality, ~200KB)</small>
+                        <small><strong>Processing:</strong> Histogram stretch → JPEG export</small>
+                    </div>
+                </div>
+
+                <div class="option-card" data-type="export_editing" onclick="selectOption(this)">
+                    <div class="option-content">
+                        <h3>🎨 Export for Editing</h3>
+                        <p>Preserve all data for post-processing</p>
+                        <small><strong>Best for:</strong> Opening in PixInsight, Photoshop, GIMP</small>
+                        <small><strong>Output:</strong> TIFF (16-bit, uncompressed, preserves full dynamic range)</small>
+                        <small><strong>Processing:</strong> Direct export, no stretching</small>
+                    </div>
+                </div>
+
+                <div class="option-card disabled">
+                    <div class="option-content">
+                        <h3>📚 Stack Multiple Lights</h3>
+                        <p>Combine multiple exposures with sigma clipping</p>
+                        <small><strong>Coming in v2.0</strong></small>
+                    </div>
+                </div>
+
+                <div class="option-card disabled">
+                    <div class="option-content">
+                        <h3>⚙️ Full Calibration Pipeline</h3>
+                        <p>Dark/Flat/Bias frames + stacking + stretching</p>
+                        <small><strong>Coming in v2.0</strong></small>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="startProcessing()" id="process-btn">Process File</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="section progress-section" id="progress-section">
+            <h2>Processing...</h2>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p class="status-text" id="status-text">Initializing...</p>
+        </div>
+
+        <!-- Result -->
+        <div class="section result-section" id="result-section">
+            <div class="success-icon">✅</div>
+            <h2 style="text-align:center; margin-bottom:20px;">Processing Complete!</h2>
+            <img id="result-preview" class="result-preview" style="display:none;" />
+            <button onclick="downloadResult()" style="width:100%;">Download Result</button>
+            <button onclick="resetForm()" class="secondary" style="width:100%; margin-top:12px;">Process Another File</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedType = 'quick_preview';
+        let currentJobId = null;
+
+        function selectOption(element) {
+            if (element.classList.contains('disabled')) return;
+
+            // Remove selected from all
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Add selected to clicked
+            element.classList.add('selected');
+            selectedType = element.dataset.type;
+        }
+
+        async function browseFiles() {
+            try {
+                const response = await fetch('/api/process/browse');
+                const data = await response.json();
+
+                // Simple file list for now
+                // In a real implementation, this would be a modal with directory navigation
+                const path = prompt('Enter FITS file path:', '/fits/');
+                if (path) {
+                    document.getElementById('file-path').value = path;
+                    showSelectedFile(path);
+                }
+            } catch (error) {
+                console.error('Browse error:', error);
+                alert('Error browsing files. Using manual entry.');
+                const path = prompt('Enter FITS file path:', '/fits/');
+                if (path) {
+                    document.getElementById('file-path').value = path;
+                    showSelectedFile(path);
+                }
+            }
+        }
+
+        function showSelectedFile(path) {
+            const fileName = path.split('/').pop();
+            document.getElementById('selected-file').innerHTML = `
+                <div class="selected-file">
+                    ✓ Selected: <strong>${fileName}</strong>
+                    <br>
+                    <small style="color: #6a7280;">${path}</small>
+                </div>
+            `;
+        }
+
+        async function startProcessing() {
+            const filePath = document.getElementById('file-path').value.trim();
+
+            if (!filePath) {
+                alert('Please enter a file path');
+                return;
+            }
+
+            // Hide other sections
+            document.getElementById('progress-section').classList.add('active');
+            document.getElementById('result-section').classList.remove('active');
+            document.getElementById('process-btn').disabled = true;
+
+            try {
+                // Start processing
+                const response = await fetch('/api/process/file', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_path: filePath,
+                        processing_type: selectedType
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Processing failed');
+                }
+
+                const job = await response.json();
+                currentJobId = job.id;
+
+                // Poll for status
+                pollJobStatus(job.id);
+
+            } catch (error) {
+                console.error('Processing error:', error);
+                alert(`Error: ${error.message}`);
+                document.getElementById('progress-section').classList.remove('active');
+                document.getElementById('process-btn').disabled = false;
+            }
+        }
+
+        async function pollJobStatus(jobId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/process/jobs/${jobId}`);
+                    const job = await response.json();
+
+                    // Update progress
+                    const progress = job.progress_percent || 0;
+                    document.getElementById('progress-fill').style.width = progress + '%';
+                    document.getElementById('status-text').textContent =
+                        job.current_step || `${progress.toFixed(0)}%`;
+
+                    // Check if done
+                    if (job.status === 'complete') {
+                        clearInterval(interval);
+                        showResult(jobId);
+                    } else if (job.status === 'failed') {
+                        clearInterval(interval);
+                        alert(`Processing failed: ${job.error_message || 'Unknown error'}`);
+                        resetForm();
+                    }
+                } catch (error) {
+                    console.error('Status check error:', error);
+                }
+            }, 2000);
+        }
+
+        async function showResult(jobId) {
+            document.getElementById('progress-section').classList.remove('active');
+            document.getElementById('result-section').classList.add('active');
+
+            // If it's a JPEG, show preview
+            if (selectedType === 'quick_preview') {
+                const img = document.getElementById('result-preview');
+                img.src = `/api/process/jobs/${jobId}/download`;
+                img.style.display = 'block';
+            }
+        }
+
+        async function downloadResult() {
+            if (!currentJobId) return;
+            window.open(`/api/process/jobs/${currentJobId}/download`, '_blank');
+        }
+
+        function resetForm() {
+            document.getElementById('progress-section').classList.remove('active');
+            document.getElementById('result-section').classList.remove('active');
+            document.getElementById('process-btn').disabled = false;
+            currentJobId = null;
+        }
+    </script>
+</body>
+</html>

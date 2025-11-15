@@ -97,17 +97,17 @@ class TestWeatherService:
 class TestCatalogService:
     """Test catalog service."""
 
-    def test_get_all_targets(self):
+    def test_get_all_targets(self, override_get_db):
         """Test retrieving all targets."""
-        service = CatalogService()
+        service = CatalogService(override_get_db)
         targets = service.get_all_targets()
 
         assert len(targets) > 10000  # Should have full NGC+IC catalog (12k+ objects)
         assert all(isinstance(t, DSOTarget) for t in targets)
 
-    def test_get_target_by_id(self):
+    def test_get_target_by_id(self, override_get_db):
         """Test retrieving specific target."""
-        service = CatalogService()
+        service = CatalogService(override_get_db)
 
         # Valid target
         target = service.get_target_by_id("M31")
@@ -119,9 +119,9 @@ class TestCatalogService:
         target = service.get_target_by_id("INVALID")
         assert target is None
 
-    def test_filter_by_object_type(self):
+    def test_filter_by_object_type(self, override_get_db):
         """Test filtering targets by object type."""
-        service = CatalogService()
+        service = CatalogService(override_get_db)
 
         galaxies = service.filter_targets(["galaxy"])
         assert all(t.object_type == "galaxy" for t in galaxies)
@@ -195,10 +195,10 @@ class TestSchedulerService:
             planning_mode="balanced"
         )
 
-    def test_planning_mode_balanced(self, sample_location, sample_constraints):
+    def test_planning_mode_balanced(self, sample_location, sample_constraints, override_get_db):
         """Test balanced planning mode parameters."""
         service = SchedulerService()
-        catalog = CatalogService()
+        catalog = CatalogService(override_get_db)
         targets = catalog.filter_targets(sample_constraints.object_types)
 
         # Should apply balanced mode settings

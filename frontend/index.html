@@ -962,6 +962,35 @@
     <!-- Tron Theme CSS - loaded AFTER inline styles to ensure proper override -->
     <link rel="stylesheet" href="tron-theme.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // Define showTab early so onclick handlers work
+        let catalogStats = null;
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            const targetTab = document.getElementById(tabName + '-tab');
+            const targetBtn = document.getElementById(tabName + '-tab-btn');
+
+            if (targetTab) targetTab.classList.add('active');
+            if (targetBtn) targetBtn.classList.add('active');
+
+            // Load catalog stats when switching to catalog tab
+            if (tabName === 'catalog' && !catalogStats && typeof loadCatalogStats === 'function') {
+                loadCatalogStats();
+                loadCatalogObjects();
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -972,6 +1001,7 @@
                 <button class="nav-btn active" onclick="showTab('planner')" id="planner-tab-btn">📅 Planner</button>
                 <button class="nav-btn" onclick="showTab('catalog')" id="catalog-tab-btn">📚 Catalog Browser</button>
                 <button class="nav-btn" onclick="showTab('observe')" id="observe-tab-btn">🔭 Observe</button>
+                <button class="nav-btn" onclick="showTab('process')" id="process-tab-btn">🎨 Process</button>
             </div>
         </header>
 
@@ -1466,6 +1496,79 @@
                 </div>
             </div>
             <!-- End Observe Tab -->
+
+            <!-- Process Tab -->
+            <div id="process-tab" class="tab-content">
+                <!-- Create Session Section -->
+                <div id="proc-createSessionSection" style="margin: 30px 0;">
+                    <h2>Create New Session</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="proc-sessionName" placeholder="Session name (e.g., M31 2025-11-06)"
+                               style="flex: 1; padding: 10px; background: rgba(0,255,255,0.1); border: 1px solid #00ffff; border-radius: 4px; color: #fff;">
+                        <button onclick="procCreateSession()" class="btn btn-primary">Create Session</button>
+                    </div>
+                </div>
+
+                <!-- Active Session Section -->
+                <div id="proc-activeSessionSection" style="display: none; margin: 30px 0;">
+                    <h2>Active Session: <span id="proc-activeSessionName"></span></h2>
+
+                    <!-- File Source Tabs -->
+                    <div style="margin: 20px 0;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <button onclick="procShowFileTab('upload')" id="proc-uploadTabBtn" class="btn btn-secondary" style="background: rgba(0,255,255,0.3);">
+                                📤 Upload Files
+                            </button>
+                            <button onclick="procShowFileTab('browse')" id="proc-browseTabBtn" class="btn btn-secondary">
+                                📁 Browse Local FITS
+                            </button>
+                        </div>
+
+                        <!-- Upload Tab -->
+                        <div id="proc-uploadTab" class="upload-zone" style="display: block;">
+                            <div style="font-size: 3em;">📁</div>
+                            <h3>Drop FITS files here or select files below</h3>
+                            <p style="color: #888;">Supports .fit, .fits, .fit.gz files</p>
+                            <input type="file" id="proc-fileInput" multiple accept=".fit,.fits,.fit.gz" onchange="procHandleFiles(this.files)"
+                                   style="margin-top: 15px; padding: 10px; background: rgba(0,255,255,0.1); border: 1px solid #00ffff; border-radius: 4px; color: #fff;">
+                        </div>
+
+                        <!-- Browse Tab -->
+                        <div id="proc-browseTab" style="display: none;">
+                            <div id="proc-fileBrowser" style="background: rgba(0,20,40,0.8); border: 1px solid #00ffff; border-radius: 8px; padding: 20px;">
+                                <div id="proc-currentPath" style="margin-bottom: 10px; color: #888; font-size: 0.9em;"></div>
+                                <div id="proc-fileList"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Uploaded Files -->
+                    <div id="proc-uploadedFiles" style="margin: 20px 0;"></div>
+
+                    <!-- Processing Options -->
+                    <div style="margin: 30px 0;">
+                        <h3>Processing Pipeline</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="procProcessSession('quick_dso')" class="btn btn-primary">
+                                ⚡ Quick DSO Process
+                            </button>
+                            <button onclick="procProcessSession('export_pixinsight')" class="btn btn-secondary">
+                                📤 Export for PixInsight
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Current Job Status -->
+                    <div id="proc-jobStatus" style="display: none; margin: 30px 0;"></div>
+                </div>
+
+                <!-- Recent Sessions -->
+                <div style="margin: 30px 0;">
+                    <h2>Recent Sessions</h2>
+                    <div id="proc-recentSessions"></div>
+                </div>
+            </div>
+            <!-- End Process Tab -->
         </div>
     </div>
 
@@ -1540,8 +1643,13 @@
 
     <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
     <script>
-        // Set today's date as default
-        document.getElementById('observing-date').valueAsDate = new Date();
+        // Set today's date as default (after DOM loads)
+        document.addEventListener('DOMContentLoaded', function() {
+            const dateInput = document.getElementById('observing-date');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+        });
 
         let currentPlan = null;
 
@@ -2000,7 +2108,6 @@
         // Catalog Browser Functions
         // ======================
 
-        let catalogStats = null;
         let catalogFilters = {
             objectType: '',
             minMagnitude: null,
@@ -2010,29 +2117,6 @@
             page: 0,
             limit: 50
         };
-
-        // Tab switching
-        function showTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // Remove active class from all nav buttons
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Show selected tab
-            document.getElementById(tabName + '-tab').classList.add('active');
-            document.getElementById(tabName + '-tab-btn').classList.add('active');
-
-            // Load catalog stats when switching to catalog tab
-            if (tabName === 'catalog' && !catalogStats) {
-                loadCatalogStats();
-                loadCatalogObjects();
-            }
-        }
 
         // Load catalog statistics
         async function loadCatalogStats() {
@@ -3029,6 +3113,350 @@
                 const progress = data.progress_percent || 0;
                 progressBar.style.width = `${progress}%`;
                 progressBar.textContent = `${Math.round(progress)}%`;
+            }
+        }
+    </script>
+
+    <script>
+        // Processing Tab JavaScript
+        let procCurrentSessionId = null;
+        let procCurrentJobId = null;
+        let procJobPollInterval = null;
+        let procCurrentBrowsePath = '';
+
+        // Initialize processing tab when it's shown - wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing process tab wrapper...');
+            const originalShowTab = showTab;
+            showTab = function(tabName) {
+                console.log('showTab called with:', tabName);
+                originalShowTab(tabName);
+                if (tabName === 'process') {
+                    console.log('Process tab activated, loading sessions...');
+                    procLoadRecentSessions();
+                }
+            };
+            console.log('Process tab wrapper initialized');
+        });
+
+        async function procCreateSession() {
+            const sessionName = document.getElementById('proc-sessionName').value;
+            if (!sessionName) { alert('Please enter a session name'); return; }
+            try {
+                const response = await fetch('/api/process/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_name: sessionName })
+                });
+                if (!response.ok) throw new Error('Failed to create session');
+                const session = await response.json();
+                procCurrentSessionId = session.id;
+                document.getElementById('proc-createSessionSection').style.display = 'none';
+                document.getElementById('proc-activeSessionSection').style.display = 'block';
+                document.getElementById('proc-activeSessionName').textContent = session.session_name;
+                document.getElementById('proc-sessionName').value = '';
+            } catch (error) {
+                console.error('Error creating session:', error);
+                alert('Failed to create session: ' + error.message);
+            }
+        }
+
+        async function procHandleFiles(files) {
+            if (!procCurrentSessionId) { alert('Please create a session first'); return; }
+
+            const uploadedFilesDiv = document.getElementById('proc-uploadedFiles');
+
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('file_type', 'stacked');
+
+                // Create progress element for this file
+                const fileId = 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                const progressHtml = `
+                    <div id="${fileId}" class="file-item upload-progress">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <span>📤 ${file.name}</span>
+                            <span id="${fileId}-percent">0%</span>
+                        </div>
+                        <div style="background: #333; height: 20px; border-radius: 4px; overflow: hidden;">
+                            <div id="${fileId}-bar" style="background: linear-gradient(90deg, #4a9eff, #7dc8ff); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                        <div style="color: #888; font-size: 12px; margin-top: 3px;">
+                            ${(file.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                    </div>`;
+                uploadedFilesDiv.innerHTML += progressHtml;
+
+                try {
+                    // Upload with progress tracking
+                    await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+
+                        // Track upload progress
+                        xhr.upload.addEventListener('progress', (e) => {
+                            if (e.lengthComputable) {
+                                const percentComplete = (e.loaded / e.total) * 100;
+                                document.getElementById(fileId + '-bar').style.width = percentComplete + '%';
+                                document.getElementById(fileId + '-percent').textContent = Math.round(percentComplete) + '%';
+                            }
+                        });
+
+                        xhr.addEventListener('load', () => {
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                // Update to completed state
+                                document.getElementById(fileId).innerHTML = `
+                                    <div style="color: #7dc8ff;">✓ ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</div>`;
+                                resolve(JSON.parse(xhr.responseText));
+                            } else {
+                                reject(new Error('Upload failed'));
+                            }
+                        });
+
+                        xhr.addEventListener('error', () => reject(new Error('Network error')));
+                        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+                        xhr.open('POST', `/api/process/sessions/${procCurrentSessionId}/upload`);
+                        xhr.send(formData);
+                    });
+
+                } catch (error) {
+                    // Update to error state
+                    document.getElementById(fileId).innerHTML = `
+                        <div style="color: #ff4444;">✗ ${file.name} - ${error.message}</div>`;
+                    console.error(`Failed to upload ${file.name}:`, error);
+                }
+            }
+
+            await fetch(`/api/process/sessions/${procCurrentSessionId}/finalize`, { method: 'POST' });
+        }
+
+        async function procProcessSession(pipelineName) {
+            if (!procCurrentSessionId) { alert('No active session'); return; }
+            try {
+                const response = await fetch(`/api/process/sessions/${procCurrentSessionId}/process`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pipeline_name: pipelineName })
+                });
+                if (!response.ok) throw new Error('Failed to start processing');
+                const job = await response.json();
+                procCurrentJobId = job.id;
+                document.getElementById('proc-jobStatus').style.display = 'block';
+                procStartJobPolling();
+            } catch (error) {
+                alert('Failed to start processing: ' + error.message);
+            }
+        }
+
+        function procStartJobPolling() {
+            if (procJobPollInterval) clearInterval(procJobPollInterval);
+            procJobPollInterval = setInterval(async () => {
+                if (!procCurrentJobId) return;
+                try {
+                    const response = await fetch(`/api/process/jobs/${procCurrentJobId}`);
+                    if (!response.ok) throw new Error('Failed to get job status');
+                    const job = await response.json();
+                    const gpuBadge = job.gpu_used ? '<span class="gpu-badge">GPU ⚡</span>' : '';
+                    document.getElementById('proc-jobStatus').innerHTML = `
+                        <h3>Processing Job</h3>
+                        <div><span class="job-status ${job.status}">${job.status.toUpperCase()}</span> ${gpuBadge}</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${job.progress_percent}%"></div></div>
+                        <p>Progress: ${job.progress_percent.toFixed(1)}%</p>
+                        ${job.current_step ? `<p>Current step: ${job.current_step}</p>` : ''}
+                        ${job.status === 'complete' ? `<button onclick="window.location.href='/api/process/jobs/${job.id}/download'" class="btn btn-primary">📥 Download Result</button>` : ''}
+                        ${job.error_message ? `<p style="color: #ff0000;">Error: ${job.error_message}</p>` : ''}`;
+                    if (job.status === 'complete' || job.status === 'failed') clearInterval(procJobPollInterval);
+                } catch (error) {
+                    console.error('Error polling job status:', error);
+                }
+            }, 2000);
+        }
+
+        async function procLoadRecentSessions() {
+            const sessionsDiv = document.getElementById('proc-recentSessions');
+
+            try {
+                // Show loading state
+                sessionsDiv.innerHTML = '<p style="color: #888;">Loading sessions...</p>';
+
+                console.log('Fetching sessions from /api/process/sessions...');
+                const response = await fetch('/api/process/sessions?limit=10');
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error('Failed to load sessions');
+                }
+
+                const sessions = await response.json();
+                console.log('Loaded sessions:', sessions.length, sessions);
+
+                if (sessions.length === 0) {
+                    sessionsDiv.innerHTML = '<p style="color: #888;">No sessions yet. Create one to get started!</p>';
+                    return;
+                }
+
+                sessionsDiv.innerHTML = sessions.map(session => `
+                    <div class="session-card" style="position: relative; display: block;">
+                        <button onclick="procDeleteSession(${session.id}, event)"
+                                style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; background: rgba(255,0,0,0.2); border: 1px solid #ff0000; color: #ff0000; border-radius: 4px; cursor: pointer; z-index: 10;"
+                                title="Click to delete session">
+                            🗑️ Delete
+                        </button>
+                        <div style="padding-right: 100px;">
+                            <h4 style="margin: 0 0 10px 0; color: #00ffff;">${session.session_name}</h4>
+                            <p style="margin: 5px 0; color: #ccc;">
+                                <strong>Files:</strong> ${session.total_files} |
+                                <strong>Size:</strong> ${(session.total_size_bytes / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                            <p style="margin: 5px 0;">
+                                <strong>Status:</strong> <span class="job-status ${session.status}">${session.status.toUpperCase()}</span>
+                            </p>
+                            <p style="margin: 5px 0; color: #888; font-size: 0.9em;">
+                                <strong>Created:</strong> ${new Date(session.created_at).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>`).join('');
+
+                console.log('Sessions rendered successfully');
+
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                sessionsDiv.innerHTML = `
+                    <p style="color: #ff0000;">Error loading sessions: ${error.message}</p>
+                    <p style="color: #888; font-size: 0.9em;">Check the browser console for details.</p>
+                `;
+            }
+        }
+
+        async function procDeleteSession(sessionId, event) {
+            console.log('procDeleteSession called with sessionId:', sessionId);
+
+            // Stop event propagation
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            console.log('Attempting to delete session:', sessionId);
+
+            // Show loading state
+            const sessionCard = event.target.closest('.session-card');
+            if (sessionCard) {
+                sessionCard.style.opacity = '0.5';
+                sessionCard.style.pointerEvents = 'none';
+                console.log('Session card found and styled');
+            } else {
+                console.warn('Session card not found');
+            }
+
+            try {
+                console.log('Sending DELETE request to:', `/api/process/sessions/${sessionId}`);
+                const response = await fetch(`/api/process/sessions/${sessionId}`, { method: 'DELETE' });
+                console.log('DELETE response status:', response.status);
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('DELETE failed with error:', errorData);
+                    throw new Error(errorData.detail || 'Failed to delete session');
+                }
+
+                console.log('Session deleted successfully');
+
+                // If this was the active session, hide the active section
+                if (procCurrentSessionId === sessionId) {
+                    procCurrentSessionId = null;
+                    document.getElementById('proc-createSessionSection').style.display = 'block';
+                    document.getElementById('proc-activeSessionSection').style.display = 'none';
+                }
+
+                // Reload sessions list
+                await procLoadRecentSessions();
+
+                // Show success message briefly
+                const sessionsDiv = document.getElementById('proc-recentSessions');
+                const successMsg = document.createElement('div');
+                successMsg.style.cssText = 'padding: 10px; background: rgba(0,255,0,0.2); color: #00ff00; border: 1px solid #00ff00; border-radius: 4px; margin-bottom: 10px;';
+                successMsg.textContent = '✓ Session deleted successfully';
+                sessionsDiv.insertBefore(successMsg, sessionsDiv.firstChild);
+                setTimeout(() => successMsg.remove(), 3000);
+
+            } catch (error) {
+                console.error('Error deleting session:', error);
+
+                // Restore card state
+                if (sessionCard) {
+                    sessionCard.style.opacity = '1';
+                    sessionCard.style.pointerEvents = 'auto';
+                }
+
+                alert('Failed to delete session: ' + error.message);
+            }
+        }
+
+        function procShowFileTab(tab) {
+            document.getElementById('proc-uploadTab').style.display = tab === 'upload' ? 'block' : 'none';
+            document.getElementById('proc-browseTab').style.display = tab === 'browse' ? 'block' : 'none';
+            document.getElementById('proc-uploadTabBtn').style.background = tab === 'upload' ? 'rgba(0,255,255,0.3)' : '';
+            document.getElementById('proc-browseTabBtn').style.background = tab === 'browse' ? 'rgba(0,255,255,0.3)' : '';
+            if (tab === 'browse') procBrowseFITS('');
+        }
+
+        async function procBrowseFITS(path) {
+            procCurrentBrowsePath = path;
+            try {
+                const response = await fetch(`/api/process/browse?path=${encodeURIComponent(path)}`);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        document.getElementById('proc-fileList').innerHTML = '<p style="color: #ff0000;">FITS directory not found. Set FITS_DIR in .env and restart.</p>';
+                        return;
+                    }
+                    throw new Error('Failed to browse files');
+                }
+                const data = await response.json();
+                document.getElementById('proc-currentPath').textContent = data.current_path ? `📂 ${data.current_path}` : '📂 Root';
+                let html = '';
+                if (data.current_path) {
+                    const parentPath = data.current_path.split('/').slice(0, -1).join('/');
+                    html += `<div class="file-item" onclick="procBrowseFITS('${parentPath}')" style="cursor: pointer;"><strong>📁 ..</strong> (Parent directory)</div>`;
+                }
+                data.items.filter(item => item.is_dir).forEach(item => {
+                    html += `<div class="file-item" onclick="procBrowseFITS('${item.path}')" style="cursor: pointer;">📁 <strong>${item.name}</strong></div>`;
+                });
+                data.items.filter(item => !item.is_dir && item.is_fits).forEach(item => {
+                    html += `<div class="file-item" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>📄 ${item.name} <small style="color: #888;">(${(item.size / 1024 / 1024).toFixed(2)} MB)</small></span>
+                        <button onclick="procImportFile('${item.path}')" class="btn btn-primary" style="padding: 5px 15px; font-size: 0.9em;">➕ Import</button>
+                    </div>`;
+                });
+                data.items.filter(item => !item.is_dir && !item.is_fits).forEach(item => {
+                    html += `<div class="file-item" style="opacity: 0.5;">📄 ${item.name} <small style="color: #888;">(not a FITS file)</small></div>`;
+                });
+                document.getElementById('proc-fileList').innerHTML = html || '<p style="color: #888;">Empty directory</p>';
+            } catch (error) {
+                document.getElementById('proc-fileList').innerHTML = `<p style="color: #ff0000;">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function procImportFile(filePath) {
+            if (!procCurrentSessionId) { alert('Please create a session first'); return; }
+            try {
+                const formData = new FormData();
+                formData.append('file_path', filePath);
+                formData.append('file_type', 'stacked');
+                const response = await fetch(`/api/process/sessions/${procCurrentSessionId}/import`, {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) throw new Error('Import failed');
+                const result = await response.json();
+                document.getElementById('proc-uploadedFiles').innerHTML += `
+                    <div class="file-item">✓ ${result.filename} (${(result.size_bytes / 1024 / 1024).toFixed(2)} MB) - Imported</div>`;
+                await fetch(`/api/process/sessions/${procCurrentSessionId}/finalize`, { method: 'POST' });
+            } catch (error) {
+                alert(`Failed to import file: ${error.message}`);
             }
         }
     </script>

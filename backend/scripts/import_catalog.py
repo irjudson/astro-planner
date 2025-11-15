@@ -15,10 +15,15 @@ from typing import Optional
 # Add parent directory to path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+print(f"DEBUG: sys.path = {sys.path}")
+
 try:
-    from pyongc import Dso, ObjectNotFound
-except ImportError:
-    print("Error: pyongc not installed. Run: pip install pyongc")
+    from pyongc.ongc import Dso
+    from pyongc.exceptions import ObjectNotFound
+except ImportError as e:
+    print(f"Error: pyongc not installed. Details: {e}")
+    import traceback
+    traceback.print_exc()
     sys.exit(1)
 
 

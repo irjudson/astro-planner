@@ -3,6 +3,7 @@
 from datetime import datetime, timedelta
 import pytz
 from typing import Dict
+from sqlalchemy.orm import Session
 
 from app.models import (
     PlanRequest, ObservingPlan, SessionInfo, Location, ObservingConstraints
@@ -17,11 +18,11 @@ from app.services.comet_service import CometService
 class PlannerService:
     """Main service for generating observing plans."""
 
-    def __init__(self):
+    def __init__(self, db: Session):
         """Initialize all required services."""
         self.ephemeris = EphemerisService()
-        self.catalog = CatalogService()
-        self.comet_service = CometService()
+        self.catalog = CatalogService(db)
+        self.comet_service = CometService(db)
         self.weather = WeatherService()
         self.scheduler = SchedulerService()
         self.exporter = ExportService()

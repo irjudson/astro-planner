@@ -24,7 +24,7 @@ from .models import (
     ExportFormat,
 )
 from .catalog_models import DSOCatalog, CometCatalog, ConstellationName
-from .processing_models import ProcessingSession, ProcessingFile, ProcessingPipeline, ProcessingJob
+from .processing_models import ProcessingFile, ProcessingPipeline, ProcessingJob
 
 __all__ = [
     "Location",
@@ -52,8 +52,7 @@ __all__ = [
     "DSOCatalog",
     "CometCatalog",
     "ConstellationName",
-    # Processing models
-    "ProcessingSession",
+    # Processing models (direct file processing - no sessions)
     "ProcessingFile",
     "ProcessingPipeline",
     "ProcessingJob",

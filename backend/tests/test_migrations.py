@@ -21,7 +21,6 @@ def test_fixture_creates_all_tables():
         'dso_catalog',
         'comet_catalog',
         'constellation_names',
-        'processing_sessions',
         'processing_files',
         'processing_pipelines',
         'processing_jobs'
