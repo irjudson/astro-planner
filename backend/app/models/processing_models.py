@@ -1,4 +1,4 @@
-"""SQLAlchemy models for processing system."""
+"""SQLAlchemy models for direct file processing (no sessions)."""
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship
@@ -7,32 +7,11 @@ from datetime import datetime
 from app.database import Base
 
 
-class ProcessingSession(Base):
-    """Processing session containing uploaded files."""
-    __tablename__ = "processing_sessions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=True)  # Future: multi-user support
-    session_name = Column(String(100), nullable=False)
-    observation_plan_id = Column(Integer, nullable=True)  # Link to original plan
-    upload_timestamp = Column(DateTime, default=datetime.utcnow)
-    total_files = Column(Integer, default=0)
-    total_size_bytes = Column(BigInteger, default=0)
-    status = Column(String(20), default='uploading')  # uploading, ready, processing, complete, error
-    session_metadata = Column(JSON, nullable=True)  # Session log, target info
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    files = relationship("ProcessingFile", back_populates="session", cascade="all, delete-orphan")
-    jobs = relationship("ProcessingJob", back_populates="session", cascade="all, delete-orphan")
-
-
 class ProcessingFile(Base):
-    """Individual file in a processing session."""
+    """Individual FITS file for processing."""
     __tablename__ = "processing_files"
 
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("processing_sessions.id"), nullable=False)
     filename = Column(String(255), nullable=False)
     file_type = Column(String(20), nullable=False)  # light, dark, flat, bias, stacked
     file_path = Column(String(500), nullable=False)
@@ -43,9 +22,6 @@ class ProcessingFile(Base):
     quality_score = Column(Float, nullable=True)  # FWHM, star count, etc.
     file_metadata = Column(JSON, nullable=True)  # FITS headers
     uploaded_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    session = relationship("ProcessingSession", back_populates="files")
 
 
 class ProcessingPipeline(Base):
@@ -70,7 +46,7 @@ class ProcessingJob(Base):
     __tablename__ = "processing_jobs"
 
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(Integer, ForeignKey("processing_sessions.id"), nullable=False)
+    file_id = Column(Integer, ForeignKey("processing_files.id"), nullable=False)
     pipeline_id = Column(Integer, ForeignKey("processing_pipelines.id"), nullable=False)
     container_id = Column(String(64), nullable=True)  # Docker container ID
     status = Column(String(20), default='queued')  # queued, starting, running, complete, failed, cancelled
@@ -85,5 +61,4 @@ class ProcessingJob(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    session = relationship("ProcessingSession", back_populates="jobs")
     pipeline = relationship("ProcessingPipeline", back_populates="jobs")

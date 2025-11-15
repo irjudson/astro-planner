@@ -8,9 +8,22 @@ numpy==2.1.3
 python-dateutil==2.9.0
 pytz==2024.2
 requests==2.32.3
+urllib3<2.0  # Required for docker-py compatibility
+requests-unixsocket>=0.3.0  # Required for Docker socket communication
+PySocks>=1.7.1  # Additional socket support
 python-multipart==0.0.17
 aiofiles==24.1.0
 
 # Catalog expansion
 pyongc==1.2.0
 astroquery==0.4.7
+
+# Processing infrastructure
+celery==5.3.4
+redis==5.0.1
+sqlalchemy==2.0.23
+alembic==1.13.0
+psycopg2-binary==2.9.9
+websockets==12.0
+Pillow>=10.0.0  # For image processing and export
+scikit-image>=0.21.0  # For advanced image processing

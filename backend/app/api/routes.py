@@ -1,9 +1,10 @@
 """API routes for the Astro Planner."""
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional, Dict
 from datetime import datetime
 import uuid
+from sqlalchemy.orm import Session
 
 from app.models import (
     PlanRequest, ObservingPlan, DSOTarget, Location, ExportFormat, ScheduledTarget
@@ -12,23 +13,22 @@ from app.services.planner_service import PlannerService
 from app.services.catalog_service import CatalogService
 from app.clients.seestar_client import SeestarClient, SeestarState
 from app.services.telescope_service import TelescopeService, ExecutionState
+from app.database import get_db
 from pydantic import BaseModel
 
-# Import comet, asteroid, and planet routers
+# Import comet, asteroid, planet, and processing routers
 from app.api.comets import router as comet_router
 from app.api.asteroids import router as asteroid_router
 from app.api.planets import router as planet_router
+from app.api.processing import router as processing_router
 
 router = APIRouter()
 
-# Include comet, asteroid, and planet endpoints
+# Include comet, asteroid, planet, and processing endpoints
 router.include_router(comet_router)
 router.include_router(asteroid_router)
 router.include_router(planet_router)
-
-# Initialize services
-planner = PlannerService()
-catalog = CatalogService()
+router.include_router(processing_router)
 
 # Telescope control (singleton instances)
 seestar_client = SeestarClient()
@@ -48,7 +48,7 @@ class ExecutePlanRequest(BaseModel):
 
 
 @router.post("/plan", response_model=ObservingPlan)
-async def generate_plan(request: PlanRequest):
+async def generate_plan(request: PlanRequest, db: Session = Depends(get_db)):
     """
     Generate a complete observing plan.
 
@@ -66,6 +66,7 @@ async def generate_plan(request: PlanRequest):
         Complete observing plan with scheduled targets
     """
     try:
+        planner = PlannerService(db)
         plan = planner.generate_plan(request)
         return plan
     except Exception as e:
@@ -76,6 +77,7 @@ async def generate_plan(request: PlanRequest):
 
 @router.get("/targets", response_model=List[DSOTarget])
 async def list_targets(
+    db: Session = Depends(get_db),
     object_types: Optional[List[str]] = Query(None, description="Filter by object types (can specify multiple)"),
     min_magnitude: Optional[float] = Query(None, description="Minimum magnitude (brighter objects have lower values)"),
     max_magnitude: Optional[float] = Query(None, description="Maximum magnitude (fainter limit)"),
@@ -110,6 +112,7 @@ async def list_targets(
         List of DSO targets matching filters, sorted by brightness
     """
     try:
+        catalog = CatalogService(db)
         targets = catalog.filter_targets(
             object_types=object_types,
             min_magnitude=min_magnitude,
@@ -124,7 +127,7 @@ async def list_targets(
 
 
 @router.get("/targets/{catalog_id}", response_model=DSOTarget)
-async def get_target(catalog_id: str):
+async def get_target(catalog_id: str, db: Session = Depends(get_db)):
     """
     Get details for a specific target.
 
@@ -134,6 +137,7 @@ async def get_target(catalog_id: str):
     Returns:
         Target details
     """
+    catalog = CatalogService(db)
     target = catalog.get_target_by_id(catalog_id)
     if not target:
         raise HTTPException(status_code=404, detail=f"Target not found: {catalog_id}")
@@ -141,7 +145,7 @@ async def get_target(catalog_id: str):
 
 
 @router.get("/catalog/stats")
-async def get_catalog_stats():
+async def get_catalog_stats(db: Session = Depends(get_db)):
     """
     Get statistics about the DSO catalog.
 
@@ -155,62 +159,49 @@ async def get_catalog_stats():
         Catalog statistics dictionary
     """
     try:
-        import sqlite3
-        from pathlib import Path
-
-        # Get database path
-        db_path = catalog.db_path
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        from sqlalchemy import func, case
+        from app.models.catalog_models import DSOCatalog
 
         # Total objects
-        cursor.execute("SELECT COUNT(*) FROM dso_catalog")
-        total = cursor.fetchone()[0]
+        total = db.query(func.count(DSOCatalog.id)).scalar()
 
         # By object type
-        cursor.execute("""
-            SELECT object_type, COUNT(*)
-            FROM dso_catalog
-            GROUP BY object_type
-            ORDER BY COUNT(*) DESC
-        """)
-        by_type = {row[0]: row[1] for row in cursor.fetchall()}
+        by_type_query = db.query(
+            DSOCatalog.object_type,
+            func.count(DSOCatalog.id)
+        ).group_by(DSOCatalog.object_type).order_by(func.count(DSOCatalog.id).desc()).all()
+        by_type = {row[0]: row[1] for row in by_type_query}
 
         # By catalog
-        cursor.execute("""
-            SELECT catalog_name, COUNT(*)
-            FROM dso_catalog
-            GROUP BY catalog_name
-            ORDER BY COUNT(*) DESC
-        """)
-        by_catalog = {row[0]: row[1] for row in cursor.fetchall()}
+        by_catalog_query = db.query(
+            DSOCatalog.catalog_name,
+            func.count(DSOCatalog.id)
+        ).group_by(DSOCatalog.catalog_name).order_by(func.count(DSOCatalog.id).desc()).all()
+        by_catalog = {row[0]: row[1] for row in by_catalog_query}
 
         # Magnitude ranges
-        cursor.execute("""
-            SELECT
-                COUNT(CASE WHEN magnitude <= 5 THEN 1 END) as very_bright,
-                COUNT(CASE WHEN magnitude > 5 AND magnitude <= 10 THEN 1 END) as bright,
-                COUNT(CASE WHEN magnitude > 10 AND magnitude <= 15 THEN 1 END) as moderate,
-                COUNT(CASE WHEN magnitude > 15 THEN 1 END) as faint
-            FROM dso_catalog
-            WHERE magnitude IS NOT NULL AND magnitude < 99
-        """)
-        mag_row = cursor.fetchone()
-        magnitude_ranges = {
-            "<=5.0 (Very Bright)": mag_row[0],
-            "5.0-10.0 (Bright)": mag_row[1],
-            "10.0-15.0 (Moderate)": mag_row[2],
-            ">15.0 (Faint)": mag_row[3]
-        }
+        mag_query = db.query(
+            func.count(case((DSOCatalog.magnitude <= 5, 1))).label('very_bright'),
+            func.count(case(((DSOCatalog.magnitude > 5) & (DSOCatalog.magnitude <= 10), 1))).label('bright'),
+            func.count(case(((DSOCatalog.magnitude > 10) & (DSOCatalog.magnitude <= 15), 1))).label('moderate'),
+            func.count(case((DSOCatalog.magnitude > 15, 1))).label('faint')
+        ).filter(
+            DSOCatalog.magnitude.isnot(None),
+            DSOCatalog.magnitude < 99
+        ).one()
 
-        conn.close()
+        magnitude_ranges = {
+            "<=5.0 (Very Bright)": mag_query.very_bright,
+            "5.0-10.0 (Bright)": mag_query.bright,
+            "10.0-15.0 (Moderate)": mag_query.moderate,
+            ">15.0 (Faint)": mag_query.faint
+        }
 
         return {
             "total_objects": total,
             "by_type": by_type,
             "by_catalog": by_catalog,
-            "by_magnitude": magnitude_ranges,
-            "database_path": str(db_path)
+            "by_magnitude": magnitude_ranges
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching catalog stats: {str(e)}")

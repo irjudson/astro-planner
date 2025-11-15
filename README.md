@@ -34,31 +34,42 @@ A complete web-based astrophotography session planner specifically designed for 
 
 ## Quick Start
 
-### Option 1: Automated Setup (Recommended)
+### Option 1: Native Development (Recommended for Development)
 
 ```bash
-# Clone or extract to astro-planner/
+# One-time setup
 cd astro-planner
-./setup.sh
-
-# Start the server
+python3 -m venv venv
 source venv/bin/activate
 cd backend
-python -m uvicorn app.main:app --reload
+pip install -r requirements.txt -r requirements-processing.txt
+cd ..
+
+# Start services (background mode)
+./dev-simple.sh
+
+# Stop services when done
+./dev-stop.sh
 ```
 
 Open http://localhost:9247 in your browser.
 
-### Option 2: Docker
+See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed native development guide.
+
+### Option 2: Docker (Production-like)
 
 ```bash
 cd astro-planner
 docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
 ```
 
 Open http://localhost:9247 in your browser.
-
-See [QUICKSTART.md](QUICKSTART.md) for detailed instructions.
 
 ## Requirements
 
@@ -68,9 +79,11 @@ See [QUICKSTART.md](QUICKSTART.md) for detailed instructions.
 
 ## Documentation
 
-- [QUICKSTART.md](QUICKSTART.md) - Get up and running in 5 minutes
-- [USAGE.md](USAGE.md) - Detailed usage guide with examples
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Technical details and algorithms
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Native vs Docker development setup
+- [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing strategies and troubleshooting
+- [PROCESSING_DESIGN.md](PROCESSING_DESIGN.md) - Image processing pipeline architecture
+- [MOSAIC_AND_STACKING_PLAN.md](MOSAIC_AND_STACKING_PLAN.md) - Future roadmap
+- [CAPABILITIES_STATUS.md](CAPABILITIES_STATUS.md) - Current feature status
 
 ## Project Structure
 

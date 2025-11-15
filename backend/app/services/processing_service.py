@@ -9,7 +9,7 @@ from datetime import datetime
 import logging
 
 from app.database import SessionLocal
-from app.models.processing_models import ProcessingSession, ProcessingJob, ProcessingPipeline
+from app.models.processing_models import ProcessingFile, ProcessingJob, ProcessingPipeline
 from app.services.direct_processor import DirectProcessor
 
 logger = logging.getLogger(__name__)
