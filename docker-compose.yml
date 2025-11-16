@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Main API service
   astro-planner:
@@ -12,8 +10,8 @@ services:
     ports:
       - "9247:9247"
     environment:
-      - DATABASE_URL=postgresql://pg:buffalo-jump@host.docker.internal:5432/astro-planner
-      - TEST_DATABASE_URL=postgresql://pg:buffalo-jump@host.docker.internal:5432/test_astro_planner
+      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+      - TEST_DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/test_astro_planner
       - HOST=0.0.0.0
       - PORT=9247
       - RELOAD=False
@@ -21,10 +19,12 @@ services:
       - DEFAULT_LAT=${DEFAULT_LAT:-45.9183}
       - DEFAULT_LON=${DEFAULT_LON:--111.5433}
       - DEFAULT_ELEVATION=${DEFAULT_ELEVATION:-1234}
-      - REDIS_URL=redis://:buffalo-jump@host.docker.internal:6379/1
+      - REDIS_URL=redis://:buffalo-jump@redis:6379/1
+      - FITS_DIR=/fits
+    volumes:
+      - /mnt/seestar-s50:/fits:ro
     networks:
-      - astro-planner-network
-      - my-redis-network
+      - shared-infra
 
 
 
@@ -33,17 +33,19 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    container_name: astro-planner-worker
+    runtime: nvidia
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4
     environment:
-      - REDIS_URL=redis://:buffalo-jump@host.docker.internal:6379/1
-      - DATABASE_URL=postgresql://pg:buffalo-jump@host.docker.internal:5432/astro-planner
+      - REDIS_URL=redis://:buffalo-jump@redis:6379/1
+      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
       - FITS_DIR=${FITS_DIR:-/fits}
       - NVIDIA_VISIBLE_DEVICES=all
     volumes:
       - ./data:/app/data
-      - ./fits:/fits:rw
+      - /mnt/seestar-s50:/fits:rw
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     healthcheck:
@@ -52,8 +54,7 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - astro-planner-network
-      - my-redis-network
+      - shared-infra
 
   # Celery Flower for monitoring (optional)
   flower:
@@ -67,18 +68,16 @@ services:
     ports:
       - "5555:5555"
     environment:
-      - REDIS_URL=redis://:buffalo-jump@host.docker.internal:6379/1
+      - REDIS_URL=redis://:buffalo-jump@redis:6379/1
     restart: unless-stopped
     networks:
-      - astro-planner-network
-      - my-redis-network
+      - shared-infra
     profiles:
       - monitoring
 
 networks:
-  astro-planner-network:
-    driver: bridge
-  my-redis-network:
+  shared-infra:
     external: true
+    name: shared-infra
 
 
