@@ -81,6 +81,20 @@ async def browse_files(path: str = ""):
     }
 
 
+@router.get("/jobs", response_model=List[JobResponse])
+async def list_jobs(
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """List recent processing jobs, ordered by most recent first."""
+    jobs = db.query(ProcessingJob)\
+        .order_by(ProcessingJob.created_at.desc())\
+        .limit(limit)\
+        .all()
+
+    return jobs
+
+
 @router.get("/jobs/{job_id}", response_model=JobResponse)
 async def get_job(
     job_id: int,
