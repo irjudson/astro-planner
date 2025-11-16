@@ -989,6 +989,17 @@
                 loadCatalogStats();
                 loadCatalogObjects();
             }
+
+            // Start live view polling when switching to liveview tab
+            if (tabName === 'liveview' && typeof liveviewLoadPreview === 'function') {
+                liveviewLoadPreview(); // Load immediately
+                if (liveviewAutoRefresh && typeof liveviewStartPolling === 'function') {
+                    liveviewStartPolling();
+                }
+            } else if (typeof liveviewStopPolling === 'function') {
+                // Stop polling when leaving liveview tab
+                liveviewStopPolling();
+            }
         }
     </script>
 </head>
@@ -1002,6 +1013,7 @@
                 <button class="nav-btn" onclick="showTab('catalog')" id="catalog-tab-btn">📚 Catalog Browser</button>
                 <button class="nav-btn" onclick="showTab('observe')" id="observe-tab-btn">🔭 Observe</button>
                 <button class="nav-btn" onclick="showTab('process')" id="process-tab-btn">🎨 Process</button>
+                <button class="nav-btn" onclick="showTab('liveview')" id="liveview-tab-btn">📹 Live View</button>
             </div>
         </header>
 
@@ -1545,6 +1557,71 @@
                 </div>
             </div>
             <!-- End Process Tab -->
+
+            <!-- Live View Tab -->
+            <div id="liveview-tab" class="tab-content">
+                <h1>📹 Live Telescope View</h1>
+                <p style="color: #888; margin-bottom: 30px;">View the latest image from your telescope in near real-time</p>
+
+                <!-- Preview Display -->
+                <div style="margin: 30px 0;">
+                    <div style="background: rgba(0,20,40,0.8); border: 1px solid #00ffff; border-radius: 8px; padding: 20px;">
+                        <!-- Status Bar -->
+                        <div id="liveview-status" style="margin-bottom: 15px; padding: 10px; background: rgba(0,100,100,0.2); border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span id="liveview-status-text" style="color: #00ffff;">Checking for telescope images...</span>
+                                </div>
+                                <div>
+                                    <button onclick="liveviewRefreshNow()" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.9em;">🔄 Refresh Now</button>
+                                    <button onclick="liveviewToggleAuto()" class="btn btn-primary" id="liveview-auto-btn" style="padding: 5px 15px; font-size: 0.9em;">⏸️ Pause Auto-Refresh</button>
+                                </div>
+                            </div>
+                            <div id="liveview-last-update" style="color: #666; font-size: 0.85em; margin-top: 5px;"></div>
+                        </div>
+
+                        <!-- Image Display -->
+                        <div id="liveview-image-container" style="text-align: center; min-height: 400px; display: flex; align-items: center; justify-content: center;">
+                            <div id="liveview-placeholder" style="color: #888;">
+                                <p style="font-size: 1.2em;">No telescope image available yet</p>
+                                <p style="font-size: 0.9em; margin-top: 10px;">Start imaging on your telescope to see live updates here</p>
+                            </div>
+                            <img id="liveview-image" style="display: none; max-width: 100%; max-height: 800px; border-radius: 4px;" />
+                        </div>
+
+                        <!-- Image Info -->
+                        <div id="liveview-info" style="display: none; margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9em;">
+                                <div><strong>Filename:</strong> <span id="liveview-filename"></span></div>
+                                <div><strong>Size:</strong> <span id="liveview-filesize"></span></div>
+                                <div><strong>Last Modified:</strong> <span id="liveview-modified"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <div style="margin: 30px 0;">
+                    <h3>Settings</h3>
+                    <div style="background: rgba(0,20,40,0.5); border: 1px solid #00ffff; border-radius: 8px; padding: 20px;">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px;">Auto-Refresh Interval</label>
+                            <select id="liveview-interval" onchange="liveviewChangeInterval()" style="width: 200px; padding: 8px; background: rgba(0,20,40,0.8); border: 1px solid #00ffff; color: #fff; border-radius: 4px;">
+                                <option value="10000">Every 10 seconds</option>
+                                <option value="30000" selected>Every 30 seconds</option>
+                                <option value="60000">Every 1 minute</option>
+                                <option value="120000">Every 2 minutes</option>
+                                <option value="300000">Every 5 minutes</option>
+                            </select>
+                        </div>
+                        <div style="color: #888; font-size: 0.9em;">
+                            <p>💡 Tip: The telescope creates preview JPEG images during stacking. This view automatically polls for the latest image.</p>
+                            <p style="margin-top: 5px;">📁 Images are loaded from the FITS directory configured in your environment.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Live View Tab -->
         </div>
     </div>
 
@@ -3287,6 +3364,115 @@
             } catch (error) {
                 document.getElementById('proc-fileList').innerHTML = `<p style="color: #ff0000;">Error: ${error.message}</p>`;
             }
+        }
+
+        //  ============================================================================
+        // Live View Tab JavaScript
+        // ============================================================================
+
+        let liveviewInterval = null;
+        let liveviewRefreshMs = 30000; // Default to 30 seconds
+        let liveviewAutoRefresh = true;
+        let liveviewLastImagePath = null;
+
+        async function liveviewLoadPreview() {
+            try {
+                const response = await fetch('/api/telescope/preview');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch preview');
+                }
+
+                const data = await response.json();
+
+                if (data.available) {
+                    // Update status
+                    document.getElementById('liveview-status-text').textContent = data.message;
+                    document.getElementById('liveview-status-text').style.color = '#00ff00';
+
+                    // Only update image if it's different
+                    if (data.path !== liveviewLastImagePath) {
+                        liveviewLastImagePath = data.path;
+
+                        // Load the image
+                        const img = document.getElementById('liveview-image');
+                        img.src = `/api${data.download_url}?t=${Date.now()}`; // Cache buster
+                        img.style.display = 'block';
+                        document.getElementById('liveview-placeholder').style.display = 'none';
+
+                        // Show image info
+                        document.getElementById('liveview-filename').textContent = data.filename;
+                        document.getElementById('liveview-filesize').textContent = formatFileSize(data.size_bytes);
+                        document.getElementById('liveview-modified').textContent = new Date(data.modified_at).toLocaleString();
+                        document.getElementById('liveview-info').style.display = 'block';
+                    }
+
+                    // Update last update time
+                    document.getElementById('liveview-last-update').textContent =
+                        `Last updated: ${new Date().toLocaleTimeString()}`;
+                } else {
+                    // No image available
+                    document.getElementById('liveview-status-text').textContent = data.message;
+                    document.getElementById('liveview-status-text').style.color = '#ffaa00';
+                    document.getElementById('liveview-image').style.display = 'none';
+                    document.getElementById('liveview-placeholder').style.display = 'block';
+                    document.getElementById('liveview-info').style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('Error loading telescope preview:', error);
+                document.getElementById('liveview-status-text').textContent =
+                    `Error: ${error.message}`;
+                document.getElementById('liveview-status-text').style.color = '#ff0000';
+            }
+        }
+
+        function liveviewRefreshNow() {
+            liveviewLoadPreview();
+        }
+
+        function liveviewToggleAuto() {
+            liveviewAutoRefresh = !liveviewAutoRefresh;
+
+            if (liveviewAutoRefresh) {
+                document.getElementById('liveview-auto-btn').innerHTML = '⏸️ Pause Auto-Refresh';
+                document.getElementById('liveview-auto-btn').className = 'btn btn-primary';
+                liveviewStartPolling();
+                liveviewLoadPreview(); // Immediate refresh
+            } else {
+                document.getElementById('liveview-auto-btn').innerHTML = '▶️ Resume Auto-Refresh';
+                document.getElementById('liveview-auto-btn').className = 'btn btn-secondary';
+                liveviewStopPolling();
+            }
+        }
+
+        function liveviewChangeInterval() {
+            const select = document.getElementById('liveview-interval');
+            liveviewRefreshMs = parseInt(select.value);
+
+            if (liveviewAutoRefresh) {
+                liveviewStopPolling();
+                liveviewStartPolling();
+            }
+        }
+
+        function liveviewStartPolling() {
+            if (liveviewInterval) {
+                clearInterval(liveviewInterval);
+            }
+            liveviewInterval = setInterval(liveviewLoadPreview, liveviewRefreshMs);
+        }
+
+        function liveviewStopPolling() {
+            if (liveviewInterval) {
+                clearInterval(liveviewInterval);
+                liveviewInterval = null;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
     </script>
 </body>
