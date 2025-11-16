@@ -111,9 +111,13 @@ class TestTwilightEndpoint:
             assert field in data
             assert data[field] is not None
 
-    @pytest.mark.skip(reason="Input validation not yet implemented")
+    @pytest.mark.skip(reason="Input validation not yet implemented - TODO: Add Pydantic validators for lat/lon range")
     def test_twilight_with_invalid_location(self, client):
-        """Test twilight calculation with invalid location."""
+        """Test twilight calculation with invalid location.
+
+        TODO: This test should pass once we add input validation.
+        Expected behavior: API should return 400/422 for invalid coordinates.
+        """
         invalid_location = {
             "name": "Invalid",
             "latitude": 999.0,  # Invalid latitude
@@ -181,9 +185,13 @@ class TestPlanEndpoint:
             plan = response.json()
             assert isinstance(plan["scheduled_targets"], list)
 
-    @pytest.mark.skip(reason="Date validation not yet implemented")
+    @pytest.mark.skip(reason="Date validation not yet implemented - TODO: Add Pydantic date validators")
     def test_generate_plan_with_invalid_date(self, client, sample_plan_request):
-        """Test plan generation with invalid date."""
+        """Test plan generation with invalid date.
+
+        TODO: This test should pass once we add input validation.
+        Expected behavior: API should return 422 for invalid date format.
+        """
         sample_plan_request["observing_date"] = "invalid-date"
         response = client.post("/api/plan", json=sample_plan_request)
         assert response.status_code == 422
