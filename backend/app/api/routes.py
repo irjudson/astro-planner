@@ -534,6 +534,111 @@ async def park_telescope():
         raise HTTPException(status_code=500, detail=f"Park failed: {str(e)}")
 
 
+@router.get("/telescope/preview")
+async def get_telescope_preview():
+    """
+    Get the latest preview image from telescope.
+
+    This endpoint looks for the most recent stacked JPEG image in the
+    telescope's FITS directory. Returns image metadata and access path.
+
+    Returns:
+        Preview image information with path for download
+    """
+    from pathlib import Path
+    import os
+    from datetime import datetime
+
+    try:
+        # Look for recent JPEG files in /fits directory
+        fits_root = Path(os.getenv("FITS_DIR", "/fits"))
+
+        if not fits_root.exists():
+            return {
+                "available": False,
+                "message": "Telescope image directory not mounted. Configure FITS_DIR environment variable."
+            }
+
+        # Find all JPEG files (Seestar creates preview JPEGs during stacking)
+        jpeg_files = []
+        for ext in ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG']:
+            jpeg_files.extend(fits_root.rglob(ext))
+
+        if not jpeg_files:
+            return {
+                "available": False,
+                "message": "No preview images found. Start imaging on the telescope first."
+            }
+
+        # Sort by modification time, get most recent
+        latest_image = max(jpeg_files, key=lambda p: p.stat().st_mtime)
+
+        # Get file info
+        file_stats = latest_image.stat()
+        modified_time = datetime.fromtimestamp(file_stats.st_mtime)
+
+        # Return relative path from FITS_DIR for frontend to request
+        relative_path = latest_image.relative_to(fits_root)
+
+        return {
+            "available": True,
+            "filename": latest_image.name,
+            "path": str(relative_path),
+            "size_bytes": file_stats.st_size,
+            "modified_at": modified_time.isoformat(),
+            "download_url": f"/api/telescope/preview/download?path={relative_path}",
+            "message": f"Latest image from {modified_time.strftime('%H:%M:%S')}"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get preview: {str(e)}")
+
+
+@router.get("/telescope/preview/download")
+async def download_telescope_preview(path: str = Query(..., description="Relative path to image")):
+    """
+    Download a specific preview image from telescope storage.
+
+    Args:
+        path: Relative path to the image file
+
+    Returns:
+        Image file for display
+    """
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    import os
+
+    try:
+        fits_root = Path(os.getenv("FITS_DIR", "/fits"))
+
+        # Sanitize path to prevent directory traversal
+        requested_path = fits_root / path.lstrip("/")
+        requested_path = requested_path.resolve()
+
+        # Ensure we're still within FITS_DIR
+        if not str(requested_path).startswith(str(fits_root)):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        if not requested_path.exists():
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        if not requested_path.is_file():
+            raise HTTPException(status_code=400, detail="Path is not a file")
+
+        # Return image with appropriate MIME type
+        return FileResponse(
+            path=str(requested_path),
+            media_type="image/jpeg",
+            filename=requested_path.name
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to download preview: {str(e)}")
+
+
 @router.get("/health")
 async def health_check():
     """
