@@ -21,7 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.database import Base
-from app.models import processing_models, catalog_models
+from app.models import processing_models, catalog_models, telescope_models
 from app.core.config import get_settings
 
 target_metadata = Base.metadata

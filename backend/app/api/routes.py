@@ -382,7 +382,7 @@ async def execute_plan(request: ExecutePlanRequest):
     """
     Execute an observation plan on the telescope.
 
-    This starts background execution of the provided scheduled targets.
+    This starts background execution of the provided scheduled targets via Celery.
     Use /telescope/progress to monitor execution.
 
     Args:
@@ -398,32 +398,48 @@ async def execute_plan(request: ExecutePlanRequest):
                 detail="Telescope not connected. Connect first using /telescope/connect"
             )
 
-        if telescope_service.execution_state not in [
-            ExecutionState.IDLE,
-            ExecutionState.COMPLETED,
-            ExecutionState.ABORTED,
-            ExecutionState.ERROR
-        ]:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Execution already in progress: {telescope_service.execution_state.value}"
-            )
+        # Check if there's already an active execution
+        from app.models.telescope_models import TelescopeExecution
+        from app.database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            active_execution = db.query(TelescopeExecution).filter(
+                TelescopeExecution.state.in_(['starting', 'running'])
+            ).first()
+
+            if active_execution:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Execution already in progress: {active_execution.execution_id}"
+                )
+        finally:
+            db.close()
 
         # Generate execution ID
         execution_id = str(uuid.uuid4())[:8]
 
-        # Start execution in background
-        import asyncio
-        asyncio.create_task(
-            telescope_service.execute_plan(
-                execution_id=execution_id,
-                targets=request.scheduled_targets,
-                park_when_done=request.park_when_done
-            )
+        # Get telescope connection info
+        telescope_host = request.dict().get('telescope_host') or seestar_client.host or '192.168.2.47'
+        telescope_port = request.dict().get('telescope_port') or seestar_client.port or 4700
+
+        # Convert targets to dict for Celery serialization
+        targets_data = [t.dict() for t in request.scheduled_targets]
+
+        # Start execution via Celery task
+        from app.tasks.telescope_tasks import execute_observation_plan_task
+
+        task = execute_observation_plan_task.delay(
+            execution_id=execution_id,
+            targets_data=targets_data,
+            telescope_host=telescope_host,
+            telescope_port=telescope_port,
+            park_when_done=request.park_when_done
         )
 
         return {
             "execution_id": execution_id,
+            "celery_task_id": task.id,
             "status": "started",
             "total_targets": len(request.scheduled_targets),
             "message": "Execution started. Use /telescope/progress to monitor."
@@ -450,38 +466,55 @@ async def get_execution_progress():
     Returns:
         Execution progress details
     """
-    progress = telescope_service.progress
+    from app.models.telescope_models import TelescopeExecution
+    from app.database import SessionLocal
+    from datetime import timedelta
 
-    if not progress:
+    db = SessionLocal()
+    try:
+        # Get most recent active or recent execution
+        execution = db.query(TelescopeExecution).order_by(
+            TelescopeExecution.started_at.desc()
+        ).first()
+
+        if not execution:
+            return {
+                "state": "idle",
+                "message": "No execution in progress"
+            }
+
+        # Format elapsed time
+        elapsed_time = None
+        if execution.elapsed_seconds:
+            elapsed_time = str(timedelta(seconds=execution.elapsed_seconds))
+
+        # Format estimated remaining time
+        estimated_remaining = None
+        if execution.estimated_remaining_seconds:
+            estimated_remaining = str(timedelta(seconds=execution.estimated_remaining_seconds))
+
+        # Parse error log
+        errors = []
+        if execution.error_log:
+            errors = execution.error_log if isinstance(execution.error_log, list) else []
+
         return {
-            "state": telescope_service.execution_state.value,
-            "message": "No execution in progress"
+            "execution_id": execution.execution_id,
+            "state": execution.state,
+            "total_targets": execution.total_targets,
+            "current_target_index": execution.current_target_index,
+            "targets_completed": execution.targets_completed,
+            "targets_failed": execution.targets_failed,
+            "current_target_name": execution.current_target_name,
+            "current_phase": execution.current_phase,
+            "progress_percent": round(execution.progress_percent, 1),
+            "elapsed_time": elapsed_time,
+            "estimated_remaining": estimated_remaining,
+            "errors": errors
         }
 
-    return {
-        "execution_id": progress.execution_id,
-        "state": progress.state.value,
-        "total_targets": progress.total_targets,
-        "current_target_index": progress.current_target_index,
-        "targets_completed": progress.targets_completed,
-        "targets_failed": progress.targets_failed,
-        "current_target_name": progress.current_target_name,
-        "current_phase": progress.current_phase,
-        "progress_percent": round(progress.progress_percent, 1),
-        "elapsed_time": str(progress.elapsed_time) if progress.elapsed_time else None,
-        "estimated_remaining": str(progress.estimated_remaining) if progress.estimated_remaining else None,
-        "estimated_end_time": progress.estimated_end_time.isoformat() if progress.estimated_end_time else None,
-        "errors": [
-            {
-                "timestamp": err.timestamp.isoformat(),
-                "target": err.target_name,
-                "phase": err.phase,
-                "message": err.error_message,
-                "retries": err.retry_count
-            }
-            for err in progress.errors
-        ]
-    }
+    finally:
+        db.close()
 
 
 @router.post("/telescope/abort")
@@ -495,9 +528,40 @@ async def abort_execution():
         Abort status
     """
     try:
-        await telescope_service.abort_execution()
+        from app.tasks.telescope_tasks import abort_observation_plan_task
+        from app.models.telescope_models import TelescopeExecution
+        from app.database import SessionLocal
+
+        db = SessionLocal()
+        try:
+            # Find running execution
+            execution = db.query(TelescopeExecution).filter(
+                TelescopeExecution.state.in_(['starting', 'running'])
+            ).first()
+
+            if not execution:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No execution in progress to abort"
+                )
+
+            execution_id = execution.execution_id
+
+        finally:
+            db.close()
+
+        # Abort via Celery task
+        result = abort_observation_plan_task.delay(execution_id).get(timeout=5)
+
+        if not result.get('success'):
+            raise HTTPException(
+                status_code=500,
+                detail=result.get('error', 'Unknown error aborting execution')
+            )
+
         return {
             "status": "aborted",
+            "execution_id": execution_id,
             "message": "Execution aborted successfully"
         }
     except Exception as e:
