@@ -1452,6 +1452,25 @@
                         </div>
                     </div>
 
+                    <!-- Execution Status Banner -->
+                    <div id="execution-status-banner" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="font-size: 2em; animation: pulse 2s ease-in-out infinite;">🔭</div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 1.4em; font-weight: bold; color: white; margin-bottom: 5px;">
+                                    <span id="execution-state-text">EXECUTING PLAN</span>
+                                </div>
+                                <div style="font-size: 1em; color: rgba(255,255,255,0.9);" id="execution-status-detail">
+                                    Preparing telescope...
+                                </div>
+                            </div>
+                            <div style="text-align: right; color: white;">
+                                <div style="font-size: 2em; font-weight: bold;" id="execution-progress-number">0%</div>
+                                <div style="font-size: 0.9em; opacity: 0.9;" id="execution-time-display">00:00</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Progress Monitor -->
                     <div class="telescope-panel progress-panel" id="progress-panel-main" style="display: none;">
                         <h3>📊 Execution Progress</h3>
@@ -1472,6 +1491,10 @@
                             <div class="progress-item">
                                 <label>Elapsed Time</label>
                                 <value id="elapsed-time-main">-</value>
+                            </div>
+                            <div class="progress-item">
+                                <label>Estimated Remaining</label>
+                                <value id="estimated-remaining-main">-</value>
                             </div>
                         </div>
 
@@ -3002,7 +3025,11 @@
                 const data = await response.json();
 
                 if (response.ok) {
+                    // Show execution status banner
+                    document.getElementById('execution-status-banner').style.display = 'block';
                     document.getElementById('progress-panel-main').style.display = 'block';
+                    document.getElementById('status-info-panel').style.display = 'none';
+
                     document.getElementById('execute-btn-main').disabled = true;
                     document.getElementById('abort-btn-main').disabled = false;
                     document.getElementById('connect-btn-main').disabled = true;
@@ -3080,12 +3107,52 @@
 
                 if (!data.state) return;
 
+                // Update execution status banner
+                const stateText = document.getElementById('execution-state-text');
+                const statusDetail = document.getElementById('execution-status-detail');
+                const progressNumber = document.getElementById('execution-progress-number');
+                const timeDisplay = document.getElementById('execution-time-display');
+
+                // Map state to display text
+                const stateDisplayText = {
+                    'starting': 'STARTING EXECUTION',
+                    'running': 'EXECUTING PLAN',
+                    'paused': 'EXECUTION PAUSED',
+                    'stopping': 'STOPPING',
+                    'completed': 'PLAN COMPLETED',
+                    'aborted': 'EXECUTION ABORTED',
+                    'error': 'EXECUTION ERROR'
+                };
+
+                stateText.textContent = stateDisplayText[data.state] || 'EXECUTING PLAN';
+
+                // Build detailed status message
+                let detailText = '';
+                if (data.current_target_name && data.current_phase) {
+                    detailText = `${data.current_target_name} - ${data.current_phase}`;
+                } else if (data.current_target_name) {
+                    detailText = data.current_target_name;
+                } else if (data.current_phase) {
+                    detailText = data.current_phase;
+                } else {
+                    detailText = 'Preparing...';
+                }
+
+                if (data.targets_completed !== undefined && data.total_targets) {
+                    detailText += ` (${data.targets_completed}/${data.total_targets} targets)`;
+                }
+
+                statusDetail.textContent = detailText;
+                progressNumber.textContent = `${Math.round(data.progress_percent || 0)}%`;
+                timeDisplay.textContent = data.elapsed_time || '00:00';
+
                 // Update main tab progress
                 document.getElementById('current-target-main').textContent = data.current_target_name || '-';
                 document.getElementById('current-phase-main').textContent = data.current_phase || '-';
                 document.getElementById('targets-completed-main').textContent =
                     `${data.targets_completed || 0} / ${data.total_targets || 0}`;
                 document.getElementById('elapsed-time-main').textContent = data.elapsed_time || '-';
+                document.getElementById('estimated-remaining-main').textContent = data.estimated_remaining || '-';
 
                 const progress = data.progress_percent || 0;
                 const progressBar = document.getElementById('progress-bar-main');
@@ -3110,6 +3177,12 @@
 
                 if (data.state === 'completed' || data.state === 'aborted' || data.state === 'error') {
                     stopProgressMonitoringMain();
+
+                    // Hide execution banner after a brief delay
+                    setTimeout(() => {
+                        document.getElementById('execution-status-banner').style.display = 'none';
+                        document.getElementById('status-info-panel').style.display = 'block';
+                    }, 3000);
 
                     if (data.state === 'completed') {
                         alert(`✅ Execution completed!\n\nCompleted: ${data.targets_completed}\nFailed: ${data.targets_failed}`);
