@@ -208,18 +208,24 @@ async def get_catalog_stats(db: Session = Depends(get_db)):
 
 
 @router.post("/twilight")
-async def calculate_twilight(location: Location, date: str = Query(..., description="ISO date (YYYY-MM-DD)")):
+async def calculate_twilight(
+    location: Location,
+    date: str = Query(..., description="ISO date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db)
+):
     """
     Calculate twilight times for a specific location and date.
 
     Args:
         location: Observer location
         date: ISO date string
+        db: Database session
 
     Returns:
         Dictionary of twilight times
     """
     try:
+        planner = PlannerService(db)
         twilight_times = planner.calculate_twilight(location, date)
         return twilight_times
     except Exception as e:
@@ -227,18 +233,24 @@ async def calculate_twilight(location: Location, date: str = Query(..., descript
 
 
 @router.post("/export")
-async def export_plan(plan: ObservingPlan, format: str = Query(..., description="Export format: json, seestar_plan, seestar_alp, text, csv")):
+async def export_plan(
+    plan: ObservingPlan,
+    format: str = Query(..., description="Export format: json, seestar_plan, seestar_alp, text, csv"),
+    db: Session = Depends(get_db)
+):
     """
     Export an observing plan in various formats.
 
     Args:
         plan: Observing plan to export
         format: Export format type
+        db: Database session
 
     Returns:
         Exported plan data
     """
     try:
+        planner = PlannerService(db)
         exported_data = planner.exporter.export(plan, format)
         return ExportFormat(format_type=format, data=exported_data)
     except ValueError as e:

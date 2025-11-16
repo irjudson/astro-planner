@@ -37,6 +37,11 @@ def setup_test_db_schema():
     connections. This is necessary because PostgreSQL's transactional DDL
     combined with pytest's transaction isolation would otherwise prevent
     tests from seeing the migrated schema.
+
+    Note: When running in parallel with pytest-xdist, all workers share the
+    same test database. We run migrations once and let all workers use the
+    same schema. Cleanup is NOT done in teardown because it would interfere
+    with other workers still running tests.
     """
     from alembic.config import Config
     from alembic import command
@@ -48,19 +53,16 @@ def setup_test_db_schema():
     # This allows DDL to auto-commit in PostgreSQL
     alembic_cfg.attributes['use_transaction'] = False
 
-    # Clean slate: downgrade to base (remove all tables)
-    command.downgrade(alembic_cfg, "base")
-
-    # Create all tables: upgrade to head
+    # Ensure database is at head revision (idempotent - won't re-run if already at head)
     command.upgrade(alembic_cfg, "head")
 
-    # Load catalog data into test database
+    # Load catalog data into test database (skips if already loaded)
     _load_test_catalog_data()
 
     yield
 
-    # Cleanup: downgrade to base (remove all tables)
-    command.downgrade(alembic_cfg, "base")
+    # No cleanup - parallel workers share the database
+    # Manual cleanup: docker-compose down -v or DROP DATABASE test_astro_planner
 
 
 def _load_test_catalog_data():
@@ -85,31 +87,43 @@ def _load_test_catalog_data():
                 prod_session = Session(bind=prod_conn)
                 test_session = Session(bind=test_conn)
 
-                # Copy constellations
-                constellations = prod_session.query(ConstellationName).all()
-                for const in constellations:
-                    test_const = ConstellationName(
-                        abbreviation=const.abbreviation,
-                        full_name=const.full_name
-                    )
-                    test_session.add(test_const)
+                # Check if data already loaded (skip if so)
+                existing_count = test_session.query(ConstellationName).count()
+                if existing_count > 0:
+                    print(f"Test catalog data already loaded ({existing_count} constellations)")
+                    return
 
-                # Copy DSO catalog
+                # Copy constellations using bulk insert
+                constellations = prod_session.query(ConstellationName).all()
+                const_mappings = [
+                    {
+                        'abbreviation': const.abbreviation,
+                        'full_name': const.full_name
+                    }
+                    for const in constellations
+                ]
+                if const_mappings:
+                    test_session.bulk_insert_mappings(ConstellationName, const_mappings)
+
+                # Copy DSO catalog using bulk insert
                 dsos = prod_session.query(DSOCatalog).all()
-                for dso in dsos:
-                    test_dso = DSOCatalog(
-                        catalog_name=dso.catalog_name,
-                        catalog_number=dso.catalog_number,
-                        common_name=dso.common_name,
-                        object_type=dso.object_type,
-                        ra_hours=dso.ra_hours,
-                        dec_degrees=dso.dec_degrees,
-                        constellation=dso.constellation,
-                        magnitude=dso.magnitude,
-                        size_major_arcmin=dso.size_major_arcmin,
-                        size_minor_arcmin=dso.size_minor_arcmin
-                    )
-                    test_session.add(test_dso)
+                dso_mappings = [
+                    {
+                        'catalog_name': dso.catalog_name,
+                        'catalog_number': dso.catalog_number,
+                        'common_name': dso.common_name,
+                        'object_type': dso.object_type,
+                        'ra_hours': dso.ra_hours,
+                        'dec_degrees': dso.dec_degrees,
+                        'constellation': dso.constellation,
+                        'magnitude': dso.magnitude,
+                        'size_major_arcmin': dso.size_major_arcmin,
+                        'size_minor_arcmin': dso.size_minor_arcmin
+                    }
+                    for dso in dsos
+                ]
+                if dso_mappings:
+                    test_session.bulk_insert_mappings(DSOCatalog, dso_mappings)
 
                 test_session.commit()
                 print(f"Loaded {len(constellations)} constellations and {len(dsos)} DSOs into test database")
