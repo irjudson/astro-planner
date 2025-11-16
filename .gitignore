@@ -220,3 +220,15 @@ host_catalog.db
 
 # Development scripts
 dev-*.sh
+
+# Test images and processing outputs
+*.jpg
+*.jpeg
+*.png
+*.fits
+*.fit
+
+# Additional databases
+*.db
+*.sqlite
+*.sqlite3
