@@ -96,6 +96,22 @@
             border-color: #667eea;
         }
 
+        textarea {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.3s;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
         .checkbox-group {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -958,6 +974,244 @@
             background: rgba(0,0,0,0.1);
             border-radius: 4px;
         }
+
+        /* Plan Selection Styles */
+        .plan-selection-container {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .plan-selection-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .plan-selection-subtitle {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .plan-option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .plan-option-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            position: relative;
+        }
+
+        .plan-option-card:hover {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .plan-option-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .plan-option-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .plan-option-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .plan-option-description {
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .plan-status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .plan-info-banner {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .plan-info-banner strong {
+            color: #667eea;
+        }
+
+        /* Load Plan Modal Styles */
+        .saved-plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .saved-plan-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .saved-plan-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .saved-plan-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .saved-plan-date {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .saved-plan-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .saved-plan-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.85em;
+        }
+
+        .saved-plan-location {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .saved-plan-targets {
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .saved-plan-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .saved-plan-delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .saved-plan-delete-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .saved-plan-load-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 2;
+        }
+
+        .saved-plan-load-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .loading-spinner::before {
+            content: "⏳";
+            font-size: 3em;
+            display: block;
+            margin-bottom: 15px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .empty-plans-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-plans-state::before {
+            content: "📋";
+            font-size: 4em;
+            display: block;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.95); }
+        }
     </style>
     <!-- Tron Theme CSS - loaded AFTER inline styles to ensure proper override -->
     <link rel="stylesheet" href="tron-theme.css">
@@ -985,9 +1239,14 @@
             if (targetBtn) targetBtn.classList.add('active');
 
             // Load catalog stats when switching to catalog tab
-            if (tabName === 'catalog' && !catalogStats && typeof loadCatalogStats === 'function') {
+            if (tabName === 'catalog' && typeof loadCatalogStats === 'function') {
                 loadCatalogStats();
                 loadCatalogObjects();
+            }
+
+            // Update plan selection UI when switching to observe tab
+            if (tabName === 'observe' && typeof updatePlanSelectionUI === 'function') {
+                updatePlanSelectionUI();
             }
 
             // Start live view polling when switching to liveview tab
@@ -1009,17 +1268,16 @@
             <h1>🔭 Astro Planner</h1>
             <p>Astrophotography Session Planner</p>
             <div style="margin-top: 15px;">
-                <button class="nav-btn active" onclick="showTab('planner')" id="planner-tab-btn">📅 Planner</button>
-                <button class="nav-btn" onclick="showTab('catalog')" id="catalog-tab-btn">📚 Catalog Browser</button>
+                <button class="nav-btn active" onclick="showTab('catalog')" id="catalog-tab-btn">📚 Browse Catalog</button>
+                <button class="nav-btn" onclick="showTab('planner')" id="planner-tab-btn">📅 Plan</button>
                 <button class="nav-btn" onclick="showTab('observe')" id="observe-tab-btn">🔭 Observe</button>
                 <button class="nav-btn" onclick="showTab('process')" id="process-tab-btn">🎨 Process</button>
-                <button class="nav-btn" onclick="showTab('liveview')" id="liveview-tab-btn">📹 Live View</button>
             </div>
         </header>
 
         <div class="content">
             <!-- Planner Tab -->
-            <div id="planner-tab" class="tab-content active">
+            <div id="planner-tab" class="tab-content">
             <!-- Location & Device (Collapsible) -->
             <div class="collapsible-section">
                 <div class="collapsible-header" onclick="toggleCollapsible('location-device')">
@@ -1213,6 +1471,7 @@
                 <div class="section">
                     <h2>Export Plan</h2>
                     <div class="export-buttons">
+                        <button class="export-btn" onclick="showSavePlanModal()">💾 Save This Plan</button>
                         <button class="export-btn" onclick="showQRCode()">📱 Share QR Code</button>
                         <button class="export-btn" onclick="exportPlan('json')">📄 Export JSON</button>
                         <button class="export-btn seestar-export" id="export-seestar-plan" onclick="exportPlan('seestar_plan')">🔭 Seestar Plan Mode</button>
@@ -1304,7 +1563,7 @@
             <!-- End Planner Tab -->
 
             <!-- Catalog Browser Tab -->
-            <div id="catalog-tab" class="tab-content">
+            <div id="catalog-tab" class="tab-content active">
                 <!-- Catalog Stats Header -->
                 <div class="catalog-header">
                     <h2>📚 Deep Sky Object Catalog</h2>
@@ -1411,121 +1670,192 @@
             <!-- Observe Tab -->
             <div id="observe-tab" class="tab-content">
                 <div class="section">
-                    <h2>🔭 Seestar S50 Telescope Control</h2>
+                    <h2>🔭 Observe</h2>
                     <p style="margin-bottom: 20px; color: #666;">
-                        Directly control your Seestar S50 smart telescope. Generate a plan first in the Planner tab,
-                        then come here to connect and execute it automatically.
+                        Real-time observation plan execution monitoring and telescope control
                     </p>
                 </div>
 
-                <!-- Main Telescope Control -->
-                <div class="telescope-section" style="display: block;">
-                    <h2>Connection & Control</h2>
+                <!-- Plan Selection Section -->
+                <div class="plan-selection-container">
+                    <div class="plan-selection-title">Choose Your Observation Plan</div>
+                    <div class="plan-selection-subtitle">Select how you want to start your observing session</div>
 
-                    <div class="telescope-grid">
+                    <div class="plan-option-grid">
+                        <!-- Option 1: Start Live Session -->
+                        <div class="plan-option-card" id="plan-option-live" onclick="startLiveSession()">
+                            <span class="plan-option-icon">▶️</span>
+                            <div class="plan-option-title">Start Live Session</div>
+                            <div class="plan-option-description">
+                                Execute the current plan from the Planner tab immediately
+                            </div>
+                        </div>
+
+                        <!-- Option 2: Load Saved Plan -->
+                        <div class="plan-option-card" id="plan-option-load" onclick="showLoadPlanModal()">
+                            <span class="plan-option-icon">📂</span>
+                            <div class="plan-option-title">Load Saved Plan</div>
+                            <div class="plan-option-description">
+                                Browse and select from your previously saved observation plans
+                            </div>
+                        </div>
+
+                        <!-- Option 3: Create New Plan -->
+                        <div class="plan-option-card" id="plan-option-create" onclick="goToPlanner()">
+                            <span class="plan-option-icon">✨</span>
+                            <div class="plan-option-title">Create New Plan</div>
+                            <div class="plan-option-description">
+                                Navigate to the Planner to design a new observing session
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Plan Info Banner -->
+                    <div class="plan-info-banner" id="current-plan-info" style="display: none;">
+                        <strong>Current Plan:</strong> <span id="current-plan-name">-</span>
+                        <span style="margin-left: 20px; color: #666;">
+                            <strong>Targets:</strong> <span id="current-plan-target-count">0</span>
+                        </span>
+                        <span style="margin-left: 20px; color: #666;">
+                            <strong>Location:</strong> <span id="current-plan-location">-</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Main layout: sidebar + content -->
+                <div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+                    <!-- Sidebar: Connection & Control -->
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
                         <!-- Connection Panel -->
                         <div class="telescope-panel">
-                            <h3>🔌 Connection</h3>
-                            <div class="connection-row">
-                                <input type="text" id="telescope-host-main" placeholder="IP Address" value="192.168.2.47">
-                                <button class="telescope-btn" id="connect-btn-main" onclick="connectTelescopeMain()">Connect</button>
-                            </div>
-                            <div style="margin-top: 10px;">
+                            <h3 style="font-size: 1em; margin-bottom: 12px;">🔌 Connection</h3>
+                            <input type="text" id="telescope-host-main" placeholder="IP Address" value="192.168.2.47" style="width: 100%; font-size: 0.9em; padding: 8px; margin-bottom: 8px; box-sizing: border-box;">
+                            <button class="telescope-btn" id="connect-btn-main" onclick="connectTelescopeMain()" style="width: 100%; padding: 10px; font-size: 0.95em;">Connect</button>
+                            <div style="margin-top: 10px; font-size: 0.9em;">
                                 <span class="status-indicator status-disconnected" id="status-indicator-main"></span>
                                 <span id="connection-status-main">Disconnected</span>
                             </div>
-                            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;" id="firmware-version-main"></div>
+                            <div style="margin-top: 8px; font-size: 0.85em; opacity: 0.8;" id="firmware-version-main"></div>
                         </div>
 
                         <!-- Execution Control Panel -->
                         <div class="telescope-panel">
-                            <h3>⚡ Execution Control</h3>
-                            <button class="telescope-btn primary" id="execute-btn-main" onclick="executePlanMain()" disabled>
+                            <h3 style="font-size: 1em; margin-bottom: 12px;">⚡ Control</h3>
+                            <button class="telescope-btn primary" id="execute-btn-main" onclick="executePlanMain()" disabled style="padding: 10px; font-size: 0.95em; margin-top: 8px;">
                                 ▶️ Execute Plan
                             </button>
-                            <button class="telescope-btn danger" id="abort-btn-main" onclick="abortExecutionMain()" disabled>
-                                ⏹️ Abort Execution
+                            <button class="telescope-btn danger" id="abort-btn-main" onclick="abortExecutionMain()" disabled style="padding: 10px; font-size: 0.95em; margin-top: 8px;">
+                                ⏹️ Abort
                             </button>
-                            <button class="telescope-btn" id="park-btn-main" onclick="parkTelescopeMain()" disabled>
-                                🏠 Park Telescope
+                            <button class="telescope-btn" id="park-btn-main" onclick="parkTelescopeMain()" disabled style="padding: 10px; font-size: 0.95em; margin-top: 8px;">
+                                🏠 Park
                             </button>
                         </div>
-                    </div>
 
-                    <!-- Execution Status Banner -->
-                    <div id="execution-status-banner" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <div style="font-size: 2em; animation: pulse 2s ease-in-out infinite;">🔭</div>
-                            <div style="flex: 1;">
-                                <div style="font-size: 1.4em; font-weight: bold; color: white; margin-bottom: 5px;">
-                                    <span id="execution-state-text">EXECUTING PLAN</span>
-                                </div>
-                                <div style="font-size: 1em; color: rgba(255,255,255,0.9);" id="execution-status-detail">
-                                    Preparing telescope...
-                                </div>
-                            </div>
-                            <div style="text-align: right; color: white;">
-                                <div style="font-size: 2em; font-weight: bold;" id="execution-progress-number">0%</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;" id="execution-time-display">00:00</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Progress Monitor -->
-                    <div class="telescope-panel progress-panel" id="progress-panel-main" style="display: none;">
-                        <h3>📊 Execution Progress</h3>
-
-                        <div class="progress-info">
-                            <div class="progress-item">
-                                <label>Current Target</label>
-                                <value id="current-target-main">-</value>
-                            </div>
-                            <div class="progress-item">
-                                <label>Phase</label>
-                                <value id="current-phase-main">-</value>
-                            </div>
-                            <div class="progress-item">
-                                <label>Completed</label>
-                                <value id="targets-completed-main">0 / 0</value>
-                            </div>
-                            <div class="progress-item">
-                                <label>Elapsed Time</label>
-                                <value id="elapsed-time-main">-</value>
-                            </div>
-                            <div class="progress-item">
-                                <label>Estimated Remaining</label>
-                                <value id="estimated-remaining-main">-</value>
-                            </div>
-                        </div>
-
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" id="progress-bar-main" style="width: 0%">0%</div>
-                        </div>
-
-                        <div id="error-panel-main" style="display: none;">
-                            <h4 style="margin-top: 15px; margin-bottom: 10px;">⚠️ Errors</h4>
-                            <div class="error-list" id="error-list-main"></div>
-                        </div>
-                    </div>
-
-                    <!-- Status Info -->
-                    <div class="telescope-panel" style="margin-top: 20px;" id="status-info-panel">
-                        <h3>ℹ️ Status</h3>
-                        <div style="background: rgba(0,0,0,0.1); padding: 15px; border-radius: 6px;">
-                            <p style="margin-bottom: 10px;">
-                                <strong>Ready to observe!</strong>
-                            </p>
-                            <ol style="margin-left: 20px; line-height: 1.8;">
-                                <li>Generate an observation plan in the <strong>Planner</strong> tab</li>
-                                <li>Return here to the <strong>Observe</strong> tab</li>
-                                <li>Enter your Seestar's IP address and click <strong>Connect</strong></li>
-                                <li>Click <strong>Execute Plan</strong> to start automated imaging</li>
-                                <li>Monitor progress in real-time as targets are imaged</li>
+                        <!-- Quick Info -->
+                        <div class="telescope-panel" style="font-size: 0.85em;">
+                            <h3 style="font-size: 1em; margin-bottom: 10px;">ℹ️ Quick Start</h3>
+                            <ol style="margin-left: 18px; line-height: 1.6; opacity: 0.9;">
+                                <li>Choose a plan option above</li>
+                                <li>Connect to telescope</li>
+                                <li>Click <strong>Execute Plan</strong></li>
+                                <li>Monitor progress below</li>
                             </ol>
-                            <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
-                                💡 <strong>Tip:</strong> Your Seestar S50 must be on the same network and awake.
-                                Default IP (192.168.2.47) is already filled in.
-                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Main Content: Status & Progress -->
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <!-- Large Execution Status Banner -->
+                        <div id="execution-status-banner" style="display: none; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);">
+                            <div style="display: flex; align-items: center; gap: 20px;">
+                                <div style="font-size: 3em; animation: pulse 2s ease-in-out infinite;">🔭</div>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1.8em; font-weight: bold; color: white; margin-bottom: 8px;">
+                                        <span id="execution-state-text">EXECUTING PLAN</span>
+                                    </div>
+                                    <div style="font-size: 1.1em; color: rgba(255,255,255,0.95); margin-bottom: 4px;" id="execution-status-detail">
+                                        Preparing telescope...
+                                    </div>
+                                    <div style="font-size: 0.95em; color: rgba(255,255,255,0.8);" id="execution-targets-summary">
+                                        Target <span id="execution-target-number">1</span> of <span id="execution-total-targets">5</span>
+                                    </div>
+                                </div>
+                                <div style="text-align: right; color: white;">
+                                    <div style="font-size: 3em; font-weight: bold; line-height: 1;" id="execution-progress-number">0%</div>
+                                    <div style="font-size: 1em; opacity: 0.9; margin-top: 8px;" id="execution-time-display">00:00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detailed Progress Panel -->
+                        <div class="telescope-panel progress-panel" id="progress-panel-main" style="display: none;">
+                            <h3 style="margin-bottom: 15px;">📊 Execution Progress</h3>
+
+                            <div class="progress-info">
+                                <div class="progress-item">
+                                    <label>Current Target</label>
+                                    <value id="current-target-main">-</value>
+                                </div>
+                                <div class="progress-item">
+                                    <label>Phase</label>
+                                    <value id="current-phase-main">-</value>
+                                </div>
+                                <div class="progress-item">
+                                    <label>Completed</label>
+                                    <value id="targets-completed-main">0 / 0</value>
+                                </div>
+                                <div class="progress-item">
+                                    <label>Elapsed Time</label>
+                                    <value id="elapsed-time-main">-</value>
+                                </div>
+                                <div class="progress-item">
+                                    <label>Estimated Remaining</label>
+                                    <value id="estimated-remaining-main">-</value>
+                                </div>
+                            </div>
+
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="progress-bar-main" style="width: 0%">0%</div>
+                            </div>
+
+                            <div id="error-panel-main" style="display: none;">
+                                <h4 style="margin-top: 15px; margin-bottom: 10px;">⚠️ Errors</h4>
+                                <div class="error-list" id="error-list-main"></div>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Live View -->
+                        <div class="telescope-panel">
+                            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleLiveViewEmbed()">
+                                <h3 style="margin: 0;">📹 Telescope Live View</h3>
+                                <span id="liveview-toggle-icon" style="font-size: 1.2em; transition: transform 0.3s;">▼</span>
+                            </div>
+                            <div id="liveview-embed-container" style="display: none; margin-top: 15px;">
+                                <p style="text-align: center; color: #888; margin-bottom: 15px;">
+                                    Click below to open the full telescope camera feed in a dedicated tab
+                                </p>
+                                <button onclick="showTab('liveview'); event.stopPropagation();" class="telescope-btn" style="width: 100%; padding: 12px; font-size: 0.95em;">
+                                    📹 Open Live View Tab →
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Idle Status Info (shown when not executing) -->
+                        <div class="telescope-panel" id="status-info-panel">
+                            <h3>ℹ️ Ready to Observe</h3>
+                            <div style="background: rgba(0,0,0,0.1); padding: 20px; border-radius: 6px;">
+                                <p style="margin-bottom: 15px; font-size: 1.05em;">
+                                    <strong>No execution in progress</strong>
+                                </p>
+                                <p style="line-height: 1.6; opacity: 0.9;">
+                                    Connect your telescope using the panel on the left, then click <strong>Execute Plan</strong> to begin automated imaging.
+                                    The real-time status will appear here during execution.
+                                </p>
+                                <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8; padding: 10px; background: rgba(102, 126, 234, 0.1); border-left: 3px solid #667eea; border-radius: 4px;">
+                                    💡 <strong>Tip:</strong> Generate an observation plan in the Planner tab first. The Live View tab shows your telescope's camera feed in real-time.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1583,8 +1913,15 @@
 
             <!-- Live View Tab -->
             <div id="liveview-tab" class="tab-content">
-                <h1>📹 Live Telescope View</h1>
-                <p style="color: #888; margin-bottom: 30px;">View the latest image from your telescope in near real-time</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h1 style="margin: 0;">📹 Live Telescope View</h1>
+                        <p style="color: #888; margin: 5px 0 0 0;">View the latest image from your telescope in near real-time</p>
+                    </div>
+                    <button onclick="showTab('observe')" class="btn btn-secondary" style="padding: 10px 20px; white-space: nowrap;">
+                        ← Back to Observe
+                    </button>
+                </div>
 
                 <!-- Preview Display -->
                 <div style="margin: 30px 0;">
@@ -1717,6 +2054,68 @@
         </div>
     </div>
 
+    <!-- Save Plan Modal -->
+    <div id="save-plan-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💾 Save Observation Plan</h2>
+                <button class="close-btn" onclick="closeSavePlanModal()">&times;</button>
+            </div>
+            <div class="save-plan-form">
+                <div class="form-group">
+                    <label for="plan-name">Plan Name <span style="color: red;">*</span></label>
+                    <input type="text" id="plan-name" placeholder="e.g., M31 Andromeda Session" required>
+                </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="plan-description">Description (Optional)</label>
+                    <textarea id="plan-description" placeholder="Add notes about this observation plan..."></textarea>
+                </div>
+                <div id="save-plan-error" style="color: #dc3545; margin-top: 10px; display: none;"></div>
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn" style="background: #6c757d; padding: 10px 20px; font-size: 1em;" onclick="closeSavePlanModal()">Cancel</button>
+                    <button class="btn" style="padding: 10px 20px; font-size: 1em;" onclick="savePlan()">Save Plan</button>
+                </div>
+            </div>
+            <div id="save-plan-success" style="display: none; text-align: center; padding: 20px;">
+                <div style="font-size: 3em; color: #28a745; margin-bottom: 10px;">✓</div>
+                <h3 style="color: #28a745; margin-bottom: 10px;">Plan Saved Successfully!</h3>
+                <p style="color: #666; margin-bottom: 20px;">Your observation plan has been saved and can be loaded later.</p>
+                <button class="btn" style="padding: 10px 20px; font-size: 1em;" onclick="closeSavePlanModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Plan Modal -->
+    <div id="load-plan-modal" class="modal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h2>📂 Load Saved Plan</h2>
+                <button class="close-btn" onclick="closeLoadPlanModal()">&times;</button>
+            </div>
+            <div id="load-plan-content">
+                <!-- Loading State -->
+                <div id="load-plan-loading" class="loading-spinner">
+                    Loading saved plans...
+                </div>
+
+                <!-- Empty State -->
+                <div id="load-plan-empty" class="empty-plans-state" style="display: none;">
+                    <h3>No Saved Plans Yet</h3>
+                    <p style="margin-top: 10px;">You haven't saved any observation plans yet.</p>
+                    <p style="margin-top: 5px;">Create a plan in the Planner tab and save it to see it here.</p>
+                    <button class="btn" style="margin-top: 20px; padding: 10px 20px;" onclick="closeLoadPlanModal(); goToPlanner();">
+                        Go to Planner
+                    </button>
+                </div>
+
+                <!-- Plans Grid -->
+                <div id="load-plan-grid" class="saved-plans-grid" style="display: none;">
+                    <!-- Plans will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
     <script>
         // Set today's date as default (after DOM loads)
@@ -1724,6 +2123,12 @@
             const dateInput = document.getElementById('observing-date');
             if (dateInput) {
                 dateInput.valueAsDate = new Date();
+            }
+
+            // Load catalog stats on initial page load since catalog tab is active by default
+            if (typeof loadCatalogStats === 'function') {
+                loadCatalogStats();
+                loadCatalogObjects();
             }
         });
 
@@ -1844,6 +2249,11 @@
                 const plan = await response.json();
                 currentPlan = plan;
                 displayPlan(plan);
+
+                // Update plan selection UI in Observe tab
+                if (typeof updatePlanSelectionUI === 'function') {
+                    updatePlanSelectionUI();
+                }
 
                 // Hide loading, show results
                 document.getElementById('loading').classList.remove('active');
@@ -2167,16 +2577,347 @@
             document.getElementById('preview-modal').style.display = 'none';
         }
 
+        // Save Plan Modal Functions
+        function showSavePlanModal() {
+            if (!currentPlan) {
+                alert('No plan available to save. Please generate a plan first.');
+                return;
+            }
+
+            // Reset form
+            document.getElementById('plan-name').value = '';
+            document.getElementById('plan-description').value = '';
+            document.getElementById('save-plan-error').style.display = 'none';
+            document.querySelector('.save-plan-form').style.display = 'block';
+            document.getElementById('save-plan-success').style.display = 'none';
+
+            // Show modal
+            document.getElementById('save-plan-modal').style.display = 'block';
+
+            // Add keyboard event listener
+            document.addEventListener('keydown', handleSavePlanKeydown);
+
+            // Focus on plan name input
+            setTimeout(() => {
+                document.getElementById('plan-name').focus();
+            }, 100);
+        }
+
+        function handleSavePlanKeydown(event) {
+            const modal = document.getElementById('save-plan-modal');
+            if (modal.style.display === 'block') {
+                if (event.key === 'Escape') {
+                    closeSavePlanModal();
+                } else if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+                    event.preventDefault();
+                    savePlan();
+                }
+            }
+        }
+
+        function closeSavePlanModal() {
+            document.getElementById('save-plan-modal').style.display = 'none';
+            // Remove keyboard event listener
+            document.removeEventListener('keydown', handleSavePlanKeydown);
+        }
+
+        async function savePlan() {
+            const planName = document.getElementById('plan-name').value.trim();
+            const planDescription = document.getElementById('plan-description').value.trim();
+            const errorDiv = document.getElementById('save-plan-error');
+
+            // Validate plan name
+            if (!planName) {
+                errorDiv.textContent = 'Plan name is required.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Validate that we have a current plan
+            if (!currentPlan) {
+                errorDiv.textContent = 'No plan available to save. Please generate a plan first.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Hide error
+            errorDiv.style.display = 'none';
+
+            // Prepare the save request
+            const saveRequest = {
+                name: planName,
+                description: planDescription || null,
+                plan: currentPlan
+            };
+
+            try {
+                const response = await fetch('/api/plans', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(saveRequest)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const savedPlan = await response.json();
+                console.log('Plan saved successfully:', savedPlan);
+
+                // Show success message
+                document.querySelector('.save-plan-form').style.display = 'none';
+                document.getElementById('save-plan-success').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error saving plan:', error);
+                errorDiv.textContent = `Error saving plan: ${error.message}`;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // ======================
+        // Plan Selection Functions
+        // ======================
+
+        function updatePlanSelectionUI() {
+            const liveCard = document.getElementById('plan-option-live');
+            const loadCard = document.getElementById('plan-option-load');
+            const createCard = document.getElementById('plan-option-create');
+            const planInfo = document.getElementById('current-plan-info');
+            const executeBtn = document.getElementById('execute-btn-main');
+
+            // Remove all active states
+            liveCard.classList.remove('active');
+            loadCard.classList.remove('active');
+            createCard.classList.remove('active');
+
+            // Remove any existing badges
+            document.querySelectorAll('.plan-status-badge').forEach(badge => badge.remove());
+
+            if (currentPlan && currentPlan.scheduled_targets && currentPlan.scheduled_targets.length > 0) {
+                // Mark the live session card as active
+                liveCard.classList.add('active');
+
+                // Add "Ready" badge to live card
+                const badge = document.createElement('span');
+                badge.className = 'plan-status-badge';
+                badge.textContent = 'Ready';
+                liveCard.appendChild(badge);
+
+                // Show plan info banner
+                planInfo.style.display = 'block';
+                document.getElementById('current-plan-name').textContent = currentPlan.name || 'Current Plan';
+                document.getElementById('current-plan-target-count').textContent = currentPlan.scheduled_targets.length;
+                document.getElementById('current-plan-location').textContent =
+                    currentPlan.session?.location || 'Unknown';
+
+                // Enable execute button (if connected)
+                if (executeBtn && !executeBtn.disabled) {
+                    executeBtn.disabled = false;
+                }
+            } else {
+                // Hide plan info banner
+                planInfo.style.display = 'none';
+
+                // Disable execute button
+                if (executeBtn) {
+                    executeBtn.disabled = true;
+                }
+            }
+        }
+
+        function startLiveSession() {
+            if (!currentPlan || !currentPlan.scheduled_targets || currentPlan.scheduled_targets.length === 0) {
+                alert('No plan available. Please create a plan in the Planner tab first, or load a saved plan.');
+                return;
+            }
+
+            // Plan is already loaded, just highlight it
+            updatePlanSelectionUI();
+
+            // Scroll down to connection/execution area
+            const connectionPanel = document.querySelector('.telescope-panel');
+            if (connectionPanel) {
+                connectionPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            alert('Plan is ready! Connect to your telescope and click "Execute Plan" to begin.');
+        }
+
+        function showLoadPlanModal() {
+            const modal = document.getElementById('load-plan-modal');
+            modal.style.display = 'block';
+
+            // Reset states
+            document.getElementById('load-plan-loading').style.display = 'block';
+            document.getElementById('load-plan-empty').style.display = 'none';
+            document.getElementById('load-plan-grid').style.display = 'none';
+
+            // Load plans
+            loadSavedPlans();
+        }
+
+        function closeLoadPlanModal() {
+            document.getElementById('load-plan-modal').style.display = 'none';
+        }
+
+        async function loadSavedPlans() {
+            try {
+                const response = await fetch('/api/plans');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const plans = await response.json();
+
+                // Hide loading
+                document.getElementById('load-plan-loading').style.display = 'none';
+
+                if (!plans || plans.length === 0) {
+                    // Show empty state
+                    document.getElementById('load-plan-empty').style.display = 'block';
+                    return;
+                }
+
+                // Show plans grid
+                const grid = document.getElementById('load-plan-grid');
+                grid.style.display = 'grid';
+                grid.innerHTML = '';
+
+                // Create plan cards
+                plans.forEach(plan => {
+                    const card = createSavedPlanCard(plan);
+                    grid.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error('Error loading saved plans:', error);
+                document.getElementById('load-plan-loading').style.display = 'none';
+                document.getElementById('load-plan-empty').innerHTML = `
+                    <h3 style="color: #dc3545;">Error Loading Plans</h3>
+                    <p style="margin-top: 10px;">Unable to load saved plans: ${error.message}</p>
+                    <button class="btn" style="margin-top: 20px; padding: 10px 20px;" onclick="closeLoadPlanModal();">
+                        Close
+                    </button>
+                `;
+                document.getElementById('load-plan-empty').style.display = 'block';
+            }
+        }
+
+        function createSavedPlanCard(planData) {
+            const card = document.createElement('div');
+            card.className = 'saved-plan-card';
+
+            const plan = planData.plan;
+            const targetCount = plan.scheduled_targets ? plan.scheduled_targets.length : 0;
+            const location = plan.session?.location || 'Unknown';
+            const date = planData.created_at ? new Date(planData.created_at).toLocaleDateString() : 'Unknown';
+
+            card.innerHTML = `
+                <div class="saved-plan-name">${planData.name || 'Unnamed Plan'}</div>
+                <div class="saved-plan-date">Created: ${date}</div>
+                ${planData.description ? `<div class="saved-plan-description">${planData.description}</div>` : ''}
+                <div class="saved-plan-meta">
+                    <span class="saved-plan-location">📍 ${location}</span>
+                    <span class="saved-plan-targets">${targetCount} targets</span>
+                </div>
+                <div class="saved-plan-actions">
+                    <button class="saved-plan-delete-btn" onclick="event.stopPropagation(); deletePlan(${planData.id})">Delete</button>
+                    <button class="saved-plan-load-btn" onclick="event.stopPropagation(); selectSavedPlan(${planData.id})">Load Plan</button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        async function selectSavedPlan(planId) {
+            try {
+                const response = await fetch(`/api/plans/${planId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const planData = await response.json();
+
+                // Load the plan
+                currentPlan = planData.plan;
+                currentPlan.name = planData.name;
+                currentPlan.description = planData.description;
+
+                // Display the plan (if we're on the planner tab, show it there too)
+                if (typeof displayPlan === 'function') {
+                    displayPlan(currentPlan);
+                }
+
+                // Update UI
+                updatePlanSelectionUI();
+
+                // Close modal
+                closeLoadPlanModal();
+
+                // Show success message
+                alert(`Plan "${planData.name}" loaded successfully! You can now connect to your telescope and execute it.`);
+
+            } catch (error) {
+                console.error('Error loading plan:', error);
+                alert(`Error loading plan: ${error.message}`);
+            }
+        }
+
+        async function deletePlan(planId) {
+            // Confirm deletion
+            if (!confirm('Are you sure you want to delete this plan? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/plans/${planId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Show success message
+                console.log(`Plan ${planId} deleted successfully`);
+
+                // Reload the plans list to refresh the UI
+                loadSavedPlans();
+
+            } catch (error) {
+                console.error('Error deleting plan:', error);
+                alert(`Error deleting plan: ${error.message}`);
+            }
+        }
+
+        function goToPlanner() {
+            showTab('planner');
+        }
+
         // Close modals when clicking outside of them
         window.onclick = function(event) {
             const qrModal = document.getElementById('qr-modal');
             const previewModal = document.getElementById('preview-modal');
+            const savePlanModal = document.getElementById('save-plan-modal');
+            const loadPlanModal = document.getElementById('load-plan-modal');
 
             if (event.target === qrModal) {
                 closeQRModal();
             }
             if (event.target === previewModal) {
                 closePreviewModal();
+            }
+            if (event.target === savePlanModal) {
+                closeSavePlanModal();
+            }
+            if (event.target === loadPlanModal) {
+                closeLoadPlanModal();
             }
         }
 
@@ -3100,6 +3841,22 @@
             document.getElementById('connect-btn-main').disabled = false;
         }
 
+        // Toggle live view embed section
+        function toggleLiveViewEmbed() {
+            const container = document.getElementById('liveview-embed-container');
+            const icon = document.getElementById('liveview-toggle-icon');
+
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.textContent = '▲';
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                container.style.display = 'none';
+                icon.textContent = '▼';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
         async function updateProgressMain() {
             try {
                 const response = await fetch('/api/telescope/progress');
@@ -3145,6 +3902,12 @@
                 statusDetail.textContent = detailText;
                 progressNumber.textContent = `${Math.round(data.progress_percent || 0)}%`;
                 timeDisplay.textContent = data.elapsed_time || '00:00';
+
+                // Update target summary (new fields for redesigned banner)
+                if (data.current_target_index !== undefined && data.total_targets) {
+                    document.getElementById('execution-target-number').textContent = data.current_target_index + 1;
+                    document.getElementById('execution-total-targets').textContent = data.total_targets;
+                }
 
                 // Update main tab progress
                 document.getElementById('current-target-main').textContent = data.current_target_name || '-';
@@ -3468,7 +4231,7 @@
 
                         // Load the image
                         const img = document.getElementById('liveview-image');
-                        img.src = `/api${data.download_url}?t=${Date.now()}`; // Cache buster
+                        img.src = `${data.download_url}?t=${Date.now()}`; // Cache buster
                         img.style.display = 'block';
                         document.getElementById('liveview-placeholder').style.display = 'none';
 
