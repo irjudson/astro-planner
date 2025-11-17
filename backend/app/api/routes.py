@@ -16,19 +16,21 @@ from app.services.telescope_service import TelescopeService, ExecutionState
 from app.database import get_db
 from pydantic import BaseModel
 
-# Import comet, asteroid, planet, and processing routers
+# Import comet, asteroid, planet, processing, and plans routers
 from app.api.comets import router as comet_router
 from app.api.asteroids import router as asteroid_router
 from app.api.planets import router as planet_router
 from app.api.processing import router as processing_router
+from app.api.plans import router as plans_router
 
 router = APIRouter()
 
-# Include comet, asteroid, planet, and processing endpoints
+# Include comet, asteroid, planet, processing, and plans endpoints
 router.include_router(comet_router)
 router.include_router(asteroid_router)
 router.include_router(planet_router)
 router.include_router(processing_router)
+router.include_router(plans_router)
 
 # Telescope control (singleton instances)
 seestar_client = SeestarClient()

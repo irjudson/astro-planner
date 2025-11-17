@@ -1,6 +1,6 @@
 """SQLAlchemy models for telescope execution tracking."""
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -40,6 +40,9 @@ class TelescopeExecution(Base):
     telescope_host = Column(String(100), nullable=True)
     telescope_port = Column(Integer, nullable=True)
 
+    # Link to saved plan (if execution was from a saved plan)
+    saved_plan_id = Column(Integer, ForeignKey('saved_plans.id'), nullable=True)
+
     # Results and errors
     execution_result = Column(JSON, nullable=True)  # Final results summary
     error_log = Column(JSON, nullable=True)  # Array of errors encountered
@@ -57,7 +60,7 @@ class TelescopeExecutionTarget(Base):
     __tablename__ = "telescope_execution_targets"
 
     id = Column(Integer, primary_key=True, index=True)
-    execution_id = Column(Integer, nullable=False, index=True)
+    execution_id = Column(Integer, ForeignKey('telescope_executions.id'), nullable=False, index=True)
     target_index = Column(Integer, nullable=False)
 
     # Target information
@@ -90,5 +93,5 @@ class TelescopeExecutionTarget(Base):
     error_count = Column(Integer, default=0)
     errors = Column(JSON, nullable=True)  # Array of error details
 
-    # Foreign key (no SQLAlchemy ForeignKey to allow standalone usage)
-    execution_id = Column(Integer, nullable=False)
+    # Relationship
+    execution = relationship("TelescopeExecution", back_populates="targets")
