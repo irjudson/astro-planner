@@ -1272,6 +1272,7 @@
                 <button class="nav-btn" onclick="showTab('planner')" id="planner-tab-btn">📅 Plan</button>
                 <button class="nav-btn" onclick="showTab('observe')" id="observe-tab-btn">🔭 Observe</button>
                 <button class="nav-btn" onclick="showTab('process')" id="process-tab-btn">🎨 Process</button>
+                <button class="nav-btn" onclick="showTab('astronomy')" id="astronomy-tab-btn">🌌 Astronomy</button>
             </div>
         </header>
 
@@ -1982,6 +1983,80 @@
                 </div>
             </div>
             <!-- End Live View Tab -->
+
+            <!-- Astronomy Tab -->
+            <div id="astronomy-tab" class="tab-content">
+                <h2>🌌 Astronomy Dashboard</h2>
+                <p style="margin-bottom: 20px; color: #666;">Advanced astronomy tools for planning and weather</p>
+
+                <!-- Location Input Section -->
+                <div class="section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px;">📍 Location Settings</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="astro-latitude">Latitude</label>
+                            <input type="number" id="astro-latitude" value="40.7" step="0.1" min="-90" max="90">
+                        </div>
+                        <div class="form-group">
+                            <label for="astro-longitude">Longitude</label>
+                            <input type="number" id="astro-longitude" value="-74.0" step="0.1" min="-180" max="180">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid Layout for Widgets -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px;">
+
+                    <!-- Astronomy Weather Widget -->
+                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3>☁️ Astronomy Weather</h3>
+                        <p style="color: #666; margin-bottom: 15px;">ClearDarkSky forecast for observing conditions</p>
+                        <button class="btn" onclick="loadAstronomyWeather()" style="margin-bottom: 15px;">Get Weather Forecast</button>
+                        <div id="astro-weather-results" style="margin-top: 15px;"></div>
+                    </div>
+
+                    <!-- ISS Pass Tracker Widget -->
+                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3>🛸 ISS Pass Predictions</h3>
+                        <p style="color: #666; margin-bottom: 15px;">Upcoming International Space Station passes</p>
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label for="iss-days">Days to predict</label>
+                            <input type="number" id="iss-days" value="10" min="1" max="30" style="width: 100%;">
+                        </div>
+                        <button class="btn" onclick="loadISSPasses()">Get ISS Passes</button>
+                        <div id="iss-passes-results" style="margin-top: 15px;"></div>
+                    </div>
+
+                    <!-- Viewing Months Calculator Widget -->
+                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3>📅 Best Viewing Months</h3>
+                        <p style="color: #666; margin-bottom: 15px;">Calculate optimal months for observing an object</p>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="view-ra">Right Ascension (hours, 0-24)</label>
+                            <input type="number" id="view-ra" value="5.919" step="0.001" min="0" max="24" style="width: 100%;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="view-dec">Declination (degrees, -90 to +90)</label>
+                            <input type="number" id="view-dec" value="-5.39" step="0.01" min="-90" max="90" style="width: 100%;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label for="view-object-name">Object Name (optional)</label>
+                            <input type="text" id="view-object-name" placeholder="e.g., M42" style="width: 100%;">
+                        </div>
+                        <button class="btn" onclick="loadViewingMonths()">Calculate Viewing Months</button>
+                        <div id="viewing-months-results" style="margin-top: 15px;"></div>
+                    </div>
+
+                    <!-- Sky Quality / Light Pollution Widget -->
+                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <h3>🌃 Sky Quality</h3>
+                        <p style="color: #666; margin-bottom: 15px;">Light pollution and Bortle scale assessment</p>
+                        <button class="btn" onclick="loadSkyQuality()">Check Sky Quality</button>
+                        <div id="sky-quality-results" style="margin-top: 15px;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Astronomy Tab -->
         </div>
     </div>
 
@@ -4309,6 +4384,197 @@
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // ========================================================================
+        // Astronomy Dashboard Functions
+        // ========================================================================
+
+        async function loadAstronomyWeather() {
+            const lat = document.getElementById('astro-latitude').value;
+            const lon = document.getElementById('astro-longitude').value;
+            const resultsDiv = document.getElementById('astro-weather-results');
+
+            resultsDiv.innerHTML = '<p style="color: #888;">Loading weather forecast...</p>';
+
+            try {
+                const response = await fetch(`/api/weather/astronomy?lat=${lat}&lon=${lon}&hours=48`);
+                if (!response.ok) throw new Error('Failed to load weather');
+
+                const data = await response.json();
+
+                let html = '<div style="max-height: 400px; overflow-y: auto;">';
+                html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+                html += '<tr style="background: #f0f0f0; font-weight: bold;"><th style="padding: 8px; text-align: left;">Time</th><th>Cloud Cover</th><th>Transparency</th><th>Seeing</th><th>Score</th></tr>';
+
+                data.forecast.forEach((entry, index) => {
+                    const time = new Date(entry.time).toLocaleString();
+                    const score = (entry.astronomy_score * 100).toFixed(0);
+                    const scoreColor = score >= 70 ? '#00ff00' : score >= 40 ? '#ffaa00' : '#ff0000';
+                    const bgColor = index % 2 === 0 ? '#fff' : '#f9f9f9';
+
+                    html += `<tr style="background: ${bgColor};">`;
+                    html += `<td style="padding: 8px;">${time}</td>`;
+                    html += `<td style="text-align: center;">${entry.cloud_cover.description}</td>`;
+                    html += `<td style="text-align: center;">${entry.transparency}</td>`;
+                    html += `<td style="text-align: center;">${entry.seeing}</td>`;
+                    html += `<td style="text-align: center; font-weight: bold; color: ${scoreColor};">${score}%</td>`;
+                    html += '</tr>';
+                });
+
+                html += '</table></div>';
+                html += '<p style="margin-top: 15px; color: #666; font-size: 0.85em;">Showing next 48 hours | Higher scores = better observing conditions</p>';
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading astronomy weather:', error);
+                resultsDiv.innerHTML = '<p style="color: #ff0000;">Error loading weather: ' + error.message + '</p>';
+            }
+        }
+
+        async function loadISSPasses() {
+            const lat = document.getElementById('astro-latitude').value;
+            const lon = document.getElementById('astro-longitude').value;
+            const days = document.getElementById('iss-days').value;
+            const resultsDiv = document.getElementById('iss-passes-results');
+
+            resultsDiv.innerHTML = '<p style="color: #888;">Loading ISS passes...</p>';
+
+            try {
+                const response = await fetch(`/api/satellites/iss?lat=${lat}&lon=${lon}&days=${days}`);
+                if (!response.ok) throw new Error('Failed to load ISS passes');
+
+                const data = await response.json();
+
+                if (data.passes.length === 0) {
+                    resultsDiv.innerHTML = '<p style="color: #888;">No visible ISS passes found for the next ' + days + ' days.</p>';
+                    return;
+                }
+
+                let html = '<div style="max-height: 400px; overflow-y: auto;">';
+
+                data.passes.forEach(pass => {
+                    const startTime = new Date(pass.start_time).toLocaleString();
+                    const quality = (pass.quality_score * 100).toFixed(0);
+                    const qualityColor = quality >= 70 ? '#00ff00' : quality >= 40 ? '#ffaa00' : '#ff0000';
+
+                    html += '<div style="border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px; background: #f9f9f9;">';
+                    html += `<div style="display: flex; justify-content: space-between; margin-bottom: 10px;">`;
+                    html += `<strong style="font-size: 1.1em;">${startTime}</strong>`;
+                    html += `<span style="font-weight: bold; color: ${qualityColor};">Quality: ${quality}%</span>`;
+                    html += '</div>';
+                    html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">`;
+                    html += `<div><strong>Max Altitude:</strong> ${pass.max_altitude_deg.toFixed(1)}°</div>`;
+                    html += `<div><strong>Duration:</strong> ${pass.duration_minutes.toFixed(1)} min</div>`;
+                    html += `<div><strong>Visibility:</strong> ${pass.visibility}</div>`;
+                    html += `<div><strong>Magnitude:</strong> ${pass.magnitude ? pass.magnitude.toFixed(1) : 'N/A'}</div>`;
+                    html += '</div></div>';
+                });
+
+                html += '</div>';
+                html += `<p style="margin-top: 15px; color: #666; font-size: 0.85em;">Found ${data.passes.length} visible passes in the next ${days} days</p>`;
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading ISS passes:', error);
+                resultsDiv.innerHTML = '<p style="color: #ff0000;">Error loading ISS passes: ' + error.message + '</p>';
+            }
+        }
+
+        async function loadViewingMonths() {
+            const lat = document.getElementById('astro-latitude').value;
+            const ra = document.getElementById('view-ra').value;
+            const dec = document.getElementById('view-dec').value;
+            const objectName = document.getElementById('view-object-name').value;
+            const resultsDiv = document.getElementById('viewing-months-results');
+
+            resultsDiv.innerHTML = '<p style="color: #888;">Calculating viewing months...</p>';
+
+            try {
+                let url = `/api/viewing-months?ra_hours=${ra}&dec_degrees=${dec}&latitude=${lat}`;
+                if (objectName) url += `&object_name=${encodeURIComponent(objectName)}`;
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to calculate viewing months');
+
+                const data = await response.json();
+
+                let html = '<div style="max-height: 400px; overflow-y: auto;">';
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;">';
+
+                data.months.forEach(month => {
+                    const ratingColor =
+                        month.rating === 'excellent' ? '#00ff00' :
+                        month.rating === 'good' ? '#7fff00' :
+                        month.rating === 'fair' ? '#ffaa00' :
+                        month.rating === 'poor' ? '#ff6600' : '#ff0000';
+
+                    html += '<div style="border: 2px solid ' + ratingColor + '; border-radius: 8px; padding: 10px; background: rgba(255,255,255,0.9);">';
+                    html += `<div style="font-weight: bold; margin-bottom: 5px;">${month.month_name}</div>`;
+                    html += `<div style="color: ${ratingColor}; text-transform: capitalize; font-weight: bold;">${month.rating}</div>`;
+                    html += `<div style="font-size: 0.85em; margin-top: 5px; color: #666;">${month.visibility_hours.toFixed(1)}h visible</div>`;
+                    html += `<div style="font-size: 0.8em; color: #888;">Best: ${month.best_time}</div>`;
+                    html += '</div>';
+                });
+
+                html += '</div></div>';
+
+                if (data.object_name) {
+                    html += `<p style="margin-top: 15px; font-weight: bold;">Object: ${data.object_name}</p>`;
+                }
+                html += `<p style="color: #666; font-size: 0.85em;">RA: ${ra}h, Dec: ${dec}°</p>`;
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Error calculating viewing months:', error);
+                resultsDiv.innerHTML = '<p style="color: #ff0000;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        async function loadSkyQuality() {
+            const lat = document.getElementById('astro-latitude').value;
+            const lon = document.getElementById('astro-longitude').value;
+            const resultsDiv = document.getElementById('sky-quality-results');
+
+            resultsDiv.innerHTML = '<p style="color: #888;">Checking sky quality...</p>';
+
+            try {
+                const response = await fetch(`/api/sky-quality/${lat}/${lon}`);
+                if (!response.ok) throw new Error('Failed to load sky quality');
+
+                const data = await response.json();
+
+                const bortleColor =
+                    data.bortle_class <= 2 ? '#00ff00' :
+                    data.bortle_class <= 4 ? '#7fff00' :
+                    data.bortle_class <= 6 ? '#ffaa00' : '#ff0000';
+
+                let html = '<div style="background: #f9f9f9; padding: 20px; border-radius: 8px;">';
+                html += `<div style="font-size: 2em; font-weight: bold; color: ${bortleColor}; margin-bottom: 10px;">`;
+                html += `Bortle ${data.bortle_class}</div>`;
+                html += `<div style="font-size: 1.2em; margin-bottom: 15px;">${data.bortle_name}</div>`;
+                html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">';
+                html += `<div><strong>SQM:</strong> ${data.sqm_estimate ? data.sqm_estimate.toFixed(2) : 'N/A'}</div>`;
+                html += `<div><strong>Limiting Magnitude:</strong> ${data.limiting_magnitude ? data.limiting_magnitude.toFixed(1) : 'N/A'}</div>`;
+                html += `<div><strong>Light Pollution:</strong> ${data.light_pollution_level}</div>`;
+                html += `<div><strong>Milky Way:</strong> ${data.milky_way_visibility}</div>`;
+                html += '</div>';
+                html += `<div style="padding: 10px; background: white; border-radius: 6px; margin-bottom: 10px;">`;
+                html += `<strong>Visibility:</strong> ${data.visibility_description}</div>`;
+
+                if (data.suitable_for && data.suitable_for.length > 0) {
+                    html += '<div style="padding: 10px; background: white; border-radius: 6px;">';
+                    html += '<strong>Suitable for:</strong> ' + data.suitable_for.join(', ') + '</div>';
+                }
+
+                html += '</div>';
+                html += `<p style="margin-top: 10px; color: #666; font-size: 0.8em;">Source: ${data.light_pollution_source}</p>`;
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading sky quality:', error);
+                resultsDiv.innerHTML = '<p style="color: #ff0000;">Error: ' + error.message + '</p>';
+            }
         }
     </script>
 </body>
