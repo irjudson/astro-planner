@@ -1491,74 +1491,6 @@
                         Click "seestar_alp CSV" above to download. Import the CSV file into <a href="https://github.com/smart-underworld/seestar_alp" target="_blank" style="color: #667eea;">seestar_alp</a> for automated sequencing.
                     </div>
                 </div>
-
-                <!-- Telescope Control Section -->
-                <div class="telescope-section" id="telescope-control" style="display: none;">
-                    <h2>🔭 Seestar S50 Direct Control</h2>
-
-                    <div class="telescope-grid">
-                        <!-- Connection Panel -->
-                        <div class="telescope-panel">
-                            <h3>Connection</h3>
-                            <div class="connection-row">
-                                <input type="text" id="telescope-host" placeholder="IP Address" value="192.168.2.47">
-                                <button class="telescope-btn" id="connect-btn" onclick="connectTelescope()">Connect</button>
-                            </div>
-                            <div style="margin-top: 10px;">
-                                <span class="status-indicator status-disconnected" id="status-indicator"></span>
-                                <span id="connection-status">Disconnected</span>
-                            </div>
-                            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;" id="firmware-version"></div>
-                        </div>
-
-                        <!-- Execution Control Panel -->
-                        <div class="telescope-panel">
-                            <h3>Execution Control</h3>
-                            <button class="telescope-btn primary" id="execute-btn" onclick="executePlan()" disabled>
-                                ▶️ Execute Plan
-                            </button>
-                            <button class="telescope-btn danger" id="abort-btn" onclick="abortExecution()" disabled>
-                                ⏹️ Abort Execution
-                            </button>
-                            <button class="telescope-btn" id="park-btn" onclick="parkTelescope()" disabled>
-                                🏠 Park Telescope
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Progress Monitor -->
-                    <div class="telescope-panel progress-panel" id="progress-panel" style="display: none;">
-                        <h3>Execution Progress</h3>
-
-                        <div class="progress-info">
-                            <div class="progress-item">
-                                <label>Current Target</label>
-                                <value id="current-target">-</value>
-                            </div>
-                            <div class="progress-item">
-                                <label>Phase</label>
-                                <value id="current-phase">-</value>
-                            </div>
-                            <div class="progress-item">
-                                <label>Completed</label>
-                                <value id="targets-completed">0 / 0</value>
-                            </div>
-                            <div class="progress-item">
-                                <label>Elapsed Time</label>
-                                <value id="elapsed-time">-</value>
-                            </div>
-                        </div>
-
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" id="progress-bar" style="width: 0%">0%</div>
-                        </div>
-
-                        <div id="error-panel" style="display: none;">
-                            <h4 style="margin-top: 15px; margin-bottom: 10px;">⚠️ Errors</h4>
-                            <div class="error-list" id="error-list"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
             </div>
             <!-- End Planner Tab -->
@@ -2334,9 +2266,6 @@
                 document.getElementById('loading').classList.remove('active');
                 document.getElementById('results').classList.add('active');
 
-                // Show telescope control section
-                document.getElementById('telescope-control').style.display = 'block';
-
                 // Collapse the preferences section to focus on results
                 const preferencesContent = document.getElementById('preferences-content');
                 const preferencesToggle = document.getElementById('preferences-toggle');
@@ -2354,7 +2283,7 @@
             }
         }
 
-        function displayPlan(plan) {
+        async function displayPlan(plan) {
             // Calculate average weather score from scheduled targets
             let avgWeatherScore = 0;
             if (plan.scheduled_targets.length > 0) {
@@ -2379,6 +2308,60 @@
                 weatherWarning.classList.add('active');
             } else {
                 weatherWarning.classList.remove('active');
+            }
+
+            // Fetch astronomy data (sky quality and detailed weather)
+            let skyQualityHtml = '';
+            let astronomyWeatherHtml = '';
+
+            try {
+                const latitude = parseFloat(document.getElementById('latitude').value);
+                const longitude = parseFloat(document.getElementById('longitude').value);
+
+                // Fetch sky quality / Bortle scale
+                const skyQualityResponse = await fetch(`/api/sky-quality/${latitude}/${longitude}`);
+                if (skyQualityResponse.ok) {
+                    const skyQuality = await skyQualityResponse.json();
+                    const bortleColor = skyQuality.bortle_class <= 3 ? '#4ade80' :
+                                       skyQuality.bortle_class <= 5 ? '#fbbf24' : '#ef4444';
+                    skyQualityHtml = `
+                        <div class="summary-item" style="grid-column: span 2;">
+                            <strong>Sky Quality</strong>
+                            <div style="margin-top: 5px;">
+                                Bortle <span style="color: ${bortleColor}; font-weight: bold;">${skyQuality.bortle_class}</span>
+                                (${skyQuality.bortle_name}) -
+                                SQM ${skyQuality.sqm_estimate.toFixed(1)} mag/arcsec² -
+                                ${skyQuality.milky_way_visibility}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Fetch ClearDarkSky astronomy weather
+                const astroWeatherResponse = await fetch(`/api/weather/astronomy?lat=${latitude}&lon=${longitude}&hours=12`);
+                if (astroWeatherResponse.ok) {
+                    const astroWeather = await astroWeatherResponse.json();
+                    if (astroWeather.forecast && astroWeather.forecast.length > 0) {
+                        // Calculate averages for the session
+                        const avgScore = (astroWeather.forecast.reduce((a,b) => a + b.astronomy_score, 0) / astroWeather.forecast.length * 100).toFixed(0);
+                        const avgTransparency = astroWeather.forecast[0].transparency;
+                        const avgSeeing = astroWeather.forecast[0].seeing;
+
+                        const scoreColor = avgScore >= 70 ? '#4ade80' : avgScore >= 40 ? '#fbbf24' : '#ef4444';
+                        astronomyWeatherHtml = `
+                            <div class="summary-item" style="grid-column: span 2;">
+                                <strong>Astronomy Conditions</strong>
+                                <div style="margin-top: 5px;">
+                                    Quality Score: <span style="color: ${scoreColor}; font-weight: bold;">${avgScore}%</span> -
+                                    Transparency: ${avgTransparency} -
+                                    Seeing: ${avgSeeing}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching astronomy data:', error);
             }
 
             // Display session summary
@@ -2408,6 +2391,8 @@
                         <strong>Night Coverage</strong>
                         ${plan.coverage_percent.toFixed(1)}%
                     </div>
+                    ${skyQualityHtml}
+                    ${astronomyWeatherHtml}
                 </div>
 
                 <div class="weather-forecast">
