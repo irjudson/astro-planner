@@ -14,6 +14,7 @@ class DSOCatalog(Base):
     catalog_name = Column(String(10), nullable=False)  # NGC, IC
     catalog_number = Column(Integer, nullable=False)
     common_name = Column(String(100), nullable=True)  # M31, Andromeda Galaxy, etc.
+    caldwell_number = Column(Integer, nullable=True)  # Caldwell catalog number (1-109)
     ra_hours = Column(Float, nullable=False)  # Right ascension in hours
     dec_degrees = Column(Float, nullable=False)  # Declination in degrees
     object_type = Column(String(50), nullable=False)  # galaxy, nebula, cluster, etc.
