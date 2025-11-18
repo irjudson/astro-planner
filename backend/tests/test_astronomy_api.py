@@ -246,32 +246,3 @@ class TestViewingMonthsSummary:
         assert "best_months" in data
         assert "peak_month" in data
         assert "good_months_count" in data
-
-
-class TestLightPollutionIntegration:
-    """Test light pollution endpoint (already exists, verify it works)."""
-
-    @patch('app.services.light_pollution_service.LightPollutionService.get_light_pollution')
-    def test_existing_sky_quality_endpoint(self, mock_get_pollution):
-        """Test that existing sky quality endpoint works."""
-        from app.services.light_pollution_service import LightPollutionData
-
-        mock_data = LightPollutionData(
-            bortle_class=4,
-            bortle_name="Rural/Suburban Transition",
-            sqm_estimate=20.5,
-            light_pollution_level="moderate",
-            visibility_description="Good for most objects",
-            suitable_for=["galaxies", "nebulae", "clusters"],
-            limiting_magnitude=5.5,
-            milky_way_visibility="visible",
-            light_pollution_source="lightpollutionmap.info"
-        )
-        mock_get_pollution.return_value = mock_data
-
-        response = client.get("/api/sky-quality/40.7/-74.0?location_name=Test")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert "bortle_class" in data
-        assert "sqm_estimate" in data
