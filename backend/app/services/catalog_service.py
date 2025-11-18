@@ -15,13 +15,18 @@ class CatalogService:
 
     def _db_row_to_target(self, dso: DSOCatalog) -> DSOTarget:
         """Convert database model to DSOTarget."""
-        # Generate catalog ID (e.g., "M31", "NGC224", "IC434")
+        # Generate catalog ID (e.g., "M31", "NGC224", "IC434", "C80")
         # For Messier objects (stored with common_name like "M031"), use that as catalog_id
         if dso.common_name and dso.common_name.startswith('M') and dso.common_name[1:].isdigit():
             # Convert M031 -> M31 by removing leading zeros
             messier_num = int(dso.common_name[1:])
             catalog_id = f"M{messier_num}"
             name = catalog_id  # Use M31 as both catalog_id and name
+        elif dso.caldwell_number:
+            # Prefer Caldwell designation if available
+            catalog_id = f"C{dso.caldwell_number}"
+            # Use common name if available, otherwise use Caldwell designation
+            name = dso.common_name if dso.common_name else catalog_id
         else:
             catalog_id = f"{dso.catalog_name}{dso.catalog_number}"
             # Use common name if available, otherwise generate from catalog
@@ -95,13 +100,13 @@ class CatalogService:
         Get a specific target by catalog ID.
 
         Args:
-            catalog_id: Catalog identifier (e.g., "M31", "NGC224", "IC434")
+            catalog_id: Catalog identifier (e.g., "M31", "NGC224", "IC434", "C80")
 
         Returns:
             DSOTarget object or None if not found
         """
         # Parse catalog ID to extract catalog name and number
-        # Handle formats: M31, NGC224, IC434
+        # Handle formats: M31, NGC224, IC434, C80
         catalog_id_upper = catalog_id.upper()
 
         # For Messier objects, search by common_name (stored as M042, M031, etc.)
@@ -110,6 +115,12 @@ class CatalogService:
             messier_padded = f"M{int(catalog_id_upper[1:]):03d}"
             dso = self.db.query(DSOCatalog).filter(
                 DSOCatalog.common_name == messier_padded
+            ).first()
+        elif catalog_id_upper.startswith('C') and len(catalog_id_upper) > 1 and catalog_id_upper[1:].isdigit():
+            # Caldwell objects (C1-C109)
+            caldwell_number = int(catalog_id_upper[1:])
+            dso = self.db.query(DSOCatalog).filter(
+                DSOCatalog.caldwell_number == caldwell_number
             ).first()
         elif catalog_id_upper.startswith('NGC'):
             catalog_number = int(catalog_id_upper[3:])
@@ -169,6 +180,27 @@ class CatalogService:
 
         # Order by magnitude (brightest first)
         query = query.order_by(DSOCatalog.magnitude.asc())
+
+        if limit:
+            query = query.limit(limit).offset(offset)
+
+        dso_objects = query.all()
+        return [self._db_row_to_target(dso) for dso in dso_objects]
+
+    def get_caldwell_targets(self, limit: Optional[int] = None, offset: int = 0) -> List[DSOTarget]:
+        """
+        Get all Caldwell catalog targets.
+
+        Args:
+            limit: Maximum number of targets to return (None = all)
+            offset: Number of targets to skip (for pagination)
+
+        Returns:
+            List of Caldwell DSOTarget objects ordered by Caldwell number
+        """
+        query = self.db.query(DSOCatalog).filter(
+            DSOCatalog.caldwell_number.isnot(None)
+        ).order_by(DSOCatalog.caldwell_number.asc())
 
         if limit:
             query = query.limit(limit).offset(offset)

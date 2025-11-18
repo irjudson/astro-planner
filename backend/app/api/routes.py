@@ -13,6 +13,7 @@ from app.services.planner_service import PlannerService
 from app.services.catalog_service import CatalogService
 from app.clients.seestar_client import SeestarClient, SeestarState
 from app.services.telescope_service import TelescopeService, ExecutionState
+from app.services.light_pollution_service import LightPollutionService
 from app.database import get_db
 from pydantic import BaseModel
 
@@ -134,7 +135,7 @@ async def get_target(catalog_id: str, db: Session = Depends(get_db)):
     Get details for a specific target.
 
     Args:
-        catalog_id: Catalog identifier (e.g., M31, NGC7000)
+        catalog_id: Catalog identifier (e.g., M31, NGC7000, C80)
 
     Returns:
         Target details
@@ -146,6 +147,34 @@ async def get_target(catalog_id: str, db: Session = Depends(get_db)):
     return target
 
 
+@router.get("/caldwell", response_model=List[DSOTarget])
+async def list_caldwell_targets(
+    db: Session = Depends(get_db),
+    limit: Optional[int] = Query(109, description="Maximum number of results (default: all 109 Caldwell objects)", le=109),
+    offset: int = Query(0, description="Offset for pagination (default: 0)", ge=0)
+):
+    """
+    List all Caldwell catalog targets.
+
+    The Caldwell Catalog is a collection of 109 deep sky objects compiled by
+    Sir Patrick Caldwell-Moore for amateur astronomers. These are bright, large
+    objects not included in the Messier catalog.
+
+    Args:
+        limit: Maximum number of results to return (default: all 109)
+        offset: Number of results to skip (for pagination)
+
+    Returns:
+        List of Caldwell targets ordered by Caldwell number (C1-C109)
+    """
+    try:
+        catalog = CatalogService(db)
+        targets = catalog.get_caldwell_targets(limit=limit, offset=offset)
+        return targets
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching Caldwell targets: {str(e)}")
+
+
 @router.get("/catalog/stats")
 async def get_catalog_stats(db: Session = Depends(get_db)):
     """
@@ -154,7 +183,7 @@ async def get_catalog_stats(db: Session = Depends(get_db)):
     Returns summary information about the catalog including:
     - Total number of objects
     - Count by object type
-    - Count by catalog (Messier, NGC, IC)
+    - Count by catalog (Messier, NGC, IC, Caldwell)
     - Magnitude distribution
 
     Returns:
@@ -180,6 +209,18 @@ async def get_catalog_stats(db: Session = Depends(get_db)):
             func.count(DSOCatalog.id)
         ).group_by(DSOCatalog.catalog_name).order_by(func.count(DSOCatalog.id).desc()).all()
         by_catalog = {row[0]: row[1] for row in by_catalog_query}
+
+        # Count Caldwell objects
+        caldwell_count = db.query(func.count(DSOCatalog.id)).filter(
+            DSOCatalog.caldwell_number.isnot(None)
+        ).scalar()
+        by_catalog["Caldwell"] = caldwell_count
+
+        # Count Messier objects (stored with common_name starting with M)
+        messier_count = db.query(func.count(DSOCatalog.id)).filter(
+            DSOCatalog.common_name.like('M%')
+        ).scalar()
+        by_catalog["Messier"] = messier_count
 
         # Magnitude ranges
         mag_query = db.query(
@@ -703,6 +744,69 @@ async def download_telescope_preview(path: str = Query(..., description="Relativ
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to download preview: {str(e)}")
+
+
+@router.get("/sky-quality/{lat}/{lon}")
+async def get_sky_quality(lat: float, lon: float, location_name: str = Query("Unknown Location")):
+    """
+    Get sky quality and light pollution data for a location.
+
+    This endpoint provides comprehensive information about sky quality including:
+    - Bortle scale classification (1-9)
+    - Sky Quality Meter (SQM) estimate
+    - Light pollution level
+    - Observing recommendations
+    - Suitable target types
+    - Naked eye limiting magnitude
+
+    Args:
+        lat: Latitude in decimal degrees
+        lon: Longitude in decimal degrees
+        location_name: Optional location name
+
+    Returns:
+        Complete sky quality information
+    """
+    try:
+        # Create location object
+        location = Location(
+            name=location_name,
+            latitude=lat,
+            longitude=lon,
+            elevation=0.0,  # Not needed for light pollution
+            timezone="UTC"  # Not needed for light pollution
+        )
+
+        # Get sky quality data
+        service = LightPollutionService()
+        sky_quality = service.get_sky_quality(location)
+
+        # Get observing recommendations
+        recommendations = service.get_observing_recommendations(sky_quality)
+
+        # Return combined data
+        return {
+            "location": {
+                "name": location_name,
+                "latitude": lat,
+                "longitude": lon
+            },
+            "bortle_class": sky_quality.bortle_class,
+            "bortle_name": sky_quality.bortle_name,
+            "sqm_estimate": sky_quality.sqm_estimate,
+            "light_pollution_level": sky_quality.light_pollution_level,
+            "visibility_description": sky_quality.visibility_description,
+            "suitable_for": sky_quality.suitable_for,
+            "limiting_magnitude": sky_quality.limiting_magnitude,
+            "milky_way_visibility": sky_quality.milky_way_visibility,
+            "data_source": sky_quality.light_pollution_source,
+            "recommendations": recommendations
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching sky quality: {str(e)}")
 
 
 @router.get("/health")
