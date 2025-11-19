@@ -254,6 +254,7 @@ class ObservingPlan(BaseModel):
     weather_forecast: List[WeatherForecast]
     total_targets: int = Field(description="Total number of targets")
     coverage_percent: float = Field(description="Percentage of night covered")
+    sky_quality: Optional[Dict[str, Any]] = Field(default=None, description="Sky quality information for location")
     generated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
