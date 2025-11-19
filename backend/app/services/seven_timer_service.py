@@ -150,6 +150,12 @@ class SevenTimerService:
             self.logger.warning(f"Could not parse init time: {init_str}")
             init_time = datetime.now(timezone.utc)
 
+        # Ensure start_time and end_time are timezone-aware for comparison
+        if start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=timezone.utc)
+        if end_time.tzinfo is None:
+            end_time = end_time.replace(tzinfo=timezone.utc)
+
         # Process each forecast period (3-hour intervals)
         for period in data["dataseries"]:
             try:
