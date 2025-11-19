@@ -13,6 +13,7 @@ from app.services import (
     SchedulerService, ExportService
 )
 from app.services.comet_service import CometService
+from app.services.light_pollution_service import LightPollutionService
 
 
 class PlannerService:
@@ -26,6 +27,7 @@ class PlannerService:
         self.weather = WeatherService()
         self.scheduler = SchedulerService()
         self.exporter = ExportService()
+        self.light_pollution = LightPollutionService()
 
     def generate_plan(self, request: PlanRequest) -> ObservingPlan:
         """
@@ -94,6 +96,16 @@ class PlannerService:
         imaging_duration = session.imaging_end - session.imaging_start
         session.total_imaging_minutes = int(imaging_duration.total_seconds() / 60)
 
+        # Get sky quality for location (for filtering and display)
+        sky_quality = None
+        sky_quality_dict = None
+        try:
+            sky_quality = self.light_pollution.get_sky_quality(request.location)
+            # Convert to dict for JSON serialization
+            sky_quality_dict = sky_quality.model_dump()
+        except Exception as e:
+            print(f"Warning: Failed to get sky quality: {e}")
+
         # Filter targets by object type
         # Limit to brighter objects (mag < 12) and top 200 candidates for performance
         # Seestar S50 works best with magnitude 8-11 targets anyway
@@ -102,6 +114,17 @@ class PlannerService:
             max_magnitude=12.0,  # Practical limit for Seestar S50
             limit=200  # Enough variety while keeping performance fast
         )
+
+        # Apply sky quality filtering if available
+        if sky_quality and sky_quality.suitable_for:
+            # Filter targets based on sky quality suitability
+            # Keep targets whose object type is in the suitable_for list
+            suitable_types = set(sky_quality.suitable_for)
+            original_count = len(targets)
+            targets = [t for t in targets if t.object_type in suitable_types]
+            filtered_count = original_count - len(targets)
+            if filtered_count > 0:
+                print(f"Sky quality filtering: removed {filtered_count} targets unsuitable for Bortle {sky_quality.bortle_class} conditions")
 
         # Add visible comets if "comet" is in object types
         if request.constraints.object_types and "comet" in request.constraints.object_types:
@@ -172,7 +195,8 @@ class PlannerService:
             scheduled_targets=scheduled_targets,
             weather_forecast=weather_forecast,
             total_targets=len(scheduled_targets),
-            coverage_percent=coverage_percent
+            coverage_percent=coverage_percent,
+            sky_quality=sky_quality_dict
         )
 
         return plan

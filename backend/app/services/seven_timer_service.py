@@ -5,7 +5,7 @@ which provides astronomy-optimized weather predictions.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 import requests
 
@@ -144,10 +144,11 @@ class SevenTimerService:
         init_str = data.get("init", "")
         try:
             # Parse init time: format is YYYYMMDDHH
-            init_time = datetime.strptime(init_str, "%Y%m%d%H")
+            # Make timezone-aware (UTC) to match start_time/end_time
+            init_time = datetime.strptime(init_str, "%Y%m%d%H").replace(tzinfo=timezone.utc)
         except ValueError:
             self.logger.warning(f"Could not parse init time: {init_str}")
-            init_time = datetime.utcnow()
+            init_time = datetime.now(timezone.utc)
 
         # Process each forecast period (3-hour intervals)
         for period in data["dataseries"]:

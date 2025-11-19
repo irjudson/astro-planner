@@ -1272,7 +1272,6 @@
                 <button class="nav-btn" onclick="showTab('planner')" id="planner-tab-btn">📅 Plan</button>
                 <button class="nav-btn" onclick="showTab('observe')" id="observe-tab-btn">🔭 Observe</button>
                 <button class="nav-btn" onclick="showTab('process')" id="process-tab-btn">🎨 Process</button>
-                <button class="nav-btn" onclick="showTab('astronomy')" id="astronomy-tab-btn">🌌 Astronomy</button>
             </div>
         </header>
 
@@ -1695,6 +1694,19 @@
                                 <li>Monitor progress below</li>
                             </ol>
                         </div>
+
+                        <!-- Current Conditions Widget -->
+                        <div class="telescope-panel" style="font-size: 0.85em;">
+                            <h3 style="font-size: 1em; margin-bottom: 10px;">🌌 Current Conditions</h3>
+                            <div id="observe-conditions-content" style="line-height: 1.6;">
+                                <div style="text-align: center; padding: 10px; opacity: 0.6;">
+                                    Click "Refresh" to load conditions
+                                </div>
+                            </div>
+                            <button class="telescope-btn" onclick="refreshObserveConditions()" style="width: 100%; padding: 8px; font-size: 0.9em; margin-top: 10px;">
+                                🔄 Refresh
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Main Content: Status & Progress -->
@@ -1917,78 +1929,6 @@
             <!-- End Live View Tab -->
 
             <!-- Astronomy Tab -->
-            <div id="astronomy-tab" class="tab-content">
-                <h2>🌌 Astronomy Dashboard</h2>
-                <p style="margin-bottom: 20px; color: #666;">Advanced astronomy tools for planning and weather</p>
-
-                <!-- Location Input Section -->
-                <div class="section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="margin-bottom: 15px;">📍 Location Settings</h3>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="astro-latitude">Latitude</label>
-                            <input type="number" id="astro-latitude" value="40.7" step="0.1" min="-90" max="90">
-                        </div>
-                        <div class="form-group">
-                            <label for="astro-longitude">Longitude</label>
-                            <input type="number" id="astro-longitude" value="-74.0" step="0.1" min="-180" max="180">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Grid Layout for Widgets -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px;">
-
-                    <!-- Astronomy Weather Widget -->
-                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <h3>☁️ Astronomy Weather</h3>
-                        <p style="color: #666; margin-bottom: 15px;">ClearDarkSky forecast for observing conditions</p>
-                        <button class="btn" onclick="loadAstronomyWeather()" style="margin-bottom: 15px;">Get Weather Forecast</button>
-                        <div id="astro-weather-results" style="margin-top: 15px;"></div>
-                    </div>
-
-                    <!-- ISS Pass Tracker Widget -->
-                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <h3>🛸 ISS Pass Predictions</h3>
-                        <p style="color: #666; margin-bottom: 15px;">Upcoming International Space Station passes</p>
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label for="iss-days">Days to predict</label>
-                            <input type="number" id="iss-days" value="10" min="1" max="30" style="width: 100%;">
-                        </div>
-                        <button class="btn" onclick="loadISSPasses()">Get ISS Passes</button>
-                        <div id="iss-passes-results" style="margin-top: 15px;"></div>
-                    </div>
-
-                    <!-- Viewing Months Calculator Widget -->
-                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <h3>📅 Best Viewing Months</h3>
-                        <p style="color: #666; margin-bottom: 15px;">Calculate optimal months for observing an object</p>
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label for="view-ra">Right Ascension (hours, 0-24)</label>
-                            <input type="number" id="view-ra" value="5.919" step="0.001" min="0" max="24" style="width: 100%;">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label for="view-dec">Declination (degrees, -90 to +90)</label>
-                            <input type="number" id="view-dec" value="-5.39" step="0.01" min="-90" max="90" style="width: 100%;">
-                        </div>
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label for="view-object-name">Object Name (optional)</label>
-                            <input type="text" id="view-object-name" placeholder="e.g., M42" style="width: 100%;">
-                        </div>
-                        <button class="btn" onclick="loadViewingMonths()">Calculate Viewing Months</button>
-                        <div id="viewing-months-results" style="margin-top: 15px;"></div>
-                    </div>
-
-                    <!-- Sky Quality / Light Pollution Widget -->
-                    <div class="section" style="background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <h3>🌃 Sky Quality</h3>
-                        <p style="color: #666; margin-bottom: 15px;">Light pollution and Bortle scale assessment</p>
-                        <button class="btn" onclick="loadSkyQuality()">Check Sky Quality</button>
-                        <div id="sky-quality-results" style="margin-top: 15px;"></div>
-                    </div>
-                </div>
-            </div>
-            <!-- End Astronomy Tab -->
         </div>
     </div>
 
@@ -2313,17 +2253,26 @@
             // Fetch astronomy data (sky quality and detailed weather)
             let skyQualityHtml = '';
             let astronomyWeatherHtml = '';
+            let satelliteWarningHtml = '';
 
             try {
                 const latitude = parseFloat(document.getElementById('latitude').value);
                 const longitude = parseFloat(document.getElementById('longitude').value);
 
-                // Fetch sky quality / Bortle scale
-                const skyQualityResponse = await fetch(`/api/sky-quality/${latitude}/${longitude}`);
-                if (skyQualityResponse.ok) {
-                    const skyQuality = await skyQualityResponse.json();
+                // Use sky quality from plan if available, otherwise fetch from API
+                let skyQuality = plan.sky_quality;
+                if (!skyQuality) {
+                    const skyQualityResponse = await fetch(`/api/sky-quality/${latitude}/${longitude}`);
+                    if (skyQualityResponse.ok) {
+                        skyQuality = await skyQualityResponse.json();
+                    }
+                }
+
+                if (skyQuality) {
                     const bortleColor = skyQuality.bortle_class <= 3 ? '#4ade80' :
                                        skyQuality.bortle_class <= 5 ? '#fbbf24' : '#ef4444';
+                    const filteredNote = skyQuality.suitable_for && skyQuality.suitable_for.length < 8 ?
+                        '<div style="font-size: 0.85em; opacity: 0.8; margin-top: 3px;">Targets filtered by sky quality</div>' : '';
                     skyQualityHtml = `
                         <div class="summary-item" style="grid-column: span 2;">
                             <strong>Sky Quality</strong>
@@ -2332,6 +2281,7 @@
                                 (${skyQuality.bortle_name}) -
                                 SQM ${skyQuality.sqm_estimate.toFixed(1)} mag/arcsec² -
                                 ${skyQuality.milky_way_visibility}
+                                ${filteredNote}
                             </div>
                         </div>
                     `;
@@ -2358,6 +2308,41 @@
                                 </div>
                             </div>
                         `;
+                    }
+                }
+
+                // Fetch ISS passes and check for conflicts with imaging window
+                const issResponse = await fetch(`/api/satellites/iss?lat=${latitude}&lon=${longitude}&days=1`);
+                if (issResponse.ok) {
+                    const issData = await issResponse.json();
+                    if (issData.passes && issData.passes.length > 0) {
+                        // Parse imaging window times
+                        const imagingStart = new Date(plan.session.imaging_start);
+                        const imagingEnd = new Date(plan.session.imaging_end);
+
+                        // Find passes that overlap with imaging window
+                        const conflictingPasses = issData.passes.filter(pass => {
+                            const passStart = new Date(pass.start_time);
+                            const passEnd = new Date(pass.end_time);
+                            // Check if pass overlaps with imaging window
+                            return passStart < imagingEnd && passEnd > imagingStart;
+                        });
+
+                        if (conflictingPasses.length > 0) {
+                            const passList = conflictingPasses.map(pass => {
+                                const passTime = new Date(pass.start_time);
+                                return `${passTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} (${pass.max_altitude_deg.toFixed(0)}°, ${pass.duration_minutes.toFixed(0)}min)`;
+                            }).join(', ');
+
+                            satelliteWarningHtml = `
+                                <div class="summary-item" style="grid-column: span 2; background: #fef3c7; padding: 10px; border-left: 3px solid #f59e0b;">
+                                    <strong style="color: #92400e;">⚠️ ISS Pass Warning</strong>
+                                    <div style="margin-top: 5px; color: #78350f;">
+                                        ${conflictingPasses.length} ISS pass(es) during imaging window: ${passList}
+                                    </div>
+                                </div>
+                            `;
+                        }
                     }
                 }
             } catch (error) {
@@ -2393,6 +2378,7 @@
                     </div>
                     ${skyQualityHtml}
                     ${astronomyWeatherHtml}
+                    ${satelliteWarningHtml}
                 </div>
 
                 <div class="weather-forecast">
@@ -2464,7 +2450,28 @@
                 `;
             }).join('');
 
-            document.getElementById('target-list').innerHTML = targetsHtml || '<p>No targets scheduled</p>';
+            // Display helpful message if no targets
+            if (!targetsHtml) {
+                const noTargetsMessage = `
+                    <div style="padding: 20px; text-align: center; background: var(--tron-panel); border: 1px solid var(--tron-border); border-radius: 8px;">
+                        <h3 style="color: var(--tron-cyan); margin-bottom: 15px;">No Targets Found</h3>
+                        <p style="margin-bottom: 10px;">No suitable targets are visible for the selected date and constraints.</p>
+                        <p style="opacity: 0.8; font-size: 0.9em;">This could be because:</p>
+                        <ul style="text-align: left; max-width: 500px; margin: 10px auto; opacity: 0.8; font-size: 0.9em;">
+                            <li>The selected object types are not visible tonight at your location</li>
+                            <li>No objects meet the altitude constraints (${document.getElementById('min-altitude').value}° - ${document.getElementById('max-altitude').value}°)</li>
+                            <li>It's currently daytime (try enabling "Daytime Planning" or select a different date)</li>
+                            <li>Your location's latitude makes certain objects circumpolar or never visible</li>
+                        </ul>
+                        <p style="margin-top: 15px; opacity: 0.8; font-size: 0.9em;">
+                            <strong>Try:</strong> Adjusting the altitude constraints, selecting different object types, or choosing a different date.
+                        </p>
+                    </div>
+                `;
+                document.getElementById('target-list').innerHTML = noTargetsMessage;
+            } else {
+                document.getElementById('target-list').innerHTML = targetsHtml;
+            }
         }
 
         function formatTime(isoString) {
@@ -2960,6 +2967,65 @@
             showTab('planner');
         }
 
+        // Refresh current conditions in Observe Tab
+        async function refreshObserveConditions() {
+            const contentDiv = document.getElementById('observe-conditions-content');
+            contentDiv.innerHTML = '<div style="text-align: center; padding: 10px;">Loading...</div>';
+
+            try {
+                const latitude = parseFloat(document.getElementById('latitude').value);
+                const longitude = parseFloat(document.getElementById('longitude').value);
+
+                // Fetch sky quality and astronomy weather in parallel
+                const [skyQualityResponse, astroWeatherResponse] = await Promise.all([
+                    fetch(`/api/sky-quality/${latitude}/${longitude}`),
+                    fetch(`/api/weather/astronomy?lat=${latitude}&lon=${longitude}&hours=3`)
+                ]);
+
+                let html = '';
+
+                // Sky Quality
+                if (skyQualityResponse.ok) {
+                    const skyQuality = await skyQualityResponse.json();
+                    const bortleColor = skyQuality.bortle_class <= 3 ? '#4ade80' :
+                                       skyQuality.bortle_class <= 5 ? '#fbbf24' : '#ef4444';
+                    html += `<div style="margin-bottom: 10px;">
+                        <strong>Sky Quality</strong><br>
+                        <span style="color: ${bortleColor};">Bortle ${skyQuality.bortle_class}</span> -
+                        SQM ${skyQuality.sqm_estimate.toFixed(1)}
+                    </div>`;
+                }
+
+                // Current Weather/Conditions
+                if (astroWeatherResponse.ok) {
+                    const astroWeather = await astroWeatherResponse.json();
+                    if (astroWeather.forecast && astroWeather.forecast.length > 0) {
+                        const current = astroWeather.forecast[0];
+                        const scoreColor = (current.astronomy_score * 100) >= 70 ? '#4ade80' :
+                                         (current.astronomy_score * 100) >= 40 ? '#fbbf24' : '#ef4444';
+
+                        html += `<div>
+                            <strong>Current Conditions</strong><br>
+                            Quality: <span style="color: ${scoreColor};">${(current.astronomy_score * 100).toFixed(0)}%</span><br>
+                            Clouds: ${current.cloud_cover.description}<br>
+                            Transparency: ${current.transparency}<br>
+                            Seeing: ${current.seeing}
+                        </div>`;
+                    }
+                }
+
+                if (html) {
+                    contentDiv.innerHTML = html;
+                } else {
+                    contentDiv.innerHTML = '<div style="text-align: center; padding: 10px; opacity: 0.6;">No data available</div>';
+                }
+
+            } catch (error) {
+                console.error('Error fetching conditions:', error);
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 10px; color: #ef4444;">Error loading conditions</div>';
+            }
+        }
+
         // Close modals when clicking outside of them
         window.onclick = function(event) {
             const qrModal = document.getElementById('qr-modal');
@@ -3275,10 +3341,15 @@
                                 <div><strong>RA/Dec:</strong> ${raStr}, ${decStr}</div>
                                 ${obj.description ? `<div style="margin-top: 8px; font-style: italic;">${obj.description}</div>` : ''}
                             </div>
-                            <div class="catalog-item-actions">
+                            <div class="catalog-item-actions" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
                                 ${raDeg && obj.dec_degrees ? `
                                     <button class="preview-btn" onclick="event.stopPropagation(); showObjectPreview('${obj.name}', '${obj.catalog_id}', ${raDeg}, ${obj.dec_degrees}, ${obj.size_arcmin || 60})">
                                         🔭 Preview
+                                    </button>
+                                ` : ''}
+                                ${obj.ra_hours !== null && obj.dec_degrees !== null ? `
+                                    <button class="select-btn" onclick="event.stopPropagation(); showViewingMonths('${obj.name}', ${obj.ra_hours}, ${obj.dec_degrees})">
+                                        📅 Best Months
                                     </button>
                                 ` : ''}
                                 <button class="select-btn" onclick="event.stopPropagation(); selectCatalogObject('${obj.catalog_id}')">
@@ -3294,6 +3365,53 @@
         // Select catalog object (placeholder for future functionality)
         function selectCatalogObject(catalogId) {
             alert(`Selected: ${catalogId}\n\nFuture enhancement: This will show detailed object information and allow adding to a custom observing plan.`);
+        }
+
+        // Show viewing months for an object
+        async function showViewingMonths(objectName, raHours, decDegrees) {
+            try {
+                const latitude = parseFloat(document.getElementById('latitude').value);
+
+                const response = await fetch(`/api/viewing-months?ra_hours=${raHours}&dec_degrees=${decDegrees}&latitude=${latitude}&object_name=${encodeURIComponent(objectName)}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Get best 3 months
+                const bestMonths = data.months
+                    .filter(m => m.is_good_month)
+                    .sort((a, b) => b.rating_value - a.rating_value)
+                    .slice(0, 3);
+
+                let monthsHtml = '<div style="margin-top: 10px;">';
+
+                if (bestMonths.length > 0) {
+                    monthsHtml += '<strong>Best Viewing Months:</strong><br>';
+                    bestMonths.forEach(month => {
+                        const ratingColor = month.rating_value >= 5 ? '#4ade80' :
+                                          month.rating_value >= 4 ? '#10b981' : '#fbbf24';
+                        monthsHtml += `<div style="margin: 5px 0;">
+                            <span style="color: ${ratingColor}; font-weight: bold;">${month.month_name}</span> -
+                            ${month.rating} (${month.visibility_hours.toFixed(1)}h visible, best at ${month.best_time})
+                        </div>`;
+                    });
+                } else {
+                    monthsHtml += '<p>Object has limited visibility from your latitude.</p>';
+                }
+
+                monthsHtml += '</div>';
+
+                alert(`📅 Best Viewing Months for ${objectName}\n\n` +
+                      bestMonths.map(m => `${m.month_name}: ${m.rating} (${m.visibility_hours.toFixed(1)}h, best at ${m.best_time})`).join('\n') +
+                      `\n\nFrom latitude: ${latitude}°`);
+
+            } catch (error) {
+                console.error('Error fetching viewing months:', error);
+                alert(`Error loading viewing months: ${error.message}`);
+            }
         }
 
         // Apply catalog filters

@@ -6,7 +6,9 @@ from app.services.light_pollution_service import (
     LightPollutionService,
     BortleScale,
     LightPollutionData,
+    SkyQuality,
 )
+from app.models import Location
 
 
 class TestBortleScale:
@@ -194,3 +196,248 @@ class TestLightPollutionService:
 
         sqm = service._calculate_sqm_from_bortle(9)
         assert 13.0 <= sqm <= 16.9
+
+
+class TestSkyQualityMethods:
+    """Test get_sky_quality() and related methods."""
+
+    @pytest.fixture
+    def service(self):
+        """Create service instance."""
+        return LightPollutionService()
+
+    @pytest.fixture
+    def test_location(self):
+        """Create test location."""
+        return Location(
+            name="Test Location",
+            latitude=45.0,
+            longitude=-110.0,
+            elevation=1500.0,
+            timezone="America/Denver"
+        )
+
+    def test_get_sky_quality_dark_sky(self, service, test_location):
+        """Test getting sky quality for dark sky location."""
+        sky_quality = service.get_sky_quality(test_location)
+
+        assert isinstance(sky_quality, SkyQuality)
+        assert 1 <= sky_quality.bortle_class <= 9
+        assert sky_quality.bortle_name is not None
+        assert sky_quality.sqm_estimate > 0
+        assert sky_quality.light_pollution_level in ["minimal", "moderate", "significant", "severe"]
+        assert sky_quality.visibility_description is not None
+        assert isinstance(sky_quality.suitable_for, list)
+        assert len(sky_quality.suitable_for) > 0
+        assert sky_quality.limiting_magnitude > 0
+        assert sky_quality.milky_way_visibility in ["spectacular", "visible", "barely visible", "not visible"]
+        assert sky_quality.light_pollution_source in ["estimated", "lightpollutionmap.info"]
+
+    def test_get_sky_quality_urban(self, service):
+        """Test getting sky quality for urban location."""
+        # New York City
+        location = Location(
+            name="NYC",
+            latitude=40.7128,
+            longitude=-74.0060,
+            elevation=10.0,
+            timezone="America/New_York"
+        )
+
+        sky_quality = service.get_sky_quality(location)
+
+        # Urban location should have high Bortle class
+        assert sky_quality.bortle_class >= 7
+        assert sky_quality.light_pollution_level in ["significant", "severe"]
+        assert sky_quality.limiting_magnitude < 5.0
+        assert "moon" in sky_quality.suitable_for or "planets" in sky_quality.suitable_for
+
+    def test_calculate_limiting_magnitude(self, service):
+        """Test limiting magnitude calculation for each Bortle class."""
+        # Bortle 1 should have highest limiting magnitude
+        mag_1 = service._calculate_limiting_magnitude(1)
+        assert mag_1 == 7.6
+
+        # Bortle 5 should be middle
+        mag_5 = service._calculate_limiting_magnitude(5)
+        assert mag_5 == 5.6
+
+        # Bortle 9 should have lowest limiting magnitude
+        mag_9 = service._calculate_limiting_magnitude(9)
+        assert mag_9 == 3.5
+
+        # Check descending order
+        assert mag_1 > mag_5 > mag_9
+
+    def test_assess_milky_way_visibility(self, service):
+        """Test Milky Way visibility assessment."""
+        assert service._assess_milky_way_visibility(1) == "spectacular"
+        assert service._assess_milky_way_visibility(2) == "spectacular"
+        assert service._assess_milky_way_visibility(3) == "visible"
+        assert service._assess_milky_way_visibility(4) == "visible"
+        assert service._assess_milky_way_visibility(5) == "barely visible"
+        assert service._assess_milky_way_visibility(6) == "barely visible"
+        assert service._assess_milky_way_visibility(7) == "not visible"
+        assert service._assess_milky_way_visibility(8) == "not visible"
+        assert service._assess_milky_way_visibility(9) == "not visible"
+
+    def test_categorize_light_pollution(self, service):
+        """Test light pollution categorization."""
+        assert service._categorize_light_pollution(1) == "minimal"
+        assert service._categorize_light_pollution(2) == "minimal"
+        assert service._categorize_light_pollution(3) == "moderate"
+        assert service._categorize_light_pollution(4) == "moderate"
+        assert service._categorize_light_pollution(5) == "significant"
+        assert service._categorize_light_pollution(6) == "significant"
+        assert service._categorize_light_pollution(7) == "severe"
+        assert service._categorize_light_pollution(8) == "severe"
+        assert service._categorize_light_pollution(9) == "severe"
+
+    def test_get_visibility_description(self, service):
+        """Test visibility description generation."""
+        desc_1 = service._get_visibility_description(1)
+        assert "Exceptional" in desc_1 or "ideal" in desc_1
+
+        desc_5 = service._get_visibility_description(5)
+        assert "Suburban" in desc_5
+
+        desc_9 = service._get_visibility_description(9)
+        assert "Inner city" in desc_9 or "severely limited" in desc_9
+
+    def test_get_suitable_object_types(self, service):
+        """Test suitable object types for different Bortle classes."""
+        # Bortle 1-3: All object types (singular form to match database)
+        objects_1 = service._get_suitable_object_types(1)
+        assert "galaxy" in objects_1
+        assert "nebula" in objects_1
+        assert "cluster" in objects_1
+        assert "planetary_nebula" in objects_1
+        assert "planet" in objects_1
+        assert "comet" in objects_1
+
+        # Bortle 4-5: Limited to brighter objects
+        objects_5 = service._get_suitable_object_types(5)
+        assert "cluster" in objects_5
+        assert "planet" in objects_5
+        assert "galaxy" in objects_5
+        assert "nebula" in objects_5
+
+        # Bortle 8-9: Only brightest objects
+        objects_9 = service._get_suitable_object_types(9)
+        assert "planet" in objects_9
+        assert "moon" in objects_9
+        assert "galaxy" not in objects_9  # Galaxies not suitable in cities
+
+
+class TestObservingRecommendations:
+    """Test get_observing_recommendations() method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create service instance."""
+        return LightPollutionService()
+
+    @pytest.fixture
+    def dark_sky_quality(self):
+        """Create dark sky quality object."""
+        return SkyQuality(
+            bortle_class=2,
+            bortle_name="Typical truly dark site",
+            sqm_estimate=21.7,
+            light_pollution_level="minimal",
+            visibility_description="Excellent dark sky",
+            suitable_for=["galaxies", "nebulae", "clusters", "planets", "moon"],
+            limiting_magnitude=7.1,
+            milky_way_visibility="spectacular",
+            light_pollution_source="estimated"
+        )
+
+    @pytest.fixture
+    def urban_sky_quality(self):
+        """Create urban sky quality object."""
+        return SkyQuality(
+            bortle_class=8,
+            bortle_name="City sky",
+            sqm_estimate=17.5,
+            light_pollution_level="severe",
+            visibility_description="City sky - only brightest objects",
+            suitable_for=["planets", "moon", "bright stars"],
+            limiting_magnitude=4.1,
+            milky_way_visibility="not visible",
+            light_pollution_source="estimated"
+        )
+
+    def test_get_observing_recommendations_dark_sky(self, service, dark_sky_quality):
+        """Test recommendations for dark sky location."""
+        recommendations = service.get_observing_recommendations(dark_sky_quality)
+
+        assert "overall_rating" in recommendations
+        assert recommendations["overall_rating"] == "excellent"
+
+        assert "best_for" in recommendations
+        assert len(recommendations["best_for"]) > 0
+
+        assert "avoid" in recommendations
+        # Dark sky should have nothing to avoid
+        assert len(recommendations["avoid"]) == 0
+
+        assert "tips" in recommendations
+        assert len(recommendations["tips"]) > 0
+
+    def test_get_observing_recommendations_urban(self, service, urban_sky_quality):
+        """Test recommendations for urban location."""
+        recommendations = service.get_observing_recommendations(urban_sky_quality)
+
+        assert recommendations["overall_rating"] == "poor"
+
+        # Urban sky should have objects to avoid
+        assert len(recommendations["avoid"]) > 0
+        assert "all deep sky objects" in recommendations["avoid"][0] or "galaxies" in recommendations["avoid"]
+
+        # Should have tips for urban observing
+        assert len(recommendations["tips"]) > 0
+
+    def test_get_overall_rating(self, service):
+        """Test overall rating assignment."""
+        assert service._get_overall_rating(1) == "excellent"
+        assert service._get_overall_rating(2) == "excellent"
+        assert service._get_overall_rating(3) == "good"
+        assert service._get_overall_rating(4) == "good"
+        assert service._get_overall_rating(5) == "fair"
+        assert service._get_overall_rating(6) == "fair"
+        assert service._get_overall_rating(7) == "poor"
+        assert service._get_overall_rating(8) == "poor"
+        assert service._get_overall_rating(9) == "poor"
+
+    def test_get_objects_to_avoid(self, service):
+        """Test objects to avoid recommendations."""
+        # Dark sky - nothing to avoid
+        avoid_1 = service._get_objects_to_avoid(1)
+        assert len(avoid_1) == 0
+
+        # Suburban - some objects difficult
+        avoid_5 = service._get_objects_to_avoid(5)
+        assert len(avoid_5) > 0
+        assert "faint galaxies" in avoid_5 or "planetary nebulae" in avoid_5
+
+        # Urban - most objects difficult
+        avoid_9 = service._get_objects_to_avoid(9)
+        assert len(avoid_9) > 0
+        assert "all deep sky objects" in avoid_9[0] or "brightest" in avoid_9[0]
+
+    def test_get_observing_tips(self, service):
+        """Test observing tips generation."""
+        # Dark sky tips
+        tips_1 = service._get_observing_tips(1)
+        assert len(tips_1) > 0
+        assert any("wide-field" in tip or "dark skies" in tip for tip in tips_1)
+
+        # Suburban tips
+        tips_5 = service._get_observing_tips(5)
+        assert len(tips_5) > 0
+        assert any("filter" in tip or "planets" in tip for tip in tips_5)
+
+        # Urban tips
+        tips_9 = service._get_observing_tips(9)
+        assert len(tips_9) > 0
+        assert any("traveling" in tip or "darker skies" in tip or "Double stars" in tip for tip in tips_9)
