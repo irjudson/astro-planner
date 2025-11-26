@@ -1,15 +1,13 @@
 """Asteroid catalog and ephemeris service."""
 
-import sqlite3
-from pathlib import Path
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
 import numpy as np
 
+from sqlalchemy.orm import Session
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_body, solar_system_ephemeris
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun
 from astropy import units as u
-from astropy.coordinates import get_sun
 
 from app.models import (
     AsteroidTarget,
@@ -18,37 +16,15 @@ from app.models import (
     AsteroidOrbitalElements,
     Location,
 )
+from app.models.catalog_models import AsteroidCatalog
 
 
 class AsteroidService:
     """Service for managing asteroid catalog and computing ephemerides."""
 
-    def __init__(self, db_path: str = None):
-        """Initialize asteroid service with SQLite database."""
-        # Auto-detect database path
-        if db_path is None:
-            # Try Docker path first, then local dev path
-            docker_path = Path("/app/data/catalogs.db")
-            local_path = Path("backend/data/catalogs.db")
-            if docker_path.exists():
-                db_path = str(docker_path)
-            else:
-                db_path = str(local_path)
-
-        self.db_path = db_path
-        self._ensure_db_exists()
-
-    def _ensure_db_exists(self) -> None:
-        """Ensure database file exists."""
-        db_file = Path(self.db_path)
-        if not db_file.exists():
-            db_file.parent.mkdir(parents=True, exist_ok=True)
-            # Database will be created automatically when first accessed
-
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection."""
-        conn = sqlite3.connect(self.db_path)
-        return conn
+    def __init__(self, db: Session):
+        """Initialize asteroid service with database session."""
+        self.db = db
 
     def add_asteroid(self, asteroid: AsteroidTarget) -> int:
         """
@@ -60,35 +36,38 @@ class AsteroidService:
         Returns:
             Database ID of inserted asteroid
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-
         oe = asteroid.orbital_elements
-        cursor.execute("""
-            INSERT INTO asteroid_catalog (
-                designation, name, number, discovery_date,
-                epoch_jd, perihelion_distance_au, eccentricity,
-                inclination_deg, arg_perihelion_deg, ascending_node_deg,
-                mean_anomaly_deg, semi_major_axis_au,
-                absolute_magnitude, slope_parameter, current_magnitude,
-                diameter_km, albedo, spectral_type, rotation_period_hours,
-                asteroid_type, data_source, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            asteroid.designation, asteroid.name, asteroid.number, asteroid.discovery_date,
-            oe.epoch_jd, self._compute_perihelion_distance(oe), oe.eccentricity,
-            oe.inclination_deg, oe.arg_perihelion_deg, oe.ascending_node_deg,
-            oe.mean_anomaly_deg, oe.semi_major_axis_au,
-            asteroid.absolute_magnitude, asteroid.slope_parameter, asteroid.current_magnitude,
-            asteroid.diameter_km, asteroid.albedo, asteroid.spectral_type, asteroid.rotation_period_hours,
-            asteroid.asteroid_type, asteroid.data_source, asteroid.notes
-        ))
 
-        asteroid_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
+        db_asteroid = AsteroidCatalog(
+            designation=asteroid.designation,
+            name=asteroid.name,
+            number=asteroid.number,
+            discovery_date=asteroid.discovery_date,
+            epoch_jd=oe.epoch_jd,
+            perihelion_distance_au=self._compute_perihelion_distance(oe),
+            eccentricity=oe.eccentricity,
+            inclination_deg=oe.inclination_deg,
+            arg_perihelion_deg=oe.arg_perihelion_deg,
+            ascending_node_deg=oe.ascending_node_deg,
+            mean_anomaly_deg=oe.mean_anomaly_deg,
+            semi_major_axis_au=oe.semi_major_axis_au,
+            absolute_magnitude=asteroid.absolute_magnitude,
+            slope_parameter=asteroid.slope_parameter,
+            current_magnitude=asteroid.current_magnitude,
+            diameter_km=asteroid.diameter_km,
+            albedo=asteroid.albedo,
+            spectral_type=asteroid.spectral_type,
+            rotation_period_hours=asteroid.rotation_period_hours,
+            asteroid_type=asteroid.asteroid_type,
+            data_source=asteroid.data_source,
+            notes=asteroid.notes
+        )
 
-        return asteroid_id
+        self.db.add(db_asteroid)
+        self.db.commit()
+        self.db.refresh(db_asteroid)
+
+        return db_asteroid.id
 
     def _compute_perihelion_distance(self, oe: AsteroidOrbitalElements) -> float:
         """Compute perihelion distance from semi-major axis and eccentricity."""
@@ -104,27 +83,14 @@ class AsteroidService:
         Returns:
             AsteroidTarget or None if not found
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        db_asteroid = self.db.query(AsteroidCatalog).filter(
+            AsteroidCatalog.designation == designation
+        ).first()
 
-        cursor.execute("""
-            SELECT designation, name, number, discovery_date,
-                   epoch_jd, semi_major_axis_au, eccentricity,
-                   inclination_deg, arg_perihelion_deg, ascending_node_deg,
-                   mean_anomaly_deg, absolute_magnitude, slope_parameter,
-                   current_magnitude, diameter_km, albedo, spectral_type,
-                   rotation_period_hours, asteroid_type, data_source, notes
-            FROM asteroid_catalog
-            WHERE designation = ?
-        """, (designation,))
-
-        row = cursor.fetchone()
-        conn.close()
-
-        if not row:
+        if not db_asteroid:
             return None
 
-        return self._row_to_asteroid(row)
+        return self._db_to_asteroid(db_asteroid)
 
     def get_all_asteroids(self, limit: Optional[int] = None, offset: int = 0) -> List[AsteroidTarget]:
         """
@@ -137,62 +103,44 @@ class AsteroidService:
         Returns:
             List of AsteroidTarget objects
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
+        query = self.db.query(AsteroidCatalog).order_by(
+            AsteroidCatalog.current_magnitude.asc().nullslast()
+        )
 
-        query = """
-            SELECT designation, name, number, discovery_date,
-                   epoch_jd, semi_major_axis_au, eccentricity,
-                   inclination_deg, arg_perihelion_deg, ascending_node_deg,
-                   mean_anomaly_deg, absolute_magnitude, slope_parameter,
-                   current_magnitude, diameter_km, albedo, spectral_type,
-                   rotation_period_hours, asteroid_type, data_source, notes
-            FROM asteroid_catalog ORDER BY current_magnitude ASC
-        """
         if limit:
-            query += f" LIMIT {limit} OFFSET {offset}"
+            query = query.limit(limit).offset(offset)
 
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        conn.close()
+        db_asteroids = query.all()
+        return [self._db_to_asteroid(db_asteroid) for db_asteroid in db_asteroids]
 
-        return [self._row_to_asteroid(row) for row in rows]
-
-    def _row_to_asteroid(self, row: tuple) -> AsteroidTarget:
-        """Convert database row to AsteroidTarget."""
-        (designation, name, number, discovery_date,
-         epoch_jd, semi_major_axis_au, eccentricity,
-         inclination_deg, arg_perihelion_deg, ascending_node_deg,
-         mean_anomaly_deg, absolute_magnitude, slope_parameter,
-         current_magnitude, diameter_km, albedo, spectral_type,
-         rotation_period_hours, asteroid_type, data_source, notes) = row
-
+    def _db_to_asteroid(self, db_asteroid: AsteroidCatalog) -> AsteroidTarget:
+        """Convert database model to AsteroidTarget."""
         orbital_elements = AsteroidOrbitalElements(
-            epoch_jd=epoch_jd,
-            semi_major_axis_au=semi_major_axis_au,
-            eccentricity=eccentricity,
-            inclination_deg=inclination_deg,
-            arg_perihelion_deg=arg_perihelion_deg,
-            ascending_node_deg=ascending_node_deg,
-            mean_anomaly_deg=mean_anomaly_deg
+            epoch_jd=db_asteroid.epoch_jd,
+            semi_major_axis_au=db_asteroid.semi_major_axis_au,
+            eccentricity=db_asteroid.eccentricity,
+            inclination_deg=db_asteroid.inclination_deg,
+            arg_perihelion_deg=db_asteroid.arg_perihelion_deg,
+            ascending_node_deg=db_asteroid.ascending_node_deg,
+            mean_anomaly_deg=db_asteroid.mean_anomaly_deg
         )
 
         return AsteroidTarget(
-            designation=designation,
-            name=name,
-            number=number,
+            designation=db_asteroid.designation,
+            name=db_asteroid.name,
+            number=db_asteroid.number,
             orbital_elements=orbital_elements,
-            absolute_magnitude=absolute_magnitude,
-            slope_parameter=slope_parameter,
-            current_magnitude=current_magnitude,
-            diameter_km=diameter_km,
-            albedo=albedo,
-            spectral_type=spectral_type,
-            rotation_period_hours=rotation_period_hours,
-            asteroid_type=asteroid_type,
-            discovery_date=discovery_date,
-            data_source=data_source,
-            notes=notes
+            absolute_magnitude=db_asteroid.absolute_magnitude,
+            slope_parameter=db_asteroid.slope_parameter,
+            current_magnitude=db_asteroid.current_magnitude,
+            diameter_km=db_asteroid.diameter_km,
+            albedo=db_asteroid.albedo,
+            spectral_type=db_asteroid.spectral_type,
+            rotation_period_hours=db_asteroid.rotation_period_hours,
+            asteroid_type=db_asteroid.asteroid_type,
+            discovery_date=db_asteroid.discovery_date,
+            data_source=db_asteroid.data_source,
+            notes=db_asteroid.notes
         )
 
     def compute_ephemeris(

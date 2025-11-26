@@ -57,6 +57,44 @@ class CometCatalog(Base):
     notes = Column(Text, nullable=True)
 
 
+class AsteroidCatalog(Base):
+    """Asteroid catalog table."""
+    __tablename__ = "asteroid_catalog"
+
+    id = Column(Integer, primary_key=True, index=True)
+    designation = Column(String(50), nullable=False, unique=True)  # Official designation
+    name = Column(String(100), nullable=True)  # Common name (e.g., Ceres, Vesta)
+    number = Column(Integer, nullable=True)  # Numbered asteroids
+    discovery_date = Column(Date, nullable=True)
+
+    # Orbital elements
+    epoch_jd = Column(Float, nullable=False)  # Julian date of epoch
+    perihelion_distance_au = Column(Float, nullable=False)  # Distance at perihelion in AU
+    eccentricity = Column(Float, nullable=False)  # Orbital eccentricity
+    inclination_deg = Column(Float, nullable=False)  # Inclination in degrees
+    arg_perihelion_deg = Column(Float, nullable=False)  # Argument of perihelion in degrees
+    ascending_node_deg = Column(Float, nullable=False)  # Longitude of ascending node in degrees
+    mean_anomaly_deg = Column(Float, nullable=False)  # Mean anomaly at epoch
+    semi_major_axis_au = Column(Float, nullable=False)  # Semi-major axis in AU
+
+    # Magnitude parameters
+    absolute_magnitude = Column(Float, nullable=True)  # H - absolute magnitude
+    slope_parameter = Column(Float, nullable=True, default=0.15)  # G - slope parameter
+    current_magnitude = Column(Float, nullable=True)  # Current visual magnitude
+
+    # Asteroid properties
+    diameter_km = Column(Float, nullable=True)  # Diameter in kilometers
+    albedo = Column(Float, nullable=True)  # Geometric albedo
+    spectral_type = Column(String(10), nullable=True)  # C, S, M, etc.
+    rotation_period_hours = Column(Float, nullable=True)  # Rotation period
+    asteroid_type = Column(String(20), nullable=True)  # NEA, MBA, Trojan, etc.
+    data_source = Column(String(50), nullable=True)  # Source of orbital elements
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class ConstellationName(Base):
     """Constellation name lookup table."""
     __tablename__ = "constellation_names"

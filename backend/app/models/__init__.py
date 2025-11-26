@@ -23,7 +23,7 @@ from .models import (
     ObservingPlan,
     ExportFormat,
 )
-from .catalog_models import DSOCatalog, CometCatalog, ConstellationName
+from .catalog_models import DSOCatalog, CometCatalog, AsteroidCatalog, ConstellationName
 from .processing_models import ProcessingFile, ProcessingPipeline, ProcessingJob
 
 __all__ = [
@@ -51,6 +51,7 @@ __all__ = [
     # Catalog models
     "DSOCatalog",
     "CometCatalog",
+    "AsteroidCatalog",
     "ConstellationName",
     # Processing models (direct file processing - no sessions)
     "ProcessingFile",

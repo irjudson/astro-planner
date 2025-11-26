@@ -1,8 +1,9 @@
 """API routes for asteroid catalog and visibility."""
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body, Depends
 from typing import List, Optional
 from datetime import datetime
+from sqlalchemy.orm import Session
 
 from app.models import (
     AsteroidTarget,
@@ -11,18 +12,17 @@ from app.models import (
     Location,
 )
 from app.services.asteroid_service import AsteroidService
+from app.database import get_db
 
 router = APIRouter(prefix="/asteroids", tags=["asteroids"])
-
-# Initialize service
-asteroid_service = AsteroidService()
 
 
 @router.get("/", response_model=List[AsteroidTarget])
 async def list_asteroids(
     limit: Optional[int] = Query(50, description="Maximum number of results", le=500),
     offset: int = Query(0, description="Offset for pagination", ge=0),
-    max_magnitude: Optional[float] = Query(None, description="Maximum (faintest) magnitude to include")
+    max_magnitude: Optional[float] = Query(None, description="Maximum (faintest) magnitude to include"),
+    db: Session = Depends(get_db)
 ):
     """
     List all asteroids in the catalog.
@@ -39,6 +39,7 @@ async def list_asteroids(
         List of AsteroidTarget objects
     """
     try:
+        asteroid_service = AsteroidService(db)
         asteroids = asteroid_service.get_all_asteroids(limit=limit, offset=offset)
 
         # Filter by magnitude if specified
@@ -51,7 +52,7 @@ async def list_asteroids(
 
 
 @router.get("/{designation}", response_model=AsteroidTarget)
-async def get_asteroid(designation: str):
+async def get_asteroid(designation: str, db: Session = Depends(get_db)):
     """
     Get a specific asteroid by its designation.
 
@@ -65,6 +66,7 @@ async def get_asteroid(designation: str):
         404: Asteroid not found
     """
     try:
+        asteroid_service = AsteroidService(db)
         asteroid = asteroid_service.get_asteroid_by_designation(designation)
         if not asteroid:
             raise HTTPException(status_code=404, detail=f"Asteroid {designation} not found")
@@ -76,7 +78,7 @@ async def get_asteroid(designation: str):
 
 
 @router.post("/", response_model=dict, status_code=201)
-async def add_asteroid(asteroid: AsteroidTarget = Body(...)):
+async def add_asteroid(asteroid: AsteroidTarget = Body(...), db: Session = Depends(get_db)):
     """
     Add a new asteroid to the catalog.
 
@@ -93,6 +95,7 @@ async def add_asteroid(asteroid: AsteroidTarget = Body(...)):
         500: Database error
     """
     try:
+        asteroid_service = AsteroidService(db)
         asteroid_id = asteroid_service.add_asteroid(asteroid)
         return {
             "asteroid_id": asteroid_id,
@@ -106,7 +109,8 @@ async def add_asteroid(asteroid: AsteroidTarget = Body(...)):
 @router.post("/{designation}/ephemeris", response_model=AsteroidEphemeris)
 async def compute_ephemeris(
     designation: str,
-    time_utc: Optional[datetime] = Query(None, description="UTC time for ephemeris (ISO format). Defaults to now.")
+    time_utc: Optional[datetime] = Query(None, description="UTC time for ephemeris (ISO format). Defaults to now."),
+    db: Session = Depends(get_db)
 ):
     """
     Compute ephemeris (position) for an asteroid at a specific time.
@@ -124,6 +128,7 @@ async def compute_ephemeris(
         404: Asteroid not found
     """
     try:
+        asteroid_service = AsteroidService(db)
         asteroid = asteroid_service.get_asteroid_by_designation(designation)
         if not asteroid:
             raise HTTPException(status_code=404, detail=f"Asteroid {designation} not found")
@@ -144,7 +149,8 @@ async def compute_ephemeris(
 async def check_visibility(
     designation: str,
     location: Location = Body(...),
-    time_utc: Optional[datetime] = Query(None, description="UTC time (ISO format). Defaults to now.")
+    time_utc: Optional[datetime] = Query(None, description="UTC time (ISO format). Defaults to now."),
+    db: Session = Depends(get_db)
 ):
     """
     Check visibility of an asteroid from a specific location and time.
@@ -163,6 +169,7 @@ async def check_visibility(
         404: Asteroid not found
     """
     try:
+        asteroid_service = AsteroidService(db)
         asteroid = asteroid_service.get_asteroid_by_designation(designation)
         if not asteroid:
             raise HTTPException(status_code=404, detail=f"Asteroid {designation} not found")
@@ -184,7 +191,8 @@ async def list_visible_asteroids(
     location: Location = Body(...),
     time_utc: Optional[datetime] = Query(None, description="UTC time (ISO format). Defaults to now."),
     min_altitude: float = Query(30.0, description="Minimum altitude in degrees", ge=0, le=90),
-    max_magnitude: float = Query(12.0, description="Maximum (faintest) magnitude", ge=0, le=20)
+    max_magnitude: float = Query(12.0, description="Maximum (faintest) magnitude", ge=0, le=20),
+    db: Session = Depends(get_db)
 ):
     """
     Get all visible asteroids for a location and time.
@@ -207,6 +215,7 @@ async def list_visible_asteroids(
         if time_utc is None:
             time_utc = datetime.utcnow()
 
+        asteroid_service = AsteroidService(db)
         visible_asteroids = asteroid_service.get_visible_asteroids(
             location=location,
             time_utc=time_utc,

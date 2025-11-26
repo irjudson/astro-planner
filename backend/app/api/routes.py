@@ -329,16 +329,20 @@ async def share_plan(plan: ObservingPlan):
         return {
             "plan_id": plan_id,
             "share_url": f"/plan/{plan_id}",
+            "api_url": f"/api/shared-plans/{plan_id}",
             "message": "Plan saved successfully"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error sharing plan: {str(e)}")
 
 
-@router.get("/plans/{plan_id}")
+@router.get("/shared-plans/{plan_id}")
 async def get_shared_plan(plan_id: str):
     """
-    Retrieve a shared plan by ID.
+    Retrieve a shared plan by ID (temporary in-memory storage).
+
+    This is for sharing plans via short-lived links, not for persistent storage.
+    Use /plans endpoints for persistent plan storage.
 
     Args:
         plan_id: Shareable plan ID
