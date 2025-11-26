@@ -239,22 +239,47 @@ class SchedulerService:
         end_time: datetime,
         constraints: ObservingConstraints
     ) -> timedelta:
-        """Calculate how long a target remains visible within constraints."""
-        current = start_time
-        duration = timedelta(0)
-        step = timedelta(minutes=5)
+        """
+        Calculate how long a target remains visible within constraints.
 
-        while current < end_time:
-            if not self.ephemeris.is_target_visible(
-                target, location, current,
+        Uses binary search to efficiently find when the target sets below
+        minimum altitude, reducing complexity from O(n) to O(log n) where
+        n is the number of time steps in the observing window.
+        """
+        # First check if target is visible at start (should be, but verify)
+        if not self.ephemeris.is_target_visible(
+            target, location, start_time,
+            constraints.min_altitude, constraints.max_altitude
+        ):
+            return timedelta(0)
+
+        # Check if target stays visible until session end
+        if self.ephemeris.is_target_visible(
+            target, location, end_time,
+            constraints.min_altitude, constraints.max_altitude
+        ):
+            return end_time - start_time
+
+        # Binary search to find when target becomes invisible
+        # Search with 1-minute precision
+        low = start_time
+        high = end_time
+        precision = timedelta(minutes=1)
+
+        while (high - low) > precision:
+            mid = low + (high - low) / 2
+
+            if self.ephemeris.is_target_visible(
+                target, location, mid,
                 constraints.min_altitude, constraints.max_altitude
             ):
-                break
+                # Still visible at mid, search later half
+                low = mid
+            else:
+                # Not visible at mid, search earlier half
+                high = mid
 
-            duration += step
-            current += step
-
-        return duration
+        return low - start_time
 
     def _score_target(
         self,
