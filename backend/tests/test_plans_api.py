@@ -1819,3 +1819,206 @@ class TestConcurrencyAndPerformance:
 
         # Verify last update wins
         assert response2.json()["name"] == "Second Update"
+
+
+class TestEndToEndPlanWorkflow:
+    """End-to-end tests that mimic the frontend workflow."""
+
+    def test_complete_save_list_load_workflow(self, client: TestClient, override_get_db: Session):
+        """
+        Test the complete workflow that the frontend performs:
+        1. Save a plan via POST /api/plans/
+        2. List plans via GET /api/plans/
+        3. Load the specific plan via GET /api/plans/{id}
+        4. Verify the loaded plan matches what was saved
+        """
+        # Step 1: Save a plan (like frontend savePlan())
+        plan_data = {
+            "name": "Workflow Test Plan",
+            "description": "Testing the complete workflow",
+            "plan": {
+                "total_targets": 2,
+                "coverage_percent": 75.0,
+                "session": {
+                    "observing_date": "2025-12-01",
+                    "sunset": "2025-12-01T17:00:00",
+                    "civil_twilight_end": "2025-12-01T17:30:00",
+                    "nautical_twilight_end": "2025-12-01T18:00:00",
+                    "astronomical_twilight_end": "2025-12-01T18:30:00",
+                    "astronomical_twilight_start": "2025-12-02T05:30:00",
+                    "nautical_twilight_start": "2025-12-02T06:00:00",
+                    "civil_twilight_start": "2025-12-02T06:30:00",
+                    "sunrise": "2025-12-02T07:00:00",
+                    "imaging_start": "2025-12-01T18:45:00",
+                    "imaging_end": "2025-12-02T05:15:00",
+                    "total_imaging_minutes": 630
+                },
+                "location": {
+                    "name": "Test Observatory",
+                    "latitude": 45.5,
+                    "longitude": -122.7,
+                    "elevation": 50
+                },
+                "scheduled_targets": [
+                    {
+                        "target": {
+                            "name": "M31",
+                            "catalog_id": "M31",
+                            "ra_hours": 0.712,
+                            "dec_degrees": 41.269,
+                            "object_type": "galaxy",
+                            "magnitude": 3.4,
+                            "size_arcmin": 178.0
+                        },
+                        "start_time": "2025-12-01T19:00:00",
+                        "end_time": "2025-12-01T22:00:00",
+                        "duration_minutes": 180,
+                        "start_altitude": 50.0,
+                        "end_altitude": 60.0,
+                        "start_azimuth": 90.0,
+                        "end_azimuth": 120.0,
+                        "field_rotation_rate": 0.3,
+                        "recommended_exposure": 60,
+                        "recommended_frames": 180,
+                        "score": {
+                            "total_score": 0.85,
+                            "visibility_score": 0.90,
+                            "weather_score": 0.80,
+                            "object_score": 0.85
+                        }
+                    }
+                ],
+                "weather_forecast": []
+            }
+        }
+
+        save_response = client.post("/api/plans/", json=plan_data)
+        assert save_response.status_code == 200, f"Save failed: {save_response.text}"
+        saved_plan = save_response.json()
+        assert "id" in saved_plan
+        plan_id = saved_plan["id"]
+
+        # Step 2: List plans (like frontend loadSavedPlans())
+        list_response = client.get("/api/plans/")
+        assert list_response.status_code == 200
+        plans_list = list_response.json()
+        assert isinstance(plans_list, list)
+        assert len(plans_list) > 0
+
+        # Find our plan in the list
+        our_plan_in_list = next((p for p in plans_list if p["id"] == plan_id), None)
+        assert our_plan_in_list is not None, "Saved plan not found in list"
+        assert our_plan_in_list["name"] == "Workflow Test Plan"
+        assert our_plan_in_list["location_name"] == "Test Observatory"
+        assert our_plan_in_list["total_targets"] == 2
+
+        # Step 3: Load the specific plan (like frontend selectSavedPlan())
+        load_response = client.get(f"/api/plans/{plan_id}")
+        assert load_response.status_code == 200
+        loaded_plan = load_response.json()
+
+        # Step 4: Verify the loaded plan matches what was saved
+        assert loaded_plan["total_targets"] == 2
+        assert loaded_plan["coverage_percent"] == 75.0
+        assert loaded_plan["session"]["observing_date"] == "2025-12-01"
+        assert loaded_plan["location"]["name"] == "Test Observatory"
+        assert loaded_plan["location"]["latitude"] == 45.5
+        assert len(loaded_plan["scheduled_targets"]) == 1
+        assert loaded_plan["scheduled_targets"][0]["target"]["name"] == "M31"
+
+    def test_workflow_without_trailing_slash(self, client: TestClient, override_get_db: Session):
+        """
+        Test that the API works without trailing slashes (matching frontend calls).
+        Frontend uses: fetch('/api/plans', ...) without trailing slash
+        """
+        plan_data = {
+            "name": "No Slash Test",
+            "plan": {
+                "total_targets": 1,
+                "coverage_percent": 50.0,
+                "session": {
+                    "observing_date": "2025-12-01",
+                    "sunset": "2025-12-01T17:00:00",
+                    "civil_twilight_end": "2025-12-01T17:30:00",
+                    "nautical_twilight_end": "2025-12-01T18:00:00",
+                    "astronomical_twilight_end": "2025-12-01T18:30:00",
+                    "astronomical_twilight_start": "2025-12-02T05:30:00",
+                    "nautical_twilight_start": "2025-12-02T06:00:00",
+                    "civil_twilight_start": "2025-12-02T06:30:00",
+                    "sunrise": "2025-12-02T07:00:00",
+                    "imaging_start": "2025-12-01T18:45:00",
+                    "imaging_end": "2025-12-02T05:15:00",
+                    "total_imaging_minutes": 630
+                },
+                "location": {
+                    "name": "Test",
+                    "latitude": 40.0,
+                    "longitude": -74.0,
+                    "elevation": 10
+                },
+                "scheduled_targets": [],
+                "weather_forecast": []
+            }
+        }
+
+        # Test POST without trailing slash (frontend behavior)
+        save_response = client.post("/api/plans", json=plan_data)
+        assert save_response.status_code == 200, f"POST /api/plans failed: {save_response.text}"
+
+        # Test GET without trailing slash
+        list_response = client.get("/api/plans")
+        assert list_response.status_code == 200, f"GET /api/plans failed: {list_response.text}"
+
+    def test_generate_then_save_workflow(self, client: TestClient, override_get_db: Session):
+        """
+        Test the workflow: generate a plan, then save it.
+        This mimics: user generates plan -> clicks save -> enters name -> saves
+        """
+        # Step 1: Generate a plan via /api/plan
+        plan_request = {
+            "location": {
+                "name": "Portland, OR",
+                "latitude": 45.5,
+                "longitude": -122.7,
+                "elevation": 50,
+                "timezone": "America/Los_Angeles"
+            },
+            "observing_date": "2025-12-01",
+            "constraints": {
+                "min_altitude": 30.0,
+                "max_altitude": 80.0,
+                "setup_time_minutes": 15,
+                "object_types": ["galaxy", "nebula"],
+                "planning_mode": "balanced"
+            }
+        }
+
+        generate_response = client.post("/api/plan", json=plan_request)
+        assert generate_response.status_code == 200
+        generated_plan = generate_response.json()
+
+        # Verify generated plan has required fields
+        assert "session" in generated_plan
+        assert "location" in generated_plan
+        assert "scheduled_targets" in generated_plan
+        assert "total_targets" in generated_plan
+
+        # Step 2: Save the generated plan
+        save_data = {
+            "name": "My Portland Session",
+            "description": "Generated plan for testing",
+            "plan": generated_plan
+        }
+
+        save_response = client.post("/api/plans/", json=save_data)
+        assert save_response.status_code == 200, f"Save failed: {save_response.text}"
+        saved = save_response.json()
+
+        # Step 3: Load it back and verify
+        load_response = client.get(f"/api/plans/{saved['id']}")
+        assert load_response.status_code == 200
+        loaded = load_response.json()
+
+        # The loaded plan should match the generated plan
+        assert loaded["total_targets"] == generated_plan["total_targets"]
+        assert loaded["session"]["observing_date"] == generated_plan["session"]["observing_date"]
