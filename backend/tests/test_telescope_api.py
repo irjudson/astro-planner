@@ -2,7 +2,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime
 
 from app.main import app
@@ -135,16 +135,26 @@ class TestTelescopeEndpoints:
             assert data["connected"] is False
             assert data["state"] == "disconnected"
 
-    def test_execute_plan_success(self, client, mock_seestar_client, mock_telescope_service):
+    def test_execute_plan_success(self, client, mock_seestar_client):
         """Test successful plan execution."""
+        # Mock database session
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.first.return_value = None  # No active execution
+
+        # Mock Celery task
+        mock_task = MagicMock()
+        mock_task.id = "celery-task-123"
+        mock_task.delay.return_value = mock_task
+
         with patch('app.api.routes.seestar_client', mock_seestar_client), \
-             patch('app.api.routes.telescope_service', mock_telescope_service):
+             patch('app.database.SessionLocal', return_value=mock_db), \
+             patch('app.tasks.telescope_tasks.execute_observation_plan_task', mock_task):
             # Mock connected state
             mock_seestar_client.connected = True
-            mock_telescope_service.execution_state = ExecutionState.IDLE
+            mock_seestar_client.host = "192.168.2.47"
+            mock_seestar_client.port = 4700
 
             plan_data = {
-                "execution_id": "test-exec-123",
                 "scheduled_targets": [
                     {
                         "target": {
@@ -181,11 +191,10 @@ class TestTelescopeEndpoints:
 
             assert response.status_code == 200
             data = response.json()
-            # Fixed: API generates its own execution_id, not from request
             assert "execution_id" in data
-            assert "status" in data  # Fixed: API returns "status" not "state"
+            assert data["status"] == "started"
             assert "message" in data
-            mock_telescope_service.execute_plan.assert_called_once()
+            assert data["total_targets"] == 1
 
     def test_execute_plan_invalid_data(self, client):
         """Test plan execution with invalid data."""
@@ -193,20 +202,29 @@ class TestTelescopeEndpoints:
 
         assert response.status_code == 422  # Validation error
 
-    def test_get_progress_when_running(self, client, mock_telescope_service):
+    def test_get_progress_when_running(self, client):
         """Test progress endpoint during execution."""
-        with patch('app.api.routes.telescope_service', mock_telescope_service):
-            mock_telescope_service.progress = ExecutionProgress(
-                execution_id="test-123",
-                state=ExecutionState.RUNNING,
-                total_targets=10,
-                current_target_index=3,
-                targets_completed=2,
-                targets_failed=0,
-                current_target_name="NGC7000",
-                current_phase="imaging"
-            )
+        from datetime import datetime
 
+        # Mock the database session and execution record
+        mock_execution = MagicMock()
+        mock_execution.execution_id = "test-123"
+        mock_execution.state = "running"
+        mock_execution.total_targets = 10
+        mock_execution.current_target_index = 3
+        mock_execution.targets_completed = 2
+        mock_execution.targets_failed = 0
+        mock_execution.current_target_name = "NGC7000"
+        mock_execution.current_phase = "imaging"
+        mock_execution.started_at = datetime.now()
+        mock_execution.error_message = None
+        mock_execution.elapsed_seconds = 120  # 2 minutes elapsed
+        mock_execution.estimated_remaining_seconds = 600  # 10 minutes remaining
+
+        mock_db = MagicMock()
+        mock_db.query.return_value.order_by.return_value.first.return_value = mock_execution
+
+        with patch('app.database.SessionLocal', return_value=mock_db):
             response = client.get("/api/telescope/progress")
 
             assert response.status_code == 200
@@ -218,29 +236,41 @@ class TestTelescopeEndpoints:
             assert data["total_targets"] == 10
             assert data["current_target_index"] == 3
 
-    def test_get_progress_when_idle(self, client, mock_telescope_service):
+    def test_get_progress_when_idle(self, client):
         """Test progress endpoint when no execution."""
-        with patch('app.api.routes.telescope_service', mock_telescope_service):
-            mock_telescope_service.progress = None
-            mock_telescope_service.execution_state = ExecutionState.IDLE
+        # Mock the database session - no execution records
+        mock_db = MagicMock()
+        mock_db.query.return_value.order_by.return_value.first.return_value = None
 
+        with patch('app.database.SessionLocal', return_value=mock_db):
             response = client.get("/api/telescope/progress")
 
             assert response.status_code == 200
             data = response.json()
             assert data["state"] == "idle"
-            # Fixed: when progress is None, API returns minimal response
+            # When no execution exists, API returns minimal response
             assert "message" in data
 
-    def test_abort_execution(self, client, mock_telescope_service):
+    def test_abort_execution(self, client):
         """Test abort execution endpoint."""
-        with patch('app.api.routes.telescope_service', mock_telescope_service):
+        # Mock the database session with an active execution
+        mock_execution = MagicMock()
+        mock_execution.execution_id = "test-123"
+
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_execution
+
+        # Mock the Celery abort task
+        mock_abort_task = MagicMock()
+
+        with patch('app.database.SessionLocal', return_value=mock_db), \
+             patch('app.tasks.telescope_tasks.abort_observation_plan_task', mock_abort_task):
             response = client.post("/api/telescope/abort")
 
             assert response.status_code == 200
             data = response.json()
             assert "message" in data
-            mock_telescope_service.abort_execution.assert_called_once()
+            mock_abort_task.delay.assert_called_once_with("test-123")
 
     def test_park_telescope_success(self, client, mock_seestar_client, mock_telescope_service):
         """Test successful telescope parking."""
