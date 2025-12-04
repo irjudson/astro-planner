@@ -342,6 +342,7 @@ class TestPlannerServiceComprehensive:
             # Imaging minutes may be 0 if it's polar night or no dark time
             assert plan.session.total_imaging_minutes >= 0
 
+    @pytest.mark.slow
     def test_generate_plan_summer_vs_winter(self, override_get_db):
         """Test that summer and winter dates produce different imaging durations."""
         location = Location(

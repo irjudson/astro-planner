@@ -1926,10 +1926,10 @@ class TestEndToEndPlanWorkflow:
         assert len(loaded_plan["scheduled_targets"]) == 1
         assert loaded_plan["scheduled_targets"][0]["target"]["name"] == "M31"
 
-    def test_workflow_without_trailing_slash(self, client: TestClient, override_get_db: Session):
+    def test_workflow_with_trailing_slash(self, client: TestClient, override_get_db: Session):
         """
-        Test that the API works without trailing slashes (matching frontend calls).
-        Frontend uses: fetch('/api/plans', ...) without trailing slash
+        Test that the API works with trailing slashes (matching frontend calls).
+        Frontend uses: fetch('/api/plans/', ...) with trailing slash
         """
         plan_data = {
             "name": "No Slash Test",
@@ -1961,13 +1961,13 @@ class TestEndToEndPlanWorkflow:
             }
         }
 
-        # Test POST without trailing slash (frontend behavior)
-        save_response = client.post("/api/plans", json=plan_data)
-        assert save_response.status_code == 200, f"POST /api/plans failed: {save_response.text}"
+        # Test POST with trailing slash (frontend behavior)
+        save_response = client.post("/api/plans/", json=plan_data)
+        assert save_response.status_code == 200, f"POST /api/plans/ failed: {save_response.text}"
 
-        # Test GET without trailing slash
-        list_response = client.get("/api/plans")
-        assert list_response.status_code == 200, f"GET /api/plans failed: {list_response.text}"
+        # Test GET with trailing slash
+        list_response = client.get("/api/plans/")
+        assert list_response.status_code == 200, f"GET /api/plans/ failed: {list_response.text}"
 
     def test_generate_then_save_workflow(self, client: TestClient, override_get_db: Session):
         """

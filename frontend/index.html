@@ -87,6 +87,8 @@
             border-radius: 6px;
             font-size: 1em;
             transition: border-color 0.3s;
+            background-color: white;
+            color: #333;
         }
 
         input[type="text"]:focus,
@@ -105,6 +107,8 @@
             transition: border-color 0.3s;
             resize: vertical;
             min-height: 80px;
+            background-color: white;
+            color: #333;
         }
 
         textarea:focus {
@@ -476,6 +480,16 @@
             max-width: 500px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             animation: modalFadeIn 0.3s ease;
+            color: #333;
+        }
+
+        .modal-content label {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .modal-content p {
+            color: #666;
         }
 
         @keyframes modalFadeIn {
@@ -1184,6 +1198,7 @@
             text-align: center;
             padding: 40px;
             color: #667eea;
+            background: white;
         }
 
         .loading-spinner::before {
@@ -1197,7 +1212,8 @@
         .empty-plans-state {
             text-align: center;
             padding: 60px 20px;
-            color: #666;
+            color: #333;
+            background: white;
         }
 
         .empty-plans-state::before {
@@ -2023,10 +2039,10 @@
                     <button class="btn" style="padding: 10px 20px; font-size: 1em;" onclick="savePlan()">Save Plan</button>
                 </div>
             </div>
-            <div id="save-plan-success" style="display: none; text-align: center; padding: 20px;">
+            <div id="save-plan-success" style="display: none; text-align: center; padding: 20px; background: white;">
                 <div style="font-size: 3em; color: #28a745; margin-bottom: 10px;">✓</div>
                 <h3 style="color: #28a745; margin-bottom: 10px;">Plan Saved Successfully!</h3>
-                <p style="color: #666; margin-bottom: 20px;">Your observation plan has been saved and can be loaded later.</p>
+                <p style="color: #333; margin-bottom: 20px;">Your observation plan has been saved and can be loaded later.</p>
                 <button class="btn" style="padding: 10px 20px; font-size: 1em;" onclick="closeSavePlanModal()">Done</button>
             </div>
         </div>
@@ -2718,7 +2734,7 @@
             };
 
             try {
-                const response = await fetch('/api/plans', {
+                const response = await fetch('/api/plans/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -2833,7 +2849,7 @@
 
         async function loadSavedPlans() {
             try {
-                const response = await fetch('/api/plans');
+                const response = await fetch('/api/plans/');
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -2879,14 +2895,16 @@
             const card = document.createElement('div');
             card.className = 'saved-plan-card';
 
-            const plan = planData.plan;
-            const targetCount = plan.scheduled_targets ? plan.scheduled_targets.length : 0;
-            const location = plan.session?.location || 'Unknown';
-            const date = planData.created_at ? new Date(planData.created_at).toLocaleDateString() : 'Unknown';
+            // API returns summary objects directly, not nested with a plan key
+            const targetCount = planData.total_targets || 0;
+            const location = planData.location_name || 'Unknown';
+            const createdAt = planData.created_at ? new Date(planData.created_at) : null;
+            const dateStr = createdAt ? createdAt.toLocaleDateString() : 'Unknown';
+            const timeStr = createdAt ? createdAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
 
             card.innerHTML = `
                 <div class="saved-plan-name">${planData.name || 'Unnamed Plan'}</div>
-                <div class="saved-plan-date">Created: ${date}</div>
+                <div class="saved-plan-date">Created: ${dateStr} at ${timeStr}</div>
                 ${planData.description ? `<div class="saved-plan-description">${planData.description}</div>` : ''}
                 <div class="saved-plan-meta">
                     <span class="saved-plan-location">📍 ${location}</span>

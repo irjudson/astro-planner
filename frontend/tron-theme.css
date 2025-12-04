@@ -621,12 +621,76 @@ a:hover {
     text-shadow: 0 0 10px var(--tron-cyan) !important;
 }
 
-/* Modal/Dialog */
+/* Modal/Dialog - outer backdrop only */
 .modal,
 .dialog {
-    background: var(--tron-bg-secondary) !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Modal content - white background with dark text for readability */
+.modal-content {
+    background: white !important;
+    color: #333 !important;
     border: 2px solid var(--tron-cyan) !important;
     box-shadow: 0 10px 50px rgba(0, 0, 0, 0.7), var(--tron-glow-cyan) !important;
+}
+
+.modal-content label {
+    color: #333 !important;
+    text-shadow: none !important;
+}
+
+.modal-content p,
+.modal-content span,
+.modal-content div {
+    color: #333 !important;
+}
+
+.modal-content h3,
+.modal-content h4 {
+    color: #333 !important;
+    text-shadow: none !important;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="number"],
+.modal-content textarea {
+    background: white !important;
+    color: #333 !important;
+    border: 2px solid #e0e0e0 !important;
+}
+
+.modal-content input[type="text"]:focus,
+.modal-content input[type="number"]:focus,
+.modal-content textarea:focus {
+    border-color: var(--tron-cyan) !important;
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.3) !important;
+}
+
+.modal-content .saved-plan-card {
+    background: white !important;
+    border: 2px solid #e0e0e0 !important;
+}
+
+.modal-content .saved-plan-card:hover {
+    border-color: var(--tron-cyan) !important;
+}
+
+.modal-content .saved-plan-name {
+    color: #333 !important;
+}
+
+.modal-content .saved-plan-date,
+.modal-content .saved-plan-description {
+    color: #666 !important;
+}
+
+.modal-content .loading-spinner {
+    color: var(--tron-cyan) !important;
+}
+
+.modal-content .empty-plans-state {
+    color: #666 !important;
 }
 
 /* Code blocks */
