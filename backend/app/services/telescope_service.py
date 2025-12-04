@@ -429,7 +429,7 @@ class TelescopeService:
                 progress.imaging_started = True
 
                 # Image for specified duration
-                duration_seconds = target.duration.total_seconds()
+                duration_seconds = target.duration_minutes * 60
                 self.logger.info(f"Imaging for {duration_seconds}s")
 
                 # Wait for imaging duration
@@ -440,7 +440,7 @@ class TelescopeService:
                 await self.client.stop_imaging()
 
                 progress.imaging_completed = True
-                progress.actual_exposures = target.exposure_count
+                progress.actual_exposures = target.recommended_frames
                 self.logger.info("Imaging completed")
                 return True
 

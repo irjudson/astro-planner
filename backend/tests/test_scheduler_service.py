@@ -10,6 +10,7 @@ from app.models import (
 )
 
 
+@pytest.mark.slow
 class TestSchedulerServiceComprehensive:
     """Comprehensive test coverage for SchedulerService."""
 

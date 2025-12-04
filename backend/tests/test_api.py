@@ -128,6 +128,7 @@ class TestTwilightEndpoint:
 class TestPlanEndpoint:
     """Test plan generation endpoint."""
 
+    @pytest.mark.slow
     def test_generate_plan_success(self, client, sample_plan_request):
         """Test successful plan generation."""
         response = client.post("/api/plan", json=sample_plan_request)
@@ -149,6 +150,7 @@ class TestPlanEndpoint:
         assert "imaging_end" in session
         assert "total_imaging_minutes" in session
 
+    @pytest.mark.slow
     def test_generate_plan_all_planning_modes(self, client, sample_plan_request):
         """Test plan generation with all planning modes."""
         modes = ["balanced", "quality", "quantity"]
@@ -160,6 +162,7 @@ class TestPlanEndpoint:
             plan = response.json()
             assert plan["total_targets"] >= 0
 
+    @pytest.mark.slow
     def test_generate_plan_different_object_types(self, client, sample_plan_request):
         """Test plan generation with different object type filters."""
         object_type_combinations = [
@@ -189,6 +192,7 @@ class TestPlanEndpoint:
         assert response.status_code == 422
 
 
+@pytest.mark.slow
 class TestExportEndpoint:
     """Test plan export endpoint."""
 

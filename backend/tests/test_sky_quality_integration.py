@@ -12,6 +12,7 @@ def test_db(override_get_db):
     return override_get_db
 
 
+@pytest.mark.slow
 class TestSkyQualityIntegration:
     """Test sky quality integration in the full planning workflow."""
 

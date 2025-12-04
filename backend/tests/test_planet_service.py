@@ -20,6 +20,7 @@ def sample_location():
     )
 
 
+@pytest.mark.slow
 class TestPlanetService:
     """Test planet service."""
 
