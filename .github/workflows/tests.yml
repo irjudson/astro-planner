@@ -208,7 +208,7 @@ jobs:
     - name: Run integration tests
       run: |
         cd backend
-        pytest tests/test_api.py -v
+        pytest tests/test_api.py -v --no-cov
       env:
         DATABASE_URL: postgresql://pg:buffalo-jump@localhost:5432/astro-planner
         TEST_DATABASE_URL: postgresql://pg:buffalo-jump@localhost:5432/test_astro_planner
