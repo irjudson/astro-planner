@@ -76,9 +76,10 @@ jobs:
     - name: Run database migrations
       run: |
         cd backend
-        alembic upgrade head
-      env:
-        DATABASE_URL: postgresql://pg:buffalo-jump@localhost:5432/astro-planner
+        # Migrate main database
+        DATABASE_URL=postgresql://pg:buffalo-jump@localhost:5432/astro-planner alembic upgrade head
+        # Migrate test database
+        DATABASE_URL=postgresql://pg:buffalo-jump@localhost:5432/test_astro_planner alembic upgrade head
 
     - name: Run pytest
       run: |

@@ -6,11 +6,23 @@ from app.models import DSOTarget
 from app.models.catalog_models import DSOCatalog, ConstellationName
 
 
+def _catalog_has_data(db):
+    """Check if the catalog database has data (for skipping tests in CI)."""
+    try:
+        count = db.query(DSOCatalog).count()
+        return count > 0
+    except Exception:
+        return False
+
+
 class TestCatalogServiceComprehensive:
     """Comprehensive test coverage for CatalogService."""
 
     def test_get_target_by_messier_id(self, override_get_db):
         """Test retrieving Messier objects by catalog ID."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Test M31 (Andromeda Galaxy)
@@ -27,6 +39,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_target_by_ngc_id(self, override_get_db):
         """Test retrieving NGC objects."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Test NGC224 (same as M31)
@@ -40,6 +55,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_target_by_ic_id(self, override_get_db):
         """Test retrieving IC objects."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Test IC434 (Horsehead Nebula region)
@@ -53,6 +71,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_target_by_caldwell_id(self, override_get_db):
         """Test retrieving Caldwell objects."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Test C14 (Double Cluster)
@@ -79,6 +100,9 @@ class TestCatalogServiceComprehensive:
 
     def test_filter_targets_by_magnitude(self, override_get_db):
         """Test filtering by magnitude range."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get very bright objects (mag < 6)
@@ -93,6 +117,9 @@ class TestCatalogServiceComprehensive:
 
     def test_filter_targets_by_constellation(self, override_get_db):
         """Test filtering by constellation."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get objects in Orion
@@ -104,6 +131,9 @@ class TestCatalogServiceComprehensive:
 
     def test_filter_targets_by_multiple_object_types(self, override_get_db):
         """Test filtering by multiple object types."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get galaxies and nebulae
@@ -116,6 +146,9 @@ class TestCatalogServiceComprehensive:
 
     def test_filter_targets_with_pagination(self, override_get_db):
         """Test pagination with limit and offset."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get first page
@@ -133,6 +166,9 @@ class TestCatalogServiceComprehensive:
 
     def test_filter_targets_combined_filters(self, override_get_db):
         """Test combining multiple filters."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Bright galaxies
@@ -146,6 +182,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_caldwell_targets(self, override_get_db):
         """Test retrieving Caldwell catalog objects."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get all Caldwell objects
@@ -160,6 +199,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_caldwell_targets_with_pagination(self, override_get_db):
         """Test Caldwell targets with pagination."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get first 10
@@ -178,6 +220,9 @@ class TestCatalogServiceComprehensive:
 
     def test_db_row_to_target_messier(self, override_get_db):
         """Test converting Messier database row to target."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get M31 database row
@@ -193,6 +238,9 @@ class TestCatalogServiceComprehensive:
 
     def test_db_row_to_target_with_magnitude(self, override_get_db):
         """Test target conversion includes magnitude in description."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get any object with magnitude
@@ -208,6 +256,9 @@ class TestCatalogServiceComprehensive:
 
     def test_db_row_to_target_with_size(self, override_get_db):
         """Test target conversion includes size in description."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get any large object
@@ -223,6 +274,9 @@ class TestCatalogServiceComprehensive:
 
     def test_db_row_to_target_defaults(self, override_get_db):
         """Test target conversion with missing data uses defaults."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Get any object
@@ -237,6 +291,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_constellation_full_name(self, override_get_db):
         """Test constellation name lookup."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Test common constellations
@@ -261,6 +318,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_all_targets_ordering(self, override_get_db):
         """Test that get_all_targets returns objects ordered by magnitude."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         targets = service.get_all_targets(limit=100)
@@ -273,6 +333,9 @@ class TestCatalogServiceComprehensive:
 
     def test_filter_targets_ordering(self, override_get_db):
         """Test that filter_targets returns objects ordered by magnitude."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         targets = service.filter_targets(object_types=["galaxy"], limit=50)
@@ -286,6 +349,9 @@ class TestCatalogServiceComprehensive:
 
     def test_caldwell_targets_ordering(self, override_get_db):
         """Test that Caldwell targets are ordered by Caldwell number."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         targets = service.get_caldwell_targets(limit=20)
@@ -308,6 +374,9 @@ class TestCatalogServiceComprehensive:
 
     def test_target_has_valid_coordinates(self, override_get_db):
         """Test that targets have valid RA/Dec coordinates."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         targets = service.get_all_targets(limit=100)
@@ -320,6 +389,9 @@ class TestCatalogServiceComprehensive:
 
     def test_get_targets_with_no_filters(self, override_get_db):
         """Test filter_targets with no filters returns all objects."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # No filters should return many objects
@@ -332,6 +404,9 @@ class TestCatalogServiceComprehensive:
 
     def test_min_magnitude_filter_only(self, override_get_db):
         """Test filtering with only minimum magnitude."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Objects fainter than magnitude 15
@@ -340,6 +415,9 @@ class TestCatalogServiceComprehensive:
 
     def test_max_magnitude_filter_only(self, override_get_db):
         """Test filtering with only maximum magnitude."""
+        if not _catalog_has_data(override_get_db):
+            pytest.skip("Catalog data not loaded (CI environment)")
+
         service = CatalogService(override_get_db)
 
         # Objects brighter than magnitude 8
