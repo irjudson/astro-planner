@@ -83,6 +83,10 @@ jobs:
       run: |
         docker compose build
 
+    - name: Create external network
+      run: |
+        docker network create shared-infra || true
+
     - name: Start services
       run: |
         docker compose up -d
