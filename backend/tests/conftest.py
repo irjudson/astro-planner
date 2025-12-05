@@ -66,72 +66,147 @@ def setup_test_db_schema():
 
 
 def _load_test_catalog_data():
-    """Load catalog data into test database from production database.
+    """Load sample catalog data into test database.
 
-    This copies DSO and constellation data from the production database
-    to the test database so tests have realistic catalog data to work with.
+    Creates a minimal set of realistic DSO, constellation, and comet data
+    that enables all tests to run without needing a production database.
     """
     from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
     from app.models.catalog_models import DSOCatalog, ConstellationName, CometCatalog
 
     try:
-        # Create engines for both databases
-        prod_engine = create_engine(settings.database_url)
         test_engine = create_engine(settings.test_database_url)
 
-        # Copy DSO catalog data
-        with prod_engine.connect() as prod_conn:
-            with test_engine.connect() as test_conn:
-                # Copy constellation names first (referenced by DSO catalog)
-                from sqlalchemy.orm import Session
-                prod_session = Session(bind=prod_conn)
-                test_session = Session(bind=test_conn)
+        with test_engine.connect() as conn:
+            session = Session(bind=conn)
 
-                # Check if data already loaded (skip if so)
-                existing_count = test_session.query(ConstellationName).count()
-                if existing_count > 0:
-                    print(f"Test catalog data already loaded ({existing_count} constellations)")
-                    return
+            # Check if data already loaded
+            existing_count = session.query(ConstellationName).count()
+            if existing_count > 0:
+                print(f"Test catalog data already loaded ({existing_count} constellations)")
+                return
 
-                # Copy constellations using bulk insert
-                constellations = prod_session.query(ConstellationName).all()
-                const_mappings = [
-                    {
-                        'abbreviation': const.abbreviation,
-                        'full_name': const.full_name
-                    }
-                    for const in constellations
-                ]
-                if const_mappings:
-                    test_session.bulk_insert_mappings(ConstellationName, const_mappings)
+            # Sample constellation data (covering objects we'll add)
+            constellations = [
+                {"abbreviation": "And", "full_name": "Andromeda"},
+                {"abbreviation": "Ori", "full_name": "Orion"},
+                {"abbreviation": "Sgr", "full_name": "Sagittarius"},
+                {"abbreviation": "Cyg", "full_name": "Cygnus"},
+                {"abbreviation": "Lyr", "full_name": "Lyra"},
+                {"abbreviation": "Tau", "full_name": "Taurus"},
+                {"abbreviation": "Gem", "full_name": "Gemini"},
+                {"abbreviation": "Per", "full_name": "Perseus"},
+                {"abbreviation": "Vir", "full_name": "Virgo"},
+                {"abbreviation": "Com", "full_name": "Coma Berenices"},
+            ]
+            session.bulk_insert_mappings(ConstellationName, constellations)
 
-                # Copy DSO catalog using bulk insert
-                dsos = prod_session.query(DSOCatalog).all()
-                dso_mappings = [
-                    {
-                        'catalog_name': dso.catalog_name,
-                        'catalog_number': dso.catalog_number,
-                        'common_name': dso.common_name,
-                        'object_type': dso.object_type,
-                        'ra_hours': dso.ra_hours,
-                        'dec_degrees': dso.dec_degrees,
-                        'constellation': dso.constellation,
-                        'magnitude': dso.magnitude,
-                        'size_major_arcmin': dso.size_major_arcmin,
-                        'size_minor_arcmin': dso.size_minor_arcmin
-                    }
-                    for dso in dsos
-                ]
-                if dso_mappings:
-                    test_session.bulk_insert_mappings(DSOCatalog, dso_mappings)
+            # Sample DSO data - 10 objects covering different types and catalogs
+            dso_objects = [
+                # Messier galaxies
+                {
+                    "catalog_name": "NGC", "catalog_number": 224, "common_name": "M031",
+                    "object_type": "galaxy", "ra_hours": 0.712, "dec_degrees": 41.27,
+                    "constellation": "And", "magnitude": 3.4, "caldwell_number": None,
+                    "size_major_arcmin": 190.0, "size_minor_arcmin": 60.0
+                },
+                {
+                    "catalog_name": "NGC", "catalog_number": 4486, "common_name": "M087",
+                    "object_type": "galaxy", "ra_hours": 12.514, "dec_degrees": 12.39,
+                    "constellation": "Vir", "magnitude": 8.6, "caldwell_number": None,
+                    "size_major_arcmin": 8.3, "size_minor_arcmin": 6.6
+                },
+                # Messier nebulae
+                {
+                    "catalog_name": "NGC", "catalog_number": 1976, "common_name": "M042",
+                    "object_type": "nebula", "ra_hours": 5.588, "dec_degrees": -5.39,
+                    "constellation": "Ori", "magnitude": 4.0, "caldwell_number": None,
+                    "size_major_arcmin": 85.0, "size_minor_arcmin": 60.0
+                },
+                {
+                    "catalog_name": "NGC", "catalog_number": 6720, "common_name": "M057",
+                    "object_type": "planetary_nebula", "ra_hours": 18.893, "dec_degrees": 33.03,
+                    "constellation": "Lyr", "magnitude": 8.8, "caldwell_number": None,
+                    "size_major_arcmin": 1.4, "size_minor_arcmin": 1.0
+                },
+                # Messier clusters
+                {
+                    "catalog_name": "NGC", "catalog_number": 1912, "common_name": "M038",
+                    "object_type": "cluster", "ra_hours": 5.478, "dec_degrees": 35.85,
+                    "constellation": "Gem", "magnitude": 6.4, "caldwell_number": None,
+                    "size_major_arcmin": 21.0, "size_minor_arcmin": 21.0
+                },
+                {
+                    "catalog_name": "NGC", "catalog_number": 6913, "common_name": "M029",
+                    "object_type": "cluster", "ra_hours": 20.399, "dec_degrees": 38.52,
+                    "constellation": "Cyg", "magnitude": 6.6, "caldwell_number": None,
+                    "size_major_arcmin": 7.0, "size_minor_arcmin": 7.0
+                },
+                # IC object
+                {
+                    "catalog_name": "IC", "catalog_number": 434, "common_name": None,
+                    "object_type": "nebula", "ra_hours": 5.681, "dec_degrees": -2.46,
+                    "constellation": "Ori", "magnitude": 7.3, "caldwell_number": None,
+                    "size_major_arcmin": 60.0, "size_minor_arcmin": 10.0
+                },
+                # Caldwell objects
+                {
+                    "catalog_name": "NGC", "catalog_number": 869, "common_name": None,
+                    "object_type": "cluster", "ra_hours": 2.317, "dec_degrees": 57.13,
+                    "constellation": "Per", "magnitude": 4.3, "caldwell_number": 14,
+                    "size_major_arcmin": 30.0, "size_minor_arcmin": 30.0
+                },
+                {
+                    "catalog_name": "NGC", "catalog_number": 1952, "common_name": "M001",
+                    "object_type": "nebula", "ra_hours": 5.575, "dec_degrees": 22.01,
+                    "constellation": "Tau", "magnitude": 8.4, "caldwell_number": None,
+                    "size_major_arcmin": 6.0, "size_minor_arcmin": 4.0
+                },
+                # Additional faint object for magnitude filter tests
+                {
+                    "catalog_name": "NGC", "catalog_number": 4889, "common_name": None,
+                    "object_type": "galaxy", "ra_hours": 13.002, "dec_degrees": 27.98,
+                    "constellation": "Com", "magnitude": 11.5, "caldwell_number": None,
+                    "size_major_arcmin": 2.9, "size_minor_arcmin": 1.9
+                },
+            ]
+            session.bulk_insert_mappings(DSOCatalog, dso_objects)
 
-                test_session.commit()
-                print(f"Loaded {len(constellations)} constellations and {len(dsos)} DSOs into test database")
+            # Sample comet data
+            comets = [
+                {
+                    "designation": "C/2020 F3", "name": "NEOWISE",
+                    "epoch_jd": 2459000.5, "perihelion_distance_au": 0.29,
+                    "eccentricity": 0.999, "inclination_deg": 128.9,
+                    "arg_perihelion_deg": 37.3, "ascending_node_deg": 61.0,
+                    "perihelion_time_jd": 2459034.0,
+                    "absolute_magnitude": 3.0, "magnitude_slope": 4.0,
+                    "current_magnitude": 7.0, "comet_type": "long-period",
+                    "activity_status": "active", "data_source": "MPC",
+                    "notes": "Great comet of 2020"
+                },
+                {
+                    "designation": "67P", "name": "Churyumov-Gerasimenko",
+                    "epoch_jd": 2459000.5, "perihelion_distance_au": 1.243,
+                    "eccentricity": 0.641, "inclination_deg": 7.04,
+                    "arg_perihelion_deg": 12.78, "ascending_node_deg": 50.15,
+                    "perihelion_time_jd": 2459131.0,
+                    "absolute_magnitude": 11.3, "magnitude_slope": 10.0,
+                    "current_magnitude": 12.0, "comet_type": "short-period",
+                    "activity_status": "active", "data_source": "MPC",
+                    "notes": "Rosetta mission target"
+                },
+            ]
+            session.bulk_insert_mappings(CometCatalog, comets)
+
+            session.commit()
+            print(f"Loaded {len(constellations)} constellations, {len(dso_objects)} DSOs, and {len(comets)} comets into test database")
 
     except Exception as e:
-        # If copy fails, that's okay - tests will just have empty catalogs
-        print(f"Warning: Could not copy catalog data to test database: {e}")
-        pass
+        print(f"Warning: Could not load test catalog data: {e}")
+        import traceback
+        traceback.print_exc()
 
 @pytest.fixture(scope="function")
 def override_get_db():
