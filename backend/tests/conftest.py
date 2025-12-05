@@ -150,11 +150,11 @@ def _load_test_catalog_data():
                     "constellation": "Ori", "magnitude": 7.3, "caldwell_number": None,
                     "size_major_arcmin": 60.0, "size_minor_arcmin": 10.0
                 },
-                # Caldwell objects
+                # Double Cluster (no Caldwell number to avoid duplicates with full catalog)
                 {
                     "catalog_name": "NGC", "catalog_number": 869, "common_name": None,
                     "object_type": "cluster", "ra_hours": 2.317, "dec_degrees": 57.13,
-                    "constellation": "Per", "magnitude": 4.3, "caldwell_number": 14,
+                    "constellation": "Per", "magnitude": 4.3, "caldwell_number": None,
                     "size_major_arcmin": 30.0, "size_minor_arcmin": 30.0
                 },
                 {
@@ -173,29 +173,29 @@ def _load_test_catalog_data():
             ]
             session.bulk_insert_mappings(DSOCatalog, dso_objects)
 
-            # Sample comet data
+            # Sample comet data - use unique designations that won't conflict with test fixtures
             comets = [
                 {
-                    "designation": "C/2020 F3", "name": "NEOWISE",
+                    "designation": "C/2021 TEST1", "name": "Test Comet 1",
                     "epoch_jd": 2459000.5, "perihelion_distance_au": 0.29,
                     "eccentricity": 0.999, "inclination_deg": 128.9,
                     "arg_perihelion_deg": 37.3, "ascending_node_deg": 61.0,
                     "perihelion_time_jd": 2459034.0,
                     "absolute_magnitude": 3.0, "magnitude_slope": 4.0,
                     "current_magnitude": 7.0, "comet_type": "long-period",
-                    "activity_status": "active", "data_source": "MPC",
-                    "notes": "Great comet of 2020"
+                    "activity_status": "active", "data_source": "Test",
+                    "notes": "Test comet fixture"
                 },
                 {
-                    "designation": "67P", "name": "Churyumov-Gerasimenko",
+                    "designation": "C/2021 TEST2", "name": "Test Comet 2",
                     "epoch_jd": 2459000.5, "perihelion_distance_au": 1.243,
                     "eccentricity": 0.641, "inclination_deg": 7.04,
                     "arg_perihelion_deg": 12.78, "ascending_node_deg": 50.15,
                     "perihelion_time_jd": 2459131.0,
                     "absolute_magnitude": 11.3, "magnitude_slope": 10.0,
                     "current_magnitude": 12.0, "comet_type": "short-period",
-                    "activity_status": "active", "data_source": "MPC",
-                    "notes": "Rosetta mission target"
+                    "activity_status": "active", "data_source": "Test",
+                    "notes": "Test comet fixture"
                 },
             ]
             session.bulk_insert_mappings(CometCatalog, comets)
