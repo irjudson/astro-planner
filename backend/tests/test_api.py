@@ -1,7 +1,8 @@
 """API endpoint tests."""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 
 
 @pytest.fixture
@@ -12,7 +13,7 @@ def sample_location():
         "latitude": 45.9183,
         "longitude": -111.5433,
         "elevation": 1234.0,
-        "timezone": "America/Denver"
+        "timezone": "America/Denver",
     }
 
 
@@ -27,8 +28,8 @@ def sample_plan_request(sample_location):
             "max_altitude": 80.0,
             "setup_time_minutes": 15,
             "object_types": ["galaxy", "nebula", "cluster"],
-            "planning_mode": "balanced"
-        }
+            "planning_mode": "balanced",
+        },
     }
 
 
@@ -88,18 +89,20 @@ class TestTwilightEndpoint:
     def test_calculate_twilight(self, client, sample_location):
         """Test twilight calculation."""
         date = datetime.now().strftime("%Y-%m-%d")
-        response = client.post(
-            f"/api/twilight?date={date}",
-            json=sample_location
-        )
+        response = client.post(f"/api/twilight?date={date}", json=sample_location)
         assert response.status_code == 200
         data = response.json()
 
         # Check all required fields
         required_fields = [
-            "sunset", "civil_twilight_end", "nautical_twilight_end",
-            "astronomical_twilight_end", "astronomical_twilight_start",
-            "nautical_twilight_start", "civil_twilight_start", "sunrise"
+            "sunset",
+            "civil_twilight_end",
+            "nautical_twilight_end",
+            "astronomical_twilight_end",
+            "astronomical_twilight_start",
+            "nautical_twilight_start",
+            "civil_twilight_start",
+            "sunrise",
         ]
         for field in required_fields:
             assert field in data
@@ -117,13 +120,10 @@ class TestTwilightEndpoint:
             "latitude": 999.0,  # Invalid latitude
             "longitude": 0.0,
             "elevation": 0.0,
-            "timezone": "UTC"
+            "timezone": "UTC",
         }
         date = datetime.now().strftime("%Y-%m-%d")
-        response = client.post(
-            f"/api/twilight?date={date}",
-            json=invalid_location
-        )
+        response = client.post(f"/api/twilight?date={date}", json=invalid_location)
         assert response.status_code in [400, 422]
 
 

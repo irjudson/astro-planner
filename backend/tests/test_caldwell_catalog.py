@@ -1,6 +1,7 @@
 """Tests for Caldwell catalog integration."""
 
 import pytest
+
 from app.services.caldwell_catalog import CaldwellCatalog, CaldwellObject
 
 
@@ -18,7 +19,7 @@ class TestCaldwellObject:
             ra_hours=0.785,
             dec_degrees=85.255,
             magnitude=8.1,
-            size_arcmin=14.0
+            size_arcmin=14.0,
         )
         assert obj.caldwell_id == "C1"
         assert obj.ngc_id == "NGC 188"
@@ -36,7 +37,7 @@ class TestCaldwellObject:
             ra_hours=2.333,
             dec_degrees=57.133,
             magnitude=4.3,
-            size_arcmin=30.0
+            size_arcmin=30.0,
         )
         assert obj.common_name == "Double Cluster"
 

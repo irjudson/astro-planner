@@ -1,14 +1,16 @@
 """SQLAlchemy models for telescope execution tracking."""
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON, ForeignKey
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
 
 class TelescopeExecution(Base):
     """Telescope observation plan execution record."""
+
     __tablename__ = "telescope_executions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -41,7 +43,7 @@ class TelescopeExecution(Base):
     telescope_port = Column(Integer, nullable=True)
 
     # Link to saved plan (if execution was from a saved plan)
-    saved_plan_id = Column(Integer, ForeignKey('saved_plans.id'), nullable=True)
+    saved_plan_id = Column(Integer, ForeignKey("saved_plans.id"), nullable=True)
 
     # Results and errors
     execution_result = Column(JSON, nullable=True)  # Final results summary
@@ -57,10 +59,11 @@ class TelescopeExecution(Base):
 
 class TelescopeExecutionTarget(Base):
     """Individual target within a telescope execution."""
+
     __tablename__ = "telescope_execution_targets"
 
     id = Column(Integer, primary_key=True, index=True)
-    execution_id = Column(Integer, ForeignKey('telescope_executions.id'), nullable=False, index=True)
+    execution_id = Column(Integer, ForeignKey("telescope_executions.id"), nullable=False, index=True)
     target_index = Column(Integer, nullable=False)
 
     # Target information

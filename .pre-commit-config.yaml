@@ -2,14 +2,38 @@
 # Install with: pip install pre-commit && pre-commit install
 
 repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+      - id: detect-private-key
+
+  # Python-specific checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-ast
+      - id: check-docstring-first
+      - id: debug-statements
+
   # Code formatting
   - repo: https://github.com/psf/black
-    rev: 24.1.1
+    rev: 24.10.0
     hooks:
       - id: black
         language_version: python3.11
         args: ['--line-length=120']
-        files: backend/
+        files: ^backend/
 
   # Import sorting
   - repo: https://github.com/pycqa/isort
@@ -17,41 +41,32 @@ repos:
     hooks:
       - id: isort
         args: ['--profile=black', '--line-length=120']
-        files: backend/
+        files: ^backend/
 
-  # Linting
+  # Linting with ruff (faster than flake8)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.14
+    rev: v0.8.2
     hooks:
       - id: ruff
         args: ['--fix', '--exit-non-zero-on-fix']
-        files: backend/
+        files: ^backend/
 
-  # General file checks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-json
-      - id: check-added-large-files
-        args: ['--maxkb=1000']
-      - id: check-merge-conflict
-      - id: detect-private-key
+      - id: mypy
+        files: ^backend/app/
+        args: ['--config-file=backend/pyproject.toml']
+        additional_dependencies:
+          - pydantic>=2.0.0
+          - types-requests
+          - types-pytz
 
-  # Python-specific checks
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
     hooks:
-      - id: check-ast
-      - id: check-docstring-first
-      - id: debug-statements
-
-  # Type checking (optional - can be slow)
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.8.0
-  #   hooks:
-  #     - id: mypy
-  #       files: backend/
-  #       additional_dependencies: [types-all]
+      - id: bandit
+        args: ['-c', 'backend/pyproject.toml']
+        files: ^backend/app/

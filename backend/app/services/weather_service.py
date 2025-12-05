@@ -1,13 +1,14 @@
 """Weather forecasting service using OpenWeatherMap and 7Timer APIs."""
 
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict
-import requests
-import pytz
 import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
-from app.models import Location, WeatherForecast
+import pytz
+import requests
+
 from app.core import get_settings
+from app.models import Location, WeatherForecast
 from app.services.seven_timer_service import SevenTimerService
 
 
@@ -26,9 +27,7 @@ class WeatherService:
         self.seven_timer = SevenTimerService()
         self.logger = logging.getLogger(__name__)
 
-    def get_forecast(
-        self, location: Location, start_time: datetime, end_time: datetime
-    ) -> List[WeatherForecast]:
+    def get_forecast(self, location: Location, start_time: datetime, end_time: datetime) -> List[WeatherForecast]:
         """
         Get comprehensive weather forecast combining multiple sources.
 
@@ -44,16 +43,11 @@ class WeatherService:
         Returns:
             List of merged weather forecasts with astronomy data
         """
-        self.logger.info(
-            f"Fetching weather forecast for {location.name} "
-            f"from {start_time} to {end_time}"
-        )
+        self.logger.info(f"Fetching weather forecast for {location.name} " f"from {start_time} to {end_time}")
 
         # Fetch from both sources
         owm_forecasts = self._get_openweathermap_forecast(location, start_time, end_time)
-        seven_timer_forecasts = self.seven_timer.get_astronomy_forecast(
-            location, start_time, end_time
-        )
+        seven_timer_forecasts = self.seven_timer.get_astronomy_forecast(location, start_time, end_time)
 
         # Merge forecasts
         merged_forecasts = self._merge_forecasts(owm_forecasts, seven_timer_forecasts)
@@ -82,12 +76,7 @@ class WeatherService:
 
         try:
             # Call OpenWeatherMap API
-            params = {
-                'lat': location.latitude,
-                'lon': location.longitude,
-                'appid': self.api_key,
-                'units': 'metric'
-            }
+            params = {"lat": location.latitude, "lon": location.longitude, "appid": self.api_key, "units": "metric"}
 
             response = requests.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
@@ -98,20 +87,20 @@ class WeatherService:
             forecasts = []
             tz = pytz.timezone(location.timezone)
 
-            for item in data.get('list', []):
+            for item in data.get("list", []):
                 # Convert timestamp
-                timestamp = datetime.fromtimestamp(item['dt'], tz=pytz.UTC).astimezone(tz)
+                timestamp = datetime.fromtimestamp(item["dt"], tz=pytz.UTC).astimezone(tz)
 
                 # Only include forecasts within our time range
                 if start_time <= timestamp <= end_time:
                     forecast = WeatherForecast(
                         timestamp=timestamp,
-                        cloud_cover=item.get('clouds', {}).get('all', 0),
-                        humidity=item.get('main', {}).get('humidity', 0),
-                        temperature=item.get('main', {}).get('temp', 0),
-                        wind_speed=item.get('wind', {}).get('speed', 0),
-                        conditions=item.get('weather', [{}])[0].get('description', 'Unknown'),
-                        source="openweathermap"
+                        cloud_cover=item.get("clouds", {}).get("all", 0),
+                        humidity=item.get("main", {}).get("humidity", 0),
+                        temperature=item.get("main", {}).get("temp", 0),
+                        wind_speed=item.get("wind", {}).get("speed", 0),
+                        conditions=item.get("weather", [{}])[0].get("description", "Unknown"),
+                        source="openweathermap",
                     )
                     forecasts.append(forecast)
 
@@ -123,9 +112,7 @@ class WeatherService:
             return []
 
     def _merge_forecasts(
-        self,
-        owm_forecasts: List[WeatherForecast],
-        seven_timer_forecasts: List[WeatherForecast]
+        self, owm_forecasts: List[WeatherForecast], seven_timer_forecasts: List[WeatherForecast]
     ) -> List[WeatherForecast]:
         """Merge forecasts from both sources.
 
@@ -174,13 +161,10 @@ class WeatherService:
                     humidity=owm_forecast.humidity,
                     temperature=owm_forecast.temperature,
                     wind_speed=owm_forecast.wind_speed,
-                    conditions=self._merge_conditions(
-                        owm_forecast.conditions,
-                        seven_timer_match.conditions
-                    ),
+                    conditions=self._merge_conditions(owm_forecast.conditions, seven_timer_match.conditions),
                     seeing_arcseconds=seven_timer_match.seeing_arcseconds,
                     transparency_magnitude=seven_timer_match.transparency_magnitude,
-                    source="composite"
+                    source="composite",
                 )
                 merged.append(merged_forecast)
             else:
@@ -208,9 +192,7 @@ class WeatherService:
 
         return owm_cond
 
-    def _generate_default_forecast(
-        self, start_time: datetime, end_time: datetime
-    ) -> List[WeatherForecast]:
+    def _generate_default_forecast(self, start_time: datetime, end_time: datetime) -> List[WeatherForecast]:
         """
         Generate a default forecast when API is unavailable.
 
@@ -227,7 +209,7 @@ class WeatherService:
                 humidity=50.0,
                 temperature=10.0,
                 wind_speed=2.0,
-                conditions="Clear sky (estimated)"
+                conditions="Clear sky (estimated)",
             )
             forecasts.append(forecast)
             current_time = current_time + timedelta(hours=1)
@@ -257,43 +239,30 @@ class WeatherService:
             Score from 0 (bad) to 1 (excellent)
         """
         has_astronomy = forecast.seeing_arcseconds is not None and forecast.transparency_magnitude is not None
-        has_general = True  # Always have cloud_cover, humidity, wind_speed
 
         if has_astronomy and forecast.source == "composite":
             # Composite scoring: 60% astronomy + 40% general weather
             astronomy_score = self._calculate_astronomy_score(
-                forecast.seeing_arcseconds,
-                forecast.transparency_magnitude
+                forecast.seeing_arcseconds, forecast.transparency_magnitude
             )
             general_score = self._calculate_general_weather_score(
-                forecast.cloud_cover,
-                forecast.humidity,
-                forecast.wind_speed
+                forecast.cloud_cover, forecast.humidity, forecast.wind_speed
             )
             total_score = (astronomy_score * 0.6) + (general_score * 0.4)
 
         elif has_astronomy:
             # 7Timer only - pure astronomy metrics
-            total_score = self._calculate_astronomy_score(
-                forecast.seeing_arcseconds,
-                forecast.transparency_magnitude
-            )
+            total_score = self._calculate_astronomy_score(forecast.seeing_arcseconds, forecast.transparency_magnitude)
 
         else:
             # OpenWeatherMap only - general weather metrics
             total_score = self._calculate_general_weather_score(
-                forecast.cloud_cover,
-                forecast.humidity,
-                forecast.wind_speed
+                forecast.cloud_cover, forecast.humidity, forecast.wind_speed
             )
 
         return max(0.0, min(1.0, total_score))
 
-    def _calculate_astronomy_score(
-        self,
-        seeing: Optional[float],
-        transparency: Optional[float]
-    ) -> float:
+    def _calculate_astronomy_score(self, seeing: Optional[float], transparency: Optional[float]) -> float:
         """Calculate score based on astronomy-specific metrics.
 
         Args:
@@ -332,12 +301,7 @@ class WeatherService:
         # Equal weighting for astronomy metrics
         return (seeing_score + transparency_score) / 2.0
 
-    def _calculate_general_weather_score(
-        self,
-        cloud_cover: float,
-        humidity: float,
-        wind_speed: float
-    ) -> float:
+    def _calculate_general_weather_score(self, cloud_cover: float, humidity: float, wind_speed: float) -> float:
         """Calculate score based on general weather metrics.
 
         Args:

@@ -1,19 +1,15 @@
 """API routes for comet catalog and visibility."""
 
-from fastapi import APIRouter, HTTPException, Query, Body, Depends
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.models import (
-    CometTarget,
-    CometEphemeris,
-    CometVisibility,
-    Location,
-)
+from app.database import get_db
+from app.models import CometEphemeris, CometTarget, CometVisibility, Location
 from app.services.comet_service import CometService
 from app.services.horizons_service import HorizonsService
-from app.database import get_db
 
 router = APIRouter(prefix="/comets", tags=["comets"])
 
@@ -31,7 +27,7 @@ async def list_comets(
     comet_service: CometService = Depends(get_comet_service),
     limit: Optional[int] = Query(50, description="Maximum number of results", le=500),
     offset: int = Query(0, description="Offset for pagination", ge=0),
-    max_magnitude: Optional[float] = Query(None, description="Maximum (faintest) magnitude to include")
+    max_magnitude: Optional[float] = Query(None, description="Maximum (faintest) magnitude to include"),
 ):
     """
     List all comets in the catalog.
@@ -60,10 +56,7 @@ async def list_comets(
 
 
 @router.get("/{designation}", response_model=CometTarget)
-async def get_comet(
-    designation: str,
-    comet_service: CometService = Depends(get_comet_service)
-):
+async def get_comet(designation: str, comet_service: CometService = Depends(get_comet_service)):
     """
     Get a specific comet by its designation.
 
@@ -88,10 +81,7 @@ async def get_comet(
 
 
 @router.post("/", response_model=dict, status_code=201)
-async def add_comet(
-    comet: CometTarget = Body(...),
-    comet_service: CometService = Depends(get_comet_service)
-):
+async def add_comet(comet: CometTarget = Body(...), comet_service: CometService = Depends(get_comet_service)):
     """
     Add a new comet to the catalog.
 
@@ -109,11 +99,7 @@ async def add_comet(
     """
     try:
         comet_id = comet_service.add_comet(comet)
-        return {
-            "comet_id": comet_id,
-            "designation": comet.designation,
-            "message": "Comet added successfully"
-        }
+        return {"comet_id": comet_id, "designation": comet.designation, "message": "Comet added successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error adding comet: {str(e)}")
 
@@ -122,7 +108,7 @@ async def add_comet(
 async def compute_ephemeris(
     designation: str,
     time_utc: Optional[datetime] = Query(None, description="UTC time for ephemeris (ISO format). Defaults to now."),
-    comet_service: CometService = Depends(get_comet_service)
+    comet_service: CometService = Depends(get_comet_service),
 ):
     """
     Compute ephemeris (position) for a comet at a specific time.
@@ -161,7 +147,7 @@ async def check_visibility(
     designation: str,
     location: Location = Body(...),
     time_utc: Optional[datetime] = Query(None, description="UTC time (ISO format). Defaults to now."),
-    comet_service: CometService = Depends(get_comet_service)
+    comet_service: CometService = Depends(get_comet_service),
 ):
     """
     Check visibility of a comet from a specific location and time.
@@ -202,7 +188,7 @@ async def list_visible_comets(
     time_utc: Optional[datetime] = Query(None, description="UTC time (ISO format). Defaults to now."),
     min_altitude: float = Query(30.0, description="Minimum altitude in degrees", ge=0, le=90),
     max_magnitude: float = Query(12.0, description="Maximum (faintest) magnitude", ge=0, le=20),
-    comet_service: CometService = Depends(get_comet_service)
+    comet_service: CometService = Depends(get_comet_service),
 ):
     """
     Get all visible comets for a location and time.
@@ -226,10 +212,7 @@ async def list_visible_comets(
             time_utc = datetime.utcnow()
 
         visible_comets = comet_service.get_visible_comets(
-            location=location,
-            time_utc=time_utc,
-            min_altitude=min_altitude,
-            max_magnitude=max_magnitude
+            location=location, time_utc=time_utc, min_altitude=min_altitude, max_magnitude=max_magnitude
         )
 
         return visible_comets
@@ -241,7 +224,7 @@ async def list_visible_comets(
 async def import_comet_from_horizons(
     designation: str = Query(..., description="Comet designation (e.g., 'C/2020 F3', '1P/Halley')"),
     epoch: Optional[datetime] = Query(None, description="Epoch for orbital elements (defaults to current time)"),
-    comet_service: CometService = Depends(get_comet_service)
+    comet_service: CometService = Depends(get_comet_service),
 ):
     """
     Import a comet from JPL Horizons and add it to the catalog.
@@ -266,18 +249,14 @@ async def import_comet_from_horizons(
         existing = comet_service.get_comet_by_designation(designation)
         if existing:
             raise HTTPException(
-                status_code=409,
-                detail=f"Comet {designation} already exists in catalog. Use PUT to update."
+                status_code=409, detail=f"Comet {designation} already exists in catalog. Use PUT to update."
             )
 
         # Fetch from Horizons
         comet = horizons_service.fetch_comet_by_designation(designation, epoch)
 
         if not comet:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Comet {designation} not found in JPL Horizons database"
-            )
+            raise HTTPException(status_code=404, detail=f"Comet {designation} not found in JPL Horizons database")
 
         # Add to local catalog
         comet_id = comet_service.add_comet(comet)
@@ -288,7 +267,7 @@ async def import_comet_from_horizons(
             "name": comet.name,
             "comet_type": comet.comet_type,
             "current_magnitude": comet.current_magnitude,
-            "message": f"Successfully imported {designation} from JPL Horizons"
+            "message": f"Successfully imported {designation} from JPL Horizons",
         }
 
     except HTTPException:
@@ -300,7 +279,7 @@ async def import_comet_from_horizons(
 @router.get("/search/bright", response_model=List[CometTarget])
 async def search_bright_comets(
     max_magnitude: float = Query(12.0, description="Maximum magnitude to include", ge=0, le=20),
-    epoch: Optional[datetime] = Query(None, description="Epoch for orbital elements")
+    epoch: Optional[datetime] = Query(None, description="Epoch for orbital elements"),
 ):
     """
     Search for currently bright comets using JPL Horizons.
@@ -319,10 +298,7 @@ async def search_bright_comets(
         List of bright comets sorted by magnitude (brightest first)
     """
     try:
-        comets = horizons_service.fetch_bright_comets(
-            max_magnitude=max_magnitude,
-            epoch=epoch
-        )
+        comets = horizons_service.fetch_bright_comets(max_magnitude=max_magnitude, epoch=epoch)
 
         # Sort by brightness
         comets.sort(key=lambda c: c.current_magnitude if c.current_magnitude else 99.0)

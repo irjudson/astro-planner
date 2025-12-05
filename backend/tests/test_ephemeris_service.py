@@ -1,10 +1,12 @@
 """Comprehensive tests for ephemeris service."""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 import pytz
+
+from app.models import DSOTarget, Location
 from app.services.ephemeris_service import EphemerisService
-from app.models import Location, DSOTarget
 
 
 class TestEphemerisServiceComprehensive:
@@ -19,34 +21,20 @@ class TestEphemerisServiceComprehensive:
     def test_location(self):
         """Create test location (Montana)."""
         return Location(
-            name="Three Forks, MT",
-            latitude=45.92,
-            longitude=-111.28,
-            elevation=1234.0,
-            timezone="America/Denver"
+            name="Three Forks, MT", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
         )
 
     @pytest.fixture
     def equatorial_location(self):
         """Create equatorial test location."""
         return Location(
-            name="Quito, Ecuador",
-            latitude=0.0,
-            longitude=-78.5,
-            elevation=2800.0,
-            timezone="America/Guayaquil"
+            name="Quito, Ecuador", latitude=0.0, longitude=-78.5, elevation=2800.0, timezone="America/Guayaquil"
         )
 
     @pytest.fixture
     def polar_location(self):
         """Create high latitude test location."""
-        return Location(
-            name="Tromso, Norway",
-            latitude=69.65,
-            longitude=18.96,
-            elevation=10.0,
-            timezone="Europe/Oslo"
-        )
+        return Location(name="Tromso, Norway", latitude=69.65, longitude=18.96, elevation=10.0, timezone="Europe/Oslo")
 
     @pytest.fixture
     def m31_target(self):
@@ -59,7 +47,7 @@ class TestEphemerisServiceComprehensive:
             dec_degrees=41.269,
             magnitude=3.4,
             size_arcmin=178.0,
-            description="Andromeda Galaxy"
+            description="Andromeda Galaxy",
         )
 
     @pytest.fixture
@@ -73,7 +61,7 @@ class TestEphemerisServiceComprehensive:
             dec_degrees=-5.391,
             magnitude=4.0,
             size_arcmin=65.0,
-            description="Orion Nebula"
+            description="Orion Nebula",
         )
 
     @pytest.fixture
@@ -87,7 +75,7 @@ class TestEphemerisServiceComprehensive:
             dec_degrees=85.255,
             magnitude=8.1,
             size_arcmin=15.0,
-            description="Old open cluster near pole"
+            description="Old open cluster near pole",
         )
 
     @pytest.fixture
@@ -101,7 +89,7 @@ class TestEphemerisServiceComprehensive:
             dec_degrees=-72.081,
             magnitude=4.0,
             size_arcmin=31.0,
-            description="47 Tucanae globular cluster"
+            description="47 Tucanae globular cluster",
         )
 
     # Initialization tests
@@ -121,26 +109,26 @@ class TestEphemerisServiceComprehensive:
         twilight = ephemeris.calculate_twilight_times(test_location, date)
 
         # Should have basic twilight times
-        assert 'sunset' in twilight
-        assert 'sunrise' in twilight
-        assert 'nautical_twilight_end' in twilight
-        assert 'nautical_twilight_start' in twilight
-        assert 'astronomical_twilight_end' in twilight
-        assert 'astronomical_twilight_start' in twilight
+        assert "sunset" in twilight
+        assert "sunrise" in twilight
+        assert "nautical_twilight_end" in twilight
+        assert "nautical_twilight_start" in twilight
+        assert "astronomical_twilight_end" in twilight
+        assert "astronomical_twilight_start" in twilight
 
         # All times should be datetime objects
         for key, dt in twilight.items():
             assert isinstance(dt, datetime), f"{key} should be datetime"
 
         # Twilight should progress: sunset -> nautical -> astronomical (evening)
-        assert twilight['sunset'].timestamp() < twilight['nautical_twilight_end'].timestamp()
-        assert twilight['nautical_twilight_end'].timestamp() < twilight['astronomical_twilight_end'].timestamp()
+        assert twilight["sunset"].timestamp() < twilight["nautical_twilight_end"].timestamp()
+        assert twilight["nautical_twilight_end"].timestamp() < twilight["astronomical_twilight_end"].timestamp()
 
         # Morning should progress: astronomical -> nautical (before sunrise)
-        assert twilight['astronomical_twilight_start'].timestamp() < twilight['nautical_twilight_start'].timestamp()
+        assert twilight["astronomical_twilight_start"].timestamp() < twilight["nautical_twilight_start"].timestamp()
 
         # Sunrise should be after morning nautical twilight start
-        assert twilight['nautical_twilight_start'].timestamp() < twilight['sunrise'].timestamp()
+        assert twilight["nautical_twilight_start"].timestamp() < twilight["sunrise"].timestamp()
 
     def test_calculate_twilight_times_summer(self, ephemeris, test_location):
         """Test twilight times for summer date (shorter nights)."""
@@ -150,11 +138,11 @@ class TestEphemerisServiceComprehensive:
         twilight = ephemeris.calculate_twilight_times(test_location, date)
 
         # Should still have all twilight times
-        assert 'sunset' in twilight
-        assert 'sunrise' in twilight
+        assert "sunset" in twilight
+        assert "sunrise" in twilight
 
         # Summer nights are shorter
-        night_duration = twilight['sunrise'] - twilight['sunset']
+        night_duration = twilight["sunrise"] - twilight["sunset"]
         assert night_duration < timedelta(hours=12)
 
     def test_calculate_twilight_times_equatorial(self, ephemeris, equatorial_location):
@@ -164,11 +152,11 @@ class TestEphemerisServiceComprehensive:
 
         twilight = ephemeris.calculate_twilight_times(equatorial_location, date)
 
-        assert 'sunset' in twilight
-        assert 'sunrise' in twilight
+        assert "sunset" in twilight
+        assert "sunrise" in twilight
 
         # At equator on equinox, night should be close to 12 hours
-        night_duration = twilight['sunrise'] - twilight['sunset']
+        night_duration = twilight["sunrise"] - twilight["sunset"]
         assert timedelta(hours=11) < night_duration < timedelta(hours=13)
 
     def test_calculate_twilight_times_returns_timezone_aware(self, ephemeris, test_location):
@@ -261,7 +249,7 @@ class TestEphemerisServiceComprehensive:
             dec_degrees=45.0,
             magnitude=10.0,
             size_arcmin=5.0,
-            description="Test target near zenith"
+            description="Test target near zenith",
         )
 
         rate = ephemeris.calculate_field_rotation_rate(zenith_target, test_location, time)
@@ -308,9 +296,7 @@ class TestEphemerisServiceComprehensive:
 
         # Use constraints that match the altitude
         if alt > 30:
-            visible = ephemeris.is_target_visible(
-                m31_target, test_location, time, min_alt=30.0, max_alt=80.0
-            )
+            visible = ephemeris.is_target_visible(m31_target, test_location, time, min_alt=30.0, max_alt=80.0)
             assert visible or alt > 80  # True unless above max
 
     def test_is_target_visible_below_min_altitude(self, ephemeris, test_location, m31_target):
@@ -319,9 +305,7 @@ class TestEphemerisServiceComprehensive:
         time = tz.localize(datetime(2025, 1, 15, 22, 0, 0))
 
         # Use very high minimum altitude
-        visible = ephemeris.is_target_visible(
-            m31_target, test_location, time, min_alt=85.0, max_alt=90.0
-        )
+        visible = ephemeris.is_target_visible(m31_target, test_location, time, min_alt=85.0, max_alt=90.0)
 
         # M31 is unlikely to be above 85° from Montana
         assert not visible
@@ -340,16 +324,14 @@ class TestEphemerisServiceComprehensive:
             dec_degrees=45.0,  # Same as latitude
             magnitude=10.0,
             size_arcmin=5.0,
-            description="Test target"
+            description="Test target",
         )
 
         alt, _ = ephemeris.calculate_position(high_target, test_location, time)
 
         # If altitude is high, test max constraint
         if alt > 60:
-            visible = ephemeris.is_target_visible(
-                high_target, test_location, time, min_alt=30.0, max_alt=50.0
-            )
+            visible = ephemeris.is_target_visible(high_target, test_location, time, min_alt=30.0, max_alt=50.0)
             assert not visible
 
     def test_is_target_visible_southern_from_north(self, ephemeris, test_location, southern_target):
@@ -364,9 +346,7 @@ class TestEphemerisServiceComprehensive:
                 date = datetime(2025, 1, 15, hour, 0, 0)
             time = tz.localize(date)
 
-            visible = ephemeris.is_target_visible(
-                southern_target, test_location, time, min_alt=0.0, max_alt=90.0
-            )
+            visible = ephemeris.is_target_visible(southern_target, test_location, time, min_alt=0.0, max_alt=90.0)
             assert not visible, f"47 Tuc should not be visible at {hour}:00"
 
     def test_is_target_visible_circumpolar_always(self, ephemeris, test_location, circumpolar_target):
@@ -382,9 +362,7 @@ class TestEphemerisServiceComprehensive:
                 date = datetime(2025, 1, 15, hour, 0, 0)
             time = tz.localize(date)
 
-            visible = ephemeris.is_target_visible(
-                circumpolar_target, test_location, time, min_alt=30.0, max_alt=90.0
-            )
+            visible = ephemeris.is_target_visible(circumpolar_target, test_location, time, min_alt=30.0, max_alt=90.0)
             if not visible:
                 all_visible = False
 
@@ -403,9 +381,7 @@ class TestEphemerisServiceComprehensive:
         assert -90 <= alt <= 90
         assert 0 <= az <= 360
 
-    def test_calculate_position_different_timezones_same_instant(
-        self, ephemeris, test_location, m31_target
-    ):
+    def test_calculate_position_different_timezones_same_instant(self, ephemeris, test_location, m31_target):
         """Test that same instant in different timezones gives same position."""
         # Same instant, different timezone representations
         mst = pytz.timezone("America/Denver")
@@ -434,11 +410,7 @@ class TestTwilightAngleIntegration:
     def test_location(self):
         """Create test location."""
         return Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
     def test_nautical_twilight_occurs_after_sunset(self, ephemeris, test_location):
@@ -449,10 +421,10 @@ class TestTwilightAngleIntegration:
         twilight = ephemeris.calculate_twilight_times(test_location, date)
 
         # Nautical twilight end should be after sunset (sun at -12° after being at 0°)
-        assert 'sunset' in twilight
-        assert 'nautical_twilight_end' in twilight
+        assert "sunset" in twilight
+        assert "nautical_twilight_end" in twilight
 
-        time_diff = twilight['nautical_twilight_end'].timestamp() - twilight['sunset'].timestamp()
+        time_diff = twilight["nautical_twilight_end"].timestamp() - twilight["sunset"].timestamp()
         # Nautical twilight (from sunset to -12°) typically lasts 30-60 minutes at mid-latitudes
         assert 15 * 60 < time_diff < 90 * 60, "Nautical twilight should be 15-90 min after sunset"
 
@@ -464,9 +436,9 @@ class TestTwilightAngleIntegration:
         twilight = ephemeris.calculate_twilight_times(test_location, date)
 
         # Total twilight duration from sunset to astronomical twilight
-        assert 'sunset' in twilight
-        assert 'astronomical_twilight_end' in twilight
+        assert "sunset" in twilight
+        assert "astronomical_twilight_end" in twilight
 
-        total_twilight = twilight['astronomical_twilight_end'].timestamp() - twilight['sunset'].timestamp()
+        total_twilight = twilight["astronomical_twilight_end"].timestamp() - twilight["sunset"].timestamp()
         # Total twilight from sunset to astronomical should be 1-2 hours at mid-latitudes
         assert 45 * 60 < total_twilight < 3 * 60 * 60, "Total twilight should be 45min-3hr"

@@ -1,7 +1,8 @@
 """Tests for saved plans API endpoints."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -31,13 +32,13 @@ class TestPlanEndpoints:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
                 "location": {
                     "name": "Backyard Observatory",
                     "latitude": 40.7128,
                     "longitude": -74.0060,
-                    "elevation": 10
+                    "elevation": 10,
                 },
                 "scheduled_targets": [
                     {
@@ -48,7 +49,7 @@ class TestPlanEndpoints:
                             "dec_degrees": 41.269,
                             "object_type": "galaxy",
                             "magnitude": 3.4,
-                            "size_arcmin": 178.0
+                            "size_arcmin": 178.0,
                         },
                         "start_time": "2025-11-20T19:15:00",
                         "end_time": "2025-11-20T22:15:00",
@@ -64,12 +65,12 @@ class TestPlanEndpoints:
                             "total_score": 0.85,
                             "visibility_score": 0.90,
                             "weather_score": 0.80,
-                            "object_score": 0.85
-                        }
+                            "object_score": 0.85,
+                        },
                     }
                 ],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -105,17 +106,12 @@ class TestPlanEndpoints:
                     "sunrise": "2025-11-22T06:45:00",
                     "imaging_start": "2025-11-21T19:15:00",
                     "imaging_end": "2025-11-22T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Dark Sky Site",
-                    "latitude": 35.0,
-                    "longitude": -110.0,
-                    "elevation": 2000
-                },
+                "location": {"name": "Dark Sky Site", "latitude": 35.0, "longitude": -110.0, "elevation": 2000},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -133,7 +129,7 @@ class TestPlanEndpoints:
                 "total_targets": 1,
                 "session": {"observing_date": "2025-11-21"},
                 "location": {"name": "Test"},
-                "targets": []
+                "targets": [],
             }
         }
 
@@ -153,6 +149,7 @@ class TestPlanEndpoints:
         """Test listing saved plans."""
         # Create multiple plans
         import time
+
         plans = []
         for i in range(3):
             plan = SavedPlan(
@@ -161,7 +158,7 @@ class TestPlanEndpoints:
                 observing_date=f"2025-11-{20+i}",
                 location_name="Test Location",
                 plan_data={
-                    "total_targets": i+1,
+                    "total_targets": i + 1,
                     "coverage_percent": 75.0,
                     "session": {
                         "observing_date": f"2025-11-{20+i}",
@@ -175,17 +172,12 @@ class TestPlanEndpoints:
                         "sunrise": f"2025-11-{21+i}T06:45:00",
                         "imaging_start": f"2025-11-{20+i}T19:15:00",
                         "imaging_end": f"2025-11-{21+i}T04:45:00",
-                        "total_imaging_minutes": 570
+                        "total_imaging_minutes": 570,
                     },
-                    "location": {
-                        "name": "Test Location",
-                        "latitude": 40.7128,
-                        "longitude": -74.0060,
-                        "elevation": 10
-                    },
+                    "location": {"name": "Test Location", "latitude": 40.7128, "longitude": -74.0060, "elevation": 10},
                     "scheduled_targets": [],
-                    "weather_forecast": []
-                }
+                    "weather_forecast": [],
+                },
             )
             override_get_db.add(plan)
             override_get_db.commit()  # Commit each individually to ensure different timestamps
@@ -228,17 +220,12 @@ class TestPlanEndpoints:
                         "sunrise": "2025-11-21T06:45:00",
                         "imaging_start": "2025-11-20T19:15:00",
                         "imaging_end": "2025-11-21T04:45:00",
-                        "total_imaging_minutes": 570
+                        "total_imaging_minutes": 570,
                     },
-                    "location": {
-                        "name": "Test",
-                        "latitude": 40.0,
-                        "longitude": -74.0,
-                        "elevation": 100
-                    },
+                    "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                     "scheduled_targets": [],
-                    "weather_forecast": []
-                }
+                    "weather_forecast": [],
+                },
             )
             override_get_db.add(plan)
         override_get_db.commit()
@@ -273,14 +260,9 @@ class TestPlanEndpoints:
                 "sunrise": "2025-11-21T06:45:00",
                 "imaging_start": "2025-11-20T19:15:00",
                 "imaging_end": "2025-11-21T04:45:00",
-                "total_imaging_minutes": 570
+                "total_imaging_minutes": 570,
             },
-            "location": {
-                "name": "Observatory",
-                "latitude": 40.0,
-                "longitude": -74.0,
-                "elevation": 100
-            },
+            "location": {"name": "Observatory", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
             "scheduled_targets": [
                 {
                     "target": {
@@ -290,7 +272,7 @@ class TestPlanEndpoints:
                         "dec_degrees": 41.269,
                         "object_type": "galaxy",
                         "magnitude": 3.4,
-                        "size_arcmin": 178.0
+                        "size_arcmin": 178.0,
                     },
                     "start_time": "2025-11-20T19:15:00",
                     "end_time": "2025-11-20T22:15:00",
@@ -306,11 +288,11 @@ class TestPlanEndpoints:
                         "visibility_score": 0.90,
                         "weather_score": 0.80,
                         "object_score": 0.85,
-                        "total_score": 0.85
-                    }
+                        "total_score": 0.85,
+                    },
                 }
             ],
-            "weather_forecast": []
+            "weather_forecast": [],
         }
 
         saved_plan = SavedPlan(
@@ -318,7 +300,7 @@ class TestPlanEndpoints:
             description="Test retrieval",
             observing_date="2025-11-20",
             location_name="Observatory",
-            plan_data=plan_data
+            plan_data=plan_data,
         )
         override_get_db.add(saved_plan)
         override_get_db.commit()
@@ -365,17 +347,12 @@ class TestPlanEndpoints:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Original Location",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Original Location", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         )
         override_get_db.add(original_plan)
         override_get_db.commit()
@@ -400,12 +377,12 @@ class TestPlanEndpoints:
                     "sunrise": "2025-11-22T06:45:00",
                     "imaging_start": "2025-11-21T19:15:00",
                     "imaging_end": "2025-11-22T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
                 "location": {"name": "New Location", "latitude": 35.0, "longitude": -110.0, "elevation": 2000},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.put(f"/api/plans/{original_plan.id}", json=update_data)
@@ -438,17 +415,12 @@ class TestPlanEndpoints:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.put("/api/plans/99999", json=update_data)
@@ -476,17 +448,12 @@ class TestPlanEndpoints:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         )
         override_get_db.add(plan)
         override_get_db.commit()
@@ -537,17 +504,12 @@ class TestPlanExecutionRelationship:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Observatory",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Observatory", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         )
         override_get_db.add(saved_plan)
         override_get_db.commit()
@@ -559,7 +521,7 @@ class TestPlanExecutionRelationship:
             celery_task_id="celery-task-001",
             state="running",
             total_targets=1,
-            saved_plan_id=saved_plan.id
+            saved_plan_id=saved_plan.id,
         )
         override_get_db.add(execution)
         override_get_db.commit()
@@ -569,9 +531,9 @@ class TestPlanExecutionRelationship:
         assert execution.saved_plan_id == saved_plan.id
 
         # Retrieve execution and verify FK still works
-        retrieved = override_get_db.query(TelescopeExecution).filter(
-            TelescopeExecution.execution_id == "test-exec-001"
-        ).first()
+        retrieved = (
+            override_get_db.query(TelescopeExecution).filter(TelescopeExecution.execution_id == "test-exec-001").first()
+        )
 
         assert retrieved is not None
         assert retrieved.saved_plan_id == saved_plan.id
@@ -586,7 +548,7 @@ class TestPlanExecutionRelationship:
             celery_task_id="celery-task-002",
             state="running",
             total_targets=1,
-            saved_plan_id=None
+            saved_plan_id=None,
         )
         override_get_db.add(execution)
         override_get_db.commit()
@@ -618,17 +580,12 @@ class TestPlanExecutionRelationship:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         )
         override_get_db.add(saved_plan)
         override_get_db.commit()
@@ -641,7 +598,7 @@ class TestPlanExecutionRelationship:
                 celery_task_id=f"task-{i+1}",
                 state="completed",
                 total_targets=1,
-                saved_plan_id=saved_plan.id
+                saved_plan_id=saved_plan.id,
             )
             override_get_db.add(execution)
         override_get_db.commit()
@@ -678,17 +635,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -717,17 +669,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -756,17 +703,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -776,7 +718,7 @@ class TestEdgeCasesAndBoundaryConditions:
     def test_save_plan_with_special_characters(self, client: TestClient, override_get_db: Session):
         """Test saving plan with special characters in name and description."""
         plan_data = {
-            "name": "M31 \"Andromeda\" Galaxy - Winter's Best!",
+            "name": 'M31 "Andromeda" Galaxy - Winter\'s Best!',
             "description": "Test with quotes \"double\" and 'single', newlines\nand unicode: 星座 🌟",
             "plan": {
                 "total_targets": 1,
@@ -793,23 +735,18 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
         assert response.status_code == 200
         data = response.json()
-        assert data["name"] == "M31 \"Andromeda\" Galaxy - Winter's Best!"
+        assert data["name"] == 'M31 "Andromeda" Galaxy - Winter\'s Best!'
         assert "星座" in data["description"]
 
     def test_save_plan_with_sql_injection_attempt(self, client: TestClient, override_get_db: Session):
@@ -832,17 +769,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -869,17 +801,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2100-01-01T06:45:00",
                     "imaging_start": "2099-12-31T19:15:00",
                     "imaging_end": "2100-01-01T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -905,17 +832,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2020-01-02T06:45:00",
                     "imaging_start": "2020-01-01T19:15:00",
                     "imaging_end": "2020-01-02T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -941,17 +863,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -962,33 +879,35 @@ class TestEdgeCasesAndBoundaryConditions:
         """Test saving plan with 100+ targets."""
         targets = []
         for i in range(105):
-            targets.append({
-                "target": {
-                    "name": f"NGC{1000+i}",
-                    "catalog_id": f"NGC{1000+i}",
-                    "ra_hours": (i % 24) * 0.5,
-                    "dec_degrees": (i % 180) - 90,
-                    "object_type": "galaxy",
-                    "magnitude": 8.0 + (i % 5),
-                    "size_arcmin": 5.0
-                },
-                "start_time": "2025-11-20T19:15:00",
-                "end_time": "2025-11-20T19:20:00",
-                "duration_minutes": 5,
-                "start_altitude": 45.0,
-                "end_altitude": 46.0,
-                "start_azimuth": 120.0,
-                "end_azimuth": 121.0,
-                "field_rotation_rate": 0.1,
-                "recommended_exposure": 60,
-                "recommended_frames": 5,
-                "score": {
-                    "visibility_score": 0.85,
-                    "weather_score": 0.80,
-                    "object_score": 0.75,
-                    "total_score": 0.80
+            targets.append(
+                {
+                    "target": {
+                        "name": f"NGC{1000+i}",
+                        "catalog_id": f"NGC{1000+i}",
+                        "ra_hours": (i % 24) * 0.5,
+                        "dec_degrees": (i % 180) - 90,
+                        "object_type": "galaxy",
+                        "magnitude": 8.0 + (i % 5),
+                        "size_arcmin": 5.0,
+                    },
+                    "start_time": "2025-11-20T19:15:00",
+                    "end_time": "2025-11-20T19:20:00",
+                    "duration_minutes": 5,
+                    "start_altitude": 45.0,
+                    "end_altitude": 46.0,
+                    "start_azimuth": 120.0,
+                    "end_azimuth": 121.0,
+                    "field_rotation_rate": 0.1,
+                    "recommended_exposure": 60,
+                    "recommended_frames": 5,
+                    "score": {
+                        "visibility_score": 0.85,
+                        "weather_score": 0.80,
+                        "object_score": 0.75,
+                        "total_score": 0.80,
+                    },
                 }
-            })
+            )
 
         plan_data = {
             "name": "Massive Plan",
@@ -1007,17 +926,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": targets,
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1043,17 +957,12 @@ class TestEdgeCasesAndBoundaryConditions:
                     "sunrise": "2025-11-22T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-22T04:45:00",
-                    "total_imaging_minutes": 1770  # ~29.5 hours
+                    "total_imaging_minutes": 1770,  # ~29.5 hours
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1086,17 +995,12 @@ class TestDataValidation:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         # This may be accepted (no validation constraint) or rejected
@@ -1122,17 +1026,12 @@ class TestDataValidation:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1157,17 +1056,12 @@ class TestDataValidation:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 95.0,  # Invalid
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 95.0, "longitude": -74.0, "elevation": 100},  # Invalid
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1193,17 +1087,12 @@ class TestDataValidation:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": 185.0,  # Invalid
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": 185.0, "elevation": 100},  # Invalid
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1229,43 +1118,40 @@ class TestDataValidation:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
-                "scheduled_targets": [{
-                    "target": {
-                        "name": "M31",
-                        "catalog_id": "M31",
-                        "ra_hours": 0.712,
-                        "dec_degrees": 41.269,
-                        "object_type": "galaxy",
-                        "magnitude": 3.4,
-                        "size_arcmin": 178.0
-                    },
-                    "start_time": "2025-11-20T19:15:00",
-                    "end_time": "2025-11-20T22:15:00",
-                    "duration_minutes": 180,
-                    "start_altitude": 45.0,
-                    "end_altitude": 55.0,
-                    "start_azimuth": 120.0,
-                    "end_azimuth": 150.0,
-                    "field_rotation_rate": 0.5,
-                    "recommended_exposure": 60,
-                    "recommended_frames": 180,
-                    "score": {
-                        "visibility_score": 1.5,  # Invalid
-                        "weather_score": 0.80,
-                        "object_score": 0.85,
-                        "total_score": 0.85
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
+                "scheduled_targets": [
+                    {
+                        "target": {
+                            "name": "M31",
+                            "catalog_id": "M31",
+                            "ra_hours": 0.712,
+                            "dec_degrees": 41.269,
+                            "object_type": "galaxy",
+                            "magnitude": 3.4,
+                            "size_arcmin": 178.0,
+                        },
+                        "start_time": "2025-11-20T19:15:00",
+                        "end_time": "2025-11-20T22:15:00",
+                        "duration_minutes": 180,
+                        "start_altitude": 45.0,
+                        "end_altitude": 55.0,
+                        "start_azimuth": 120.0,
+                        "end_azimuth": 150.0,
+                        "field_rotation_rate": 0.5,
+                        "recommended_exposure": 60,
+                        "recommended_frames": 180,
+                        "score": {
+                            "visibility_score": 1.5,  # Invalid
+                            "weather_score": 0.80,
+                            "object_score": 0.85,
+                            "total_score": 0.85,
+                        },
                     }
-                }],
-                "weather_forecast": []
-            }
+                ],
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1291,17 +1177,12 @@ class TestDataValidation:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": -100  # Invalid
+                    "total_imaging_minutes": -100,  # Invalid
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1326,15 +1207,15 @@ class TestDataValidation:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
                 "location": {
                     "name": "Test"
                     # Missing latitude, longitude
                 },
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1367,17 +1248,12 @@ class TestAPIBehavior:
                         "sunrise": "2025-11-21T06:45:00",
                         "imaging_start": "2025-11-20T19:15:00",
                         "imaging_end": "2025-11-21T04:45:00",
-                        "total_imaging_minutes": 570
+                        "total_imaging_minutes": 570,
                     },
-                    "location": {
-                        "name": "Test",
-                        "latitude": 40.0,
-                        "longitude": -74.0,
-                        "elevation": 100
-                    },
+                    "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                     "scheduled_targets": [],
-                    "weather_forecast": []
-                }
+                    "weather_forecast": [],
+                },
             )
             override_get_db.add(plan)
         override_get_db.commit()
@@ -1410,17 +1286,12 @@ class TestAPIBehavior:
                         "sunrise": "2025-11-21T06:45:00",
                         "imaging_start": "2025-11-20T19:15:00",
                         "imaging_end": "2025-11-21T04:45:00",
-                        "total_imaging_minutes": 570
+                        "total_imaging_minutes": 570,
                     },
-                    "location": {
-                        "name": "Test",
-                        "latitude": 40.0,
-                        "longitude": -74.0,
-                        "elevation": 100
-                    },
+                    "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                     "scheduled_targets": [],
-                    "weather_forecast": []
-                }
+                    "weather_forecast": [],
+                },
             )
             override_get_db.add(plan)
         override_get_db.commit()
@@ -1453,17 +1324,12 @@ class TestAPIBehavior:
                         "sunrise": "2025-11-21T06:45:00",
                         "imaging_start": "2025-11-20T19:15:00",
                         "imaging_end": "2025-11-21T04:45:00",
-                        "total_imaging_minutes": 570
+                        "total_imaging_minutes": 570,
                     },
-                    "location": {
-                        "name": "Test",
-                        "latitude": 40.0,
-                        "longitude": -74.0,
-                        "elevation": 100
-                    },
+                    "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                     "scheduled_targets": [],
-                    "weather_forecast": []
-                }
+                    "weather_forecast": [],
+                },
             )
             override_get_db.add(plan)
         override_get_db.commit()
@@ -1507,17 +1373,12 @@ class TestAPIBehavior:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.put("/api/plans/not_a_number", json=update_data)
@@ -1531,33 +1392,35 @@ class TestBusinessLogic:
         """Test plan with duplicate target names (should be allowed)."""
         targets = []
         for i in range(3):
-            targets.append({
-                "target": {
-                    "name": "M31",  # Same name
-                    "catalog_id": f"M31_{i}",  # Different IDs
-                    "ra_hours": 0.712,
-                    "dec_degrees": 41.269,
-                    "object_type": "galaxy",
-                    "magnitude": 3.4,
-                    "size_arcmin": 178.0
-                },
-                "start_time": "2025-11-20T19:15:00",
-                "end_time": "2025-11-20T19:20:00",
-                "duration_minutes": 5,
-                "start_altitude": 45.0,
-                "end_altitude": 46.0,
-                "start_azimuth": 120.0,
-                "end_azimuth": 121.0,
-                "field_rotation_rate": 0.1,
-                "recommended_exposure": 60,
-                "recommended_frames": 5,
-                "score": {
-                    "visibility_score": 0.85,
-                    "weather_score": 0.80,
-                    "object_score": 0.75,
-                    "total_score": 0.80
+            targets.append(
+                {
+                    "target": {
+                        "name": "M31",  # Same name
+                        "catalog_id": f"M31_{i}",  # Different IDs
+                        "ra_hours": 0.712,
+                        "dec_degrees": 41.269,
+                        "object_type": "galaxy",
+                        "magnitude": 3.4,
+                        "size_arcmin": 178.0,
+                    },
+                    "start_time": "2025-11-20T19:15:00",
+                    "end_time": "2025-11-20T19:20:00",
+                    "duration_minutes": 5,
+                    "start_altitude": 45.0,
+                    "end_altitude": 46.0,
+                    "start_azimuth": 120.0,
+                    "end_azimuth": 121.0,
+                    "field_rotation_rate": 0.1,
+                    "recommended_exposure": 60,
+                    "recommended_frames": 5,
+                    "score": {
+                        "visibility_score": 0.85,
+                        "weather_score": 0.80,
+                        "object_score": 0.75,
+                        "total_score": 0.80,
+                    },
                 }
-            })
+            )
 
         plan_data = {
             "name": "Duplicate Names Plan",
@@ -1576,17 +1439,12 @@ class TestBusinessLogic:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": targets,
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1596,17 +1454,19 @@ class TestBusinessLogic:
         """Test plan with extensive weather forecast data."""
         weather = []
         for i in range(24):  # 24 hour forecast
-            weather.append({
-                "timestamp": f"2025-11-20T{i:02d}:00:00",
-                "cloud_cover": 10.0 + (i * 2),
-                "humidity": 60.0,
-                "temperature": 15.0 - (i * 0.5),
-                "wind_speed": 5.0,
-                "conditions": "Clear",
-                "seeing_arcseconds": 2.5,
-                "transparency_magnitude": 6.0,
-                "source": "7timer"
-            })
+            weather.append(
+                {
+                    "timestamp": f"2025-11-20T{i:02d}:00:00",
+                    "cloud_cover": 10.0 + (i * 2),
+                    "humidity": 60.0,
+                    "temperature": 15.0 - (i * 0.5),
+                    "wind_speed": 5.0,
+                    "conditions": "Clear",
+                    "seeing_arcseconds": 2.5,
+                    "transparency_magnitude": 6.0,
+                    "source": "7timer",
+                }
+            )
 
         plan_data = {
             "name": "Weather Forecast Plan",
@@ -1625,17 +1485,12 @@ class TestBusinessLogic:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": weather
-            }
+                "weather_forecast": weather,
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1669,17 +1524,12 @@ class TestBusinessLogic:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         )
         override_get_db.add(plan)
         override_get_db.commit()
@@ -1689,13 +1539,11 @@ class TestBusinessLogic:
         original_created_at = plan.created_at
 
         import time
+
         time.sleep(0.1)  # Ensure timestamp difference
 
         # Update it
-        update_data = {
-            "name": "Updated",
-            "plan": plan.plan_data
-        }
+        update_data = {"name": "Updated", "plan": plan.plan_data}
 
         response = client.put(f"/api/plans/{plan.id}", json=update_data)
         assert response.status_code == 200
@@ -1727,17 +1575,12 @@ class TestBusinessLogic:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test Observatory",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test Observatory", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         response = client.post("/api/plans/", json=plan_data)
@@ -1785,35 +1628,24 @@ class TestConcurrencyAndPerformance:
                     "sunrise": "2025-11-21T06:45:00",
                     "imaging_start": "2025-11-20T19:15:00",
                     "imaging_end": "2025-11-21T04:45:00",
-                    "total_imaging_minutes": 570
+                    "total_imaging_minutes": 570,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 100
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 100},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         )
         override_get_db.add(plan)
         override_get_db.commit()
         override_get_db.refresh(plan)
 
         # First update
-        update1 = {
-            "name": "First Update",
-            "plan": plan.plan_data
-        }
+        update1 = {"name": "First Update", "plan": plan.plan_data}
         response1 = client.put(f"/api/plans/{plan.id}", json=update1)
         assert response1.status_code == 200
 
         # Second update
-        update2 = {
-            "name": "Second Update",
-            "plan": plan.plan_data
-        }
+        update2 = {"name": "Second Update", "plan": plan.plan_data}
         response2 = client.put(f"/api/plans/{plan.id}", json=update2)
         assert response2.status_code == 200
 
@@ -1851,14 +1683,9 @@ class TestEndToEndPlanWorkflow:
                     "sunrise": "2025-12-02T07:00:00",
                     "imaging_start": "2025-12-01T18:45:00",
                     "imaging_end": "2025-12-02T05:15:00",
-                    "total_imaging_minutes": 630
+                    "total_imaging_minutes": 630,
                 },
-                "location": {
-                    "name": "Test Observatory",
-                    "latitude": 45.5,
-                    "longitude": -122.7,
-                    "elevation": 50
-                },
+                "location": {"name": "Test Observatory", "latitude": 45.5, "longitude": -122.7, "elevation": 50},
                 "scheduled_targets": [
                     {
                         "target": {
@@ -1868,7 +1695,7 @@ class TestEndToEndPlanWorkflow:
                             "dec_degrees": 41.269,
                             "object_type": "galaxy",
                             "magnitude": 3.4,
-                            "size_arcmin": 178.0
+                            "size_arcmin": 178.0,
                         },
                         "start_time": "2025-12-01T19:00:00",
                         "end_time": "2025-12-01T22:00:00",
@@ -1884,12 +1711,12 @@ class TestEndToEndPlanWorkflow:
                             "total_score": 0.85,
                             "visibility_score": 0.90,
                             "weather_score": 0.80,
-                            "object_score": 0.85
-                        }
+                            "object_score": 0.85,
+                        },
                     }
                 ],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         save_response = client.post("/api/plans/", json=plan_data)
@@ -1948,17 +1775,12 @@ class TestEndToEndPlanWorkflow:
                     "sunrise": "2025-12-02T07:00:00",
                     "imaging_start": "2025-12-01T18:45:00",
                     "imaging_end": "2025-12-02T05:15:00",
-                    "total_imaging_minutes": 630
+                    "total_imaging_minutes": 630,
                 },
-                "location": {
-                    "name": "Test",
-                    "latitude": 40.0,
-                    "longitude": -74.0,
-                    "elevation": 10
-                },
+                "location": {"name": "Test", "latitude": 40.0, "longitude": -74.0, "elevation": 10},
                 "scheduled_targets": [],
-                "weather_forecast": []
-            }
+                "weather_forecast": [],
+            },
         }
 
         # Test POST with trailing slash (frontend behavior)
@@ -1981,7 +1803,7 @@ class TestEndToEndPlanWorkflow:
                 "latitude": 45.5,
                 "longitude": -122.7,
                 "elevation": 50,
-                "timezone": "America/Los_Angeles"
+                "timezone": "America/Los_Angeles",
             },
             "observing_date": "2025-12-01",
             "constraints": {
@@ -1989,8 +1811,8 @@ class TestEndToEndPlanWorkflow:
                 "max_altitude": 80.0,
                 "setup_time_minutes": 15,
                 "object_types": ["galaxy", "nebula"],
-                "planning_mode": "balanced"
-            }
+                "planning_mode": "balanced",
+            },
         }
 
         generate_response = client.post("/api/plan", json=plan_request)
@@ -2004,11 +1826,7 @@ class TestEndToEndPlanWorkflow:
         assert "total_targets" in generated_plan
 
         # Step 2: Save the generated plan
-        save_data = {
-            "name": "My Portland Session",
-            "description": "Generated plan for testing",
-            "plan": generated_plan
-        }
+        save_data = {"name": "My Portland Session", "description": "Generated plan for testing", "plan": generated_plan}
 
         save_response = client.post("/api/plans/", json=save_data)
         assert save_response.status_code == 200, f"Save failed: {save_response.text}"

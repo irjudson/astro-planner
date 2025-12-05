@@ -196,9 +196,7 @@ class MoonService:
             phase_info=phase_info,
         )
 
-    def compute_visibility(
-        self, location: Location, time_utc: datetime
-    ) -> MoonVisibility:
+    def compute_visibility(self, location: Location, time_utc: datetime) -> MoonVisibility:
         """Compute moon visibility at a specific location and time.
 
         Args:
@@ -234,9 +232,7 @@ class MoonService:
         is_visible = bool(altitude_deg > 0)
 
         # Calculate rise/set times (next 24 hours)
-        rise_time, set_time = self._calculate_rise_set_times(
-            location, time_utc, earth_location
-        )
+        rise_time, set_time = self._calculate_rise_set_times(location, time_utc, earth_location)
 
         return MoonVisibility(
             ephemeris=ephemeris,
@@ -284,9 +280,7 @@ class MoonService:
             height=location.elevation * u.m,
         )
 
-        moonset_time, moonrise_time = self._calculate_rise_set_times(
-            location, observing_date, earth_location
-        )
+        moonset_time, moonrise_time = self._calculate_rise_set_times(location, observing_date, earth_location)
 
         # Calculate evening dark sky window (twilight end to moonrise, or all night if no moonrise)
         has_evening_window = False

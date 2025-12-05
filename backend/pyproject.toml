@@ -1,0 +1,116 @@
+# pyproject.toml - Tool configurations for code quality
+
+[tool.black]
+line-length = 120
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | alembic/versions
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_gitignore = true
+skip = ["alembic/versions"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "alembic/versions",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "C4"]
+ignore = [
+    "E501",  # Line too long (handled by formatter)
+    "E402",  # Module level import not at top of file (sometimes necessary)
+    "E712",  # Comparison to True (SQLAlchemy filter pattern)
+    "E722",  # Bare except (resilience pattern - TODO: fix later)
+    "B008",  # Function call in default argument (FastAPI pattern)
+    "B904",  # Exception chaining (TODO: fix later)
+    "B028",  # No explicit stacklevel in warn() (TODO: fix later)
+    "B905",  # zip() without strict= (Python 3.10+ feature, need to check compat)
+]
+# Note: UP (pyupgrade) rules disabled for now - enable after modernizing type hints
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "B017", "F841"]
+"app/api/*.py" = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false  # Start permissive, tighten later
+ignore_missing_imports = true
+exclude = [
+    "tests/",
+    "alembic/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "skyfield.*",
+    "astropy.*",
+    "astroquery.*",
+    "pyongc.*",
+    "celery.*",
+    "redis.*",
+]
+ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "venv", "alembic"]
+skips = [
+    "B101",  # Skip assert_used (ok in tests)
+    "B104",  # Binding to all interfaces (normal for dev servers)
+    "B110",  # try_except_pass (sometimes needed for resilience)
+    "B112",  # try_except_continue (sometimes needed for resilience)
+    "B311",  # random module (not used for security purposes)
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "--tb=short",
+    "-v",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: tests requiring full API server",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "tests/*",
+    "alembic/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

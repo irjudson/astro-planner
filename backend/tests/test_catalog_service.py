@@ -1,9 +1,10 @@
 """Comprehensive tests for catalog service."""
 
 import pytest
-from app.services.catalog_service import CatalogService
+
 from app.models import DSOTarget
-from app.models.catalog_models import DSOCatalog, ConstellationName
+from app.models.catalog_models import ConstellationName, DSOCatalog
+from app.services.catalog_service import CatalogService
 
 
 class TestCatalogServiceComprehensive:
@@ -114,14 +115,13 @@ class TestCatalogServiceComprehensive:
         service = CatalogService(override_get_db)
 
         # Get galaxies and nebulae
-        targets = service.filter_targets(
-            object_types=["galaxy", "nebula"],
-            limit=100
-        )
+        targets = service.filter_targets(object_types=["galaxy", "nebula"], limit=100)
         assert len(targets) > 0
         assert all(t.object_type in ["galaxy", "nebula"] for t in targets)
 
-    @pytest.mark.skip(reason="Known bug: pagination with magnitude ordering can produce overlapping pages when magnitudes are equal")
+    @pytest.mark.skip(
+        reason="Known bug: pagination with magnitude ordering can produce overlapping pages when magnitudes are equal"
+    )
     def test_filter_targets_with_pagination(self, override_get_db):
         """Test pagination with limit and offset."""
 
@@ -145,8 +145,9 @@ class TestCatalogServiceComprehensive:
             if len(page2) > 0:
                 page1_ids = {t.catalog_id for t in page1}
                 page2_ids = {t.catalog_id for t in page2}
-                assert len(page1_ids.intersection(page2_ids)) == 0, \
-                    f"Pages overlap: {page1_ids.intersection(page2_ids)}"
+                assert (
+                    len(page1_ids.intersection(page2_ids)) == 0
+                ), f"Pages overlap: {page1_ids.intersection(page2_ids)}"
 
     def test_filter_targets_combined_filters(self, override_get_db):
         """Test combining multiple filters."""
@@ -154,11 +155,7 @@ class TestCatalogServiceComprehensive:
         service = CatalogService(override_get_db)
 
         # Bright galaxies
-        bright_galaxies = service.filter_targets(
-            object_types=["galaxy"],
-            max_magnitude=12.0,
-            limit=20
-        )
+        bright_galaxies = service.filter_targets(object_types=["galaxy"], max_magnitude=12.0, limit=20)
         assert all(t.object_type == "galaxy" for t in bright_galaxies)
         assert all(t.magnitude <= 12.0 for t in bright_galaxies if t.magnitude < 99)
 
@@ -202,9 +199,7 @@ class TestCatalogServiceComprehensive:
         service = CatalogService(override_get_db)
 
         # Get M31 database row
-        dso = override_get_db.query(DSOCatalog).filter(
-            DSOCatalog.common_name == "M031"
-        ).first()
+        dso = override_get_db.query(DSOCatalog).filter(DSOCatalog.common_name == "M031").first()
 
         if dso:
             target = service._db_row_to_target(dso)
@@ -218,10 +213,11 @@ class TestCatalogServiceComprehensive:
         service = CatalogService(override_get_db)
 
         # Get any object with magnitude
-        dso = override_get_db.query(DSOCatalog).filter(
-            DSOCatalog.magnitude.isnot(None),
-            DSOCatalog.magnitude < 10.0
-        ).first()
+        dso = (
+            override_get_db.query(DSOCatalog)
+            .filter(DSOCatalog.magnitude.isnot(None), DSOCatalog.magnitude < 10.0)
+            .first()
+        )
 
         if dso:
             target = service._db_row_to_target(dso)
@@ -234,10 +230,11 @@ class TestCatalogServiceComprehensive:
         service = CatalogService(override_get_db)
 
         # Get any large object
-        dso = override_get_db.query(DSOCatalog).filter(
-            DSOCatalog.size_major_arcmin.isnot(None),
-            DSOCatalog.size_major_arcmin > 10.0
-        ).first()
+        dso = (
+            override_get_db.query(DSOCatalog)
+            .filter(DSOCatalog.size_major_arcmin.isnot(None), DSOCatalog.size_major_arcmin > 10.0)
+            .first()
+        )
 
         if dso:
             target = service._db_row_to_target(dso)

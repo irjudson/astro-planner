@@ -1,20 +1,22 @@
 """API routes for saving and loading observation plans."""
 
-from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Optional
 from datetime import datetime
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from typing import List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.database import get_db
 from app.models import ObservingPlan
 from app.models.plan_models import SavedPlan
-from app.database import get_db
 
 router = APIRouter(prefix="/plans", tags=["plans"])
 
 
 class SavePlanRequest(BaseModel):
     """Request to save an observing plan."""
+
     name: str = Field(description="Name for the saved plan")
     description: Optional[str] = Field(default=None, description="Optional description")
     plan: ObservingPlan = Field(description="The observing plan to save")
@@ -22,6 +24,7 @@ class SavePlanRequest(BaseModel):
 
 class SavedPlanSummary(BaseModel):
     """Summary of a saved plan (for list view)."""
+
     id: int
     name: str
     description: Optional[str]
@@ -37,6 +40,7 @@ class SavedPlanSummary(BaseModel):
 
 class SavedPlanDetail(BaseModel):
     """Full saved plan details (for single plan view)."""
+
     id: int
     name: str
     description: Optional[str]
@@ -73,7 +77,7 @@ async def save_plan(request: SavePlanRequest, db: Session = Depends(get_db)):
             description=request.description,
             observing_date=observing_date,
             location_name=location_name,
-            plan_data=request.plan.model_dump(mode='json'),
+            plan_data=request.plan.model_dump(mode="json"),
         )
 
         db.add(saved_plan)
@@ -184,7 +188,7 @@ async def update_plan(
         plan.description = request.description
         plan.observing_date = request.plan.session.observing_date
         plan.location_name = request.plan.location.name
-        plan.plan_data = request.plan.model_dump(mode='json')
+        plan.plan_data = request.plan.model_dump(mode="json")
         plan.updated_at = datetime.utcnow()
 
         db.commit()
@@ -237,6 +241,6 @@ async def delete_plan(plan_id: int, db: Session = Depends(get_db)):
         if "foreign key constraint" in error_msg.lower() or "violates foreign key" in error_msg.lower():
             raise HTTPException(
                 status_code=409,
-                detail=f"Cannot delete plan {plan_id}: it is referenced by existing telescope executions"
+                detail=f"Cannot delete plan {plan_id}: it is referenced by existing telescope executions",
             )
         raise HTTPException(status_code=500, detail=f"Error deleting plan: {error_msg}")

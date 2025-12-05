@@ -1,14 +1,16 @@
 """Tests for ClearDarkSky weather service integration."""
 
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime
+from unittest.mock import Mock, patch
+
+import pytest
+
 from app.services.cleardarksky_service import (
-    ClearDarkSkyService,
     ClearDarkSkyForecast,
+    ClearDarkSkyService,
     CloudCover,
-    Transparency,
     Seeing,
+    Transparency,
 )
 
 
@@ -51,7 +53,7 @@ class TestClearDarkSkyForecast:
             transparency=Transparency.EXCELLENT,
             seeing=Seeing.GOOD,
             temperature_c=10.0,
-            wind_speed_kmh=15.0
+            wind_speed_kmh=15.0,
         )
         assert forecast.cloud_cover == CloudCover.CLEAR
         assert forecast.transparency == Transparency.EXCELLENT
@@ -67,7 +69,7 @@ class TestClearDarkSkyForecast:
             transparency=Transparency.EXCELLENT,
             seeing=Seeing.EXCELLENT,
             temperature_c=10.0,
-            wind_speed_kmh=10.0
+            wind_speed_kmh=10.0,
         )
         score = forecast.astronomy_score()
         assert score >= 0.9  # Near perfect
@@ -79,7 +81,7 @@ class TestClearDarkSkyForecast:
             transparency=Transparency.POOR,
             seeing=Seeing.POOR,
             temperature_c=10.0,
-            wind_speed_kmh=40.0
+            wind_speed_kmh=40.0,
         )
         score_poor = forecast_poor.astronomy_score()
         assert score_poor <= 0.3  # Very poor
@@ -106,7 +108,7 @@ class TestClearDarkSkyService:
         chart_id_2 = service.find_nearest_chart(latitude=40.7, longitude=-74.0)
         assert chart_id_1 == chart_id_2  # Should be cached
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_fetch_forecast_success(self, mock_get, service):
         """Test successful forecast fetch."""
         mock_response = Mock()
@@ -117,11 +119,11 @@ class TestClearDarkSkyService:
         forecasts = service.fetch_forecast(chart_id="test_chart")
         assert isinstance(forecasts, list)
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_fetch_forecast_api_error(self, mock_get, service):
         """Test handling API errors."""
         mock_get.side_effect = Exception("Network error")
-        
+
         forecasts = service.fetch_forecast(chart_id="test_chart")
         assert forecasts == []  # Returns empty list on error
 

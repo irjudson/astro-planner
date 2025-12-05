@@ -1,13 +1,15 @@
 """SQLAlchemy models for saved observing plans."""
 
-from sqlalchemy import Column, Integer, String, DateTime, JSON, Text
 from datetime import datetime
+
+from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
 
 from app.database import Base
 
 
 class SavedPlan(Base):
     """Saved observing plan."""
+
     __tablename__ = "saved_plans"
 
     id = Column(Integer, primary_key=True, index=True)

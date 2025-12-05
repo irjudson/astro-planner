@@ -1,14 +1,16 @@
 """ISS and satellite pass prediction service."""
 
-from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from pydantic import BaseModel
+from typing import List, Optional
+
 import requests
+from pydantic import BaseModel
 
 
 class PassVisibility(Enum):
     """Satellite pass visibility quality (1-4 scale)."""
+
     EXCELLENT = 4
     GOOD = 3
     FAIR = 2
@@ -53,11 +55,7 @@ class SatellitePass(BaseModel):
         duration_score = min(duration / 6.0, 1.0)
 
         # Weighted average
-        total_score = (
-            altitude_score * 0.5 +
-            visibility_score * 0.3 +
-            duration_score * 0.2
-        )
+        total_score = altitude_score * 0.5 + visibility_score * 0.3 + duration_score * 0.2
 
         return total_score
 
@@ -71,11 +69,7 @@ class SatelliteService:
         self.timeout = 10
 
     def get_iss_passes(
-        self,
-        latitude: float,
-        longitude: float,
-        days: int = 10,
-        min_altitude: float = 0.0
+        self, latitude: float, longitude: float, days: int = 10, min_altitude: float = 0.0
     ) -> List[SatellitePass]:
         """
         Get ISS pass predictions for location.
@@ -96,7 +90,7 @@ class SatelliteService:
             latitude=latitude,
             longitude=longitude,
             days=days,
-            min_altitude=min_altitude
+            min_altitude=min_altitude,
         )
 
     def get_satellite_passes(
@@ -106,7 +100,7 @@ class SatelliteService:
         latitude: float,
         longitude: float,
         days: int = 10,
-        min_altitude: float = 0.0
+        min_altitude: float = 0.0,
     ) -> List[SatellitePass]:
         """
         Get satellite pass predictions.
@@ -127,11 +121,7 @@ class SatelliteService:
             # Note: Real implementation would need API key from n2yo.com
             # This is simplified for demonstration
             passes_data = self._fetch_passes_from_api(
-                norad_id=norad_id,
-                latitude=latitude,
-                longitude=longitude,
-                days=days,
-                min_altitude=min_altitude
+                norad_id=norad_id, latitude=latitude, longitude=longitude, days=days, min_altitude=min_altitude
             )
 
             # Parse into SatellitePass objects
@@ -148,12 +138,7 @@ class SatelliteService:
             return []
 
     def _fetch_passes_from_api(
-        self,
-        norad_id: int,
-        latitude: float,
-        longitude: float,
-        days: int,
-        min_altitude: float
+        self, norad_id: int, latitude: float, longitude: float, days: int, min_altitude: float
     ) -> List[dict]:
         """
         Fetch pass data from API.
@@ -172,11 +157,7 @@ class SatelliteService:
         data = response.json()
         return data.get("passes", [])
 
-    def _parse_pass_data(
-        self,
-        satellite_name: str,
-        pass_data: dict
-    ) -> Optional[SatellitePass]:
+    def _parse_pass_data(self, satellite_name: str, pass_data: dict) -> Optional[SatellitePass]:
         """Parse pass data from API response."""
         try:
             # Parse timestamps
@@ -207,17 +188,13 @@ class SatelliteService:
                 start_azimuth_deg=start_az,
                 end_azimuth_deg=end_az,
                 visibility=visibility,
-                magnitude=magnitude
+                magnitude=magnitude,
             )
 
         except (KeyError, ValueError):
             return None
 
-    def _classify_visibility(
-        self,
-        magnitude: float,
-        max_altitude: float
-    ) -> PassVisibility:
+    def _classify_visibility(self, magnitude: float, max_altitude: float) -> PassVisibility:
         """
         Classify pass visibility based on brightness and altitude.
 
@@ -247,7 +224,7 @@ class SatelliteService:
         self,
         passes: List[SatellitePass],
         min_altitude: float = 20.0,
-        min_visibility: PassVisibility = PassVisibility.POOR
+        min_visibility: PassVisibility = PassVisibility.POOR,
     ) -> List[SatellitePass]:
         """
         Filter passes by minimum criteria.
@@ -262,16 +239,11 @@ class SatelliteService:
         """
         filtered = []
         for pass_obj in passes:
-            if (pass_obj.max_altitude_deg >= min_altitude and
-                pass_obj.visibility.value >= min_visibility.value):
+            if pass_obj.max_altitude_deg >= min_altitude and pass_obj.visibility.value >= min_visibility.value:
                 filtered.append(pass_obj)
         return filtered
 
-    def get_best_passes(
-        self,
-        passes: List[SatellitePass],
-        count: int = 5
-    ) -> List[SatellitePass]:
+    def get_best_passes(self, passes: List[SatellitePass], count: int = 5) -> List[SatellitePass]:
         """
         Get best passes sorted by quality score.
 
@@ -282,11 +254,7 @@ class SatelliteService:
         Returns:
             Top passes sorted by quality
         """
-        sorted_passes = sorted(
-            passes,
-            key=lambda p: p.quality_score(),
-            reverse=True
-        )
+        sorted_passes = sorted(passes, key=lambda p: p.quality_score(), reverse=True)
         return sorted_passes[:count]
 
     def _compass_to_degrees(self, compass: str) -> float:
@@ -315,6 +283,6 @@ class SatelliteService:
             "W": 270,
             "WNW": 292.5,
             "NW": 315,
-            "NNW": 337.5
+            "NNW": 337.5,
         }
         return compass_map.get(compass.upper(), 0.0)

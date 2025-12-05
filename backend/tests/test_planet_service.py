@@ -1,9 +1,11 @@
 """Tests for planet service."""
 
-import pytest
 from datetime import datetime
-from app.services.planet_service import PlanetService, PLANET_DATA
-from app.models import Location, PlanetTarget, PlanetEphemeris, PlanetVisibility
+
+import pytest
+
+from app.models import Location, PlanetEphemeris, PlanetTarget, PlanetVisibility
+from app.services.planet_service import PLANET_DATA, PlanetService
 
 
 @pytest.fixture
@@ -16,11 +18,7 @@ def planet_service():
 def sample_location():
     """Create sample observer location."""
     return Location(
-        name="Test Observatory",
-        latitude=45.0,
-        longitude=-111.0,
-        elevation=1500.0,
-        timezone="America/Denver"
+        name="Test Observatory", latitude=45.0, longitude=-111.0, elevation=1500.0, timezone="America/Denver"
     )
 
 
@@ -41,8 +39,13 @@ class TestPlanetData:
     def test_planet_data_has_required_fields(self):
         """Test that each planet has required fields."""
         required_fields = [
-            "planet_type", "diameter_km", "orbital_period_days",
-            "rotation_period_hours", "has_rings", "num_moons", "notes"
+            "planet_type",
+            "diameter_km",
+            "orbital_period_days",
+            "rotation_period_hours",
+            "has_rings",
+            "num_moons",
+            "notes",
         ]
         for name, data in PLANET_DATA.items():
             for field in required_fields:
@@ -232,6 +235,7 @@ class TestHeliocentricDistance:
     def test_mercury_heliocentric_distance(self, planet_service):
         """Test Mercury heliocentric distance."""
         from astropy.time import Time
+
         t = Time(datetime(2024, 6, 15, 12, 0, 0))
         dist = planet_service._get_heliocentric_distance("Mercury", t)
 
@@ -241,6 +245,7 @@ class TestHeliocentricDistance:
     def test_mars_heliocentric_distance(self, planet_service):
         """Test Mars heliocentric distance."""
         from astropy.time import Time
+
         t = Time(datetime(2024, 6, 15, 12, 0, 0))
         dist = planet_service._get_heliocentric_distance("Mars", t)
 
@@ -253,29 +258,21 @@ class TestEstimateMagnitude:
 
     def test_jupiter_brighter_than_mars(self, planet_service):
         """Test Jupiter is brighter than Mars."""
-        jupiter_mag = planet_service._estimate_magnitude(
-            "Jupiter", 5.0, 5.2, 10.0
-        )
-        mars_mag = planet_service._estimate_magnitude(
-            "Mars", 1.5, 1.52, 20.0
-        )
+        jupiter_mag = planet_service._estimate_magnitude("Jupiter", 5.0, 5.2, 10.0)
+        mars_mag = planet_service._estimate_magnitude("Mars", 1.5, 1.52, 20.0)
         # Jupiter should be brighter (more negative magnitude)
         assert jupiter_mag < mars_mag
 
     def test_venus_is_very_bright(self, planet_service):
         """Test Venus magnitude calculation."""
-        venus_mag = planet_service._estimate_magnitude(
-            "Venus", 0.7, 0.72, 30.0
-        )
+        venus_mag = planet_service._estimate_magnitude("Venus", 0.7, 0.72, 30.0)
         # Venus is very bright
         assert venus_mag < -3.0
 
     def test_magnitude_clamped(self, planet_service):
         """Test magnitude is clamped to reasonable range."""
         # Extreme values should still be clamped
-        mag = planet_service._estimate_magnitude(
-            "Neptune", 50.0, 30.0, 180.0  # Very extreme values
-        )
+        mag = planet_service._estimate_magnitude("Neptune", 50.0, 30.0, 180.0)  # Very extreme values
         assert -10.0 <= mag <= 20.0
 
 
@@ -323,9 +320,7 @@ class TestRiseSetTimes:
     def test_calculate_rise_set_returns_tuple(self, planet_service, sample_location):
         """Test rise/set calculation returns tuple."""
         time_utc = datetime(2024, 6, 15, 12, 0, 0)
-        rise, set_time = planet_service._calculate_rise_set_times(
-            "Jupiter", sample_location, time_utc
-        )
+        rise, set_time = planet_service._calculate_rise_set_times("Jupiter", sample_location, time_utc)
 
         # Should return tuple of (datetime or None, datetime or None)
         assert rise is None or isinstance(rise, datetime)
@@ -353,9 +348,7 @@ class TestGetVisiblePlanets:
     def test_sorted_by_altitude(self, planet_service, sample_location):
         """Test results are sorted by altitude (highest first)."""
         time_utc = datetime(2024, 6, 15, 12, 0, 0)
-        result = planet_service.get_visible_planets(
-            sample_location, time_utc, include_daytime=True
-        )
+        result = planet_service.get_visible_planets(sample_location, time_utc, include_daytime=True)
 
         if len(result) > 1:
             altitudes = [v.altitude_deg for v in result]
@@ -364,9 +357,7 @@ class TestGetVisiblePlanets:
     def test_min_altitude_filter(self, planet_service, sample_location):
         """Test minimum altitude filter."""
         time_utc = datetime(2024, 6, 15, 12, 0, 0)
-        result = planet_service.get_visible_planets(
-            sample_location, time_utc, min_altitude=30.0, include_daytime=True
-        )
+        result = planet_service.get_visible_planets(sample_location, time_utc, min_altitude=30.0, include_daytime=True)
 
         for visibility in result:
             assert visibility.altitude_deg >= 30.0
@@ -376,12 +367,8 @@ class TestGetVisiblePlanets:
         # Daytime UTC
         time_utc = datetime(2024, 6, 15, 18, 0, 0)  # 18:00 UTC = noon MDT
 
-        with_daytime = planet_service.get_visible_planets(
-            sample_location, time_utc, include_daytime=True
-        )
-        without_daytime = planet_service.get_visible_planets(
-            sample_location, time_utc, include_daytime=False
-        )
+        with_daytime = planet_service.get_visible_planets(sample_location, time_utc, include_daytime=True)
+        without_daytime = planet_service.get_visible_planets(sample_location, time_utc, include_daytime=False)
 
         # With daytime should have >= planets than without
         assert len(with_daytime) >= len(without_daytime)
@@ -392,30 +379,16 @@ class TestEdgeCases:
 
     def test_extreme_latitude(self, planet_service):
         """Test with extreme latitude location."""
-        arctic_location = Location(
-            name="Arctic",
-            latitude=89.0,
-            longitude=0.0,
-            elevation=0.0,
-            timezone="UTC"
-        )
+        arctic_location = Location(name="Arctic", latitude=89.0, longitude=0.0, elevation=0.0, timezone="UTC")
         time_utc = datetime(2024, 6, 15, 12, 0, 0)
 
         # Should not crash
-        result = planet_service.compute_visibility(
-            "Jupiter", arctic_location, time_utc
-        )
+        result = planet_service.compute_visibility("Jupiter", arctic_location, time_utc)
         assert isinstance(result, PlanetVisibility)
 
     def test_southern_hemisphere(self, planet_service):
         """Test with southern hemisphere location."""
-        sydney = Location(
-            name="Sydney",
-            latitude=-33.87,
-            longitude=151.21,
-            elevation=58.0,
-            timezone="Australia/Sydney"
-        )
+        sydney = Location(name="Sydney", latitude=-33.87, longitude=151.21, elevation=58.0, timezone="Australia/Sydney")
         time_utc = datetime(2024, 6, 15, 12, 0, 0)
 
         result = planet_service.get_visible_planets(sydney, time_utc)

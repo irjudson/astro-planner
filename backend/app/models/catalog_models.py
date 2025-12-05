@@ -1,13 +1,15 @@
 """SQLAlchemy models for catalog tables (DSO and comets)."""
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Date
 from datetime import datetime
+
+from sqlalchemy import Column, Date, DateTime, Float, Integer, String, Text
 
 from app.database import Base
 
 
 class DSOCatalog(Base):
     """Deep Sky Object catalog table."""
+
     __tablename__ = "dso_catalog"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -29,6 +31,7 @@ class DSOCatalog(Base):
 
 class CometCatalog(Base):
     """Comet catalog table."""
+
     __tablename__ = "comet_catalog"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -59,6 +62,7 @@ class CometCatalog(Base):
 
 class AsteroidCatalog(Base):
     """Asteroid catalog table."""
+
     __tablename__ = "asteroid_catalog"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -97,6 +101,7 @@ class AsteroidCatalog(Base):
 
 class ConstellationName(Base):
     """Constellation name lookup table."""
+
     __tablename__ = "constellation_names"
 
     id = Column(Integer, primary_key=True, index=True)

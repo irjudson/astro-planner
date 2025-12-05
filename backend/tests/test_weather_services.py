@@ -1,24 +1,21 @@
 """Tests for weather and 7Timer services."""
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 import pytz
 
-from app.services.weather_service import WeatherService
-from app.services.seven_timer_service import SevenTimerService
 from app.models import Location, WeatherForecast
+from app.services.seven_timer_service import SevenTimerService
+from app.services.weather_service import WeatherService
 
 
 @pytest.fixture
 def sample_location():
     """Sample location."""
     return Location(
-        name="Three Forks, MT",
-        latitude=45.9183,
-        longitude=-111.5433,
-        elevation=1234.0,
-        timezone="America/Denver"
+        name="Three Forks, MT", latitude=45.9183, longitude=-111.5433, elevation=1234.0, timezone="America/Denver"
     )
 
 
@@ -75,11 +72,7 @@ class TestSevenTimerService:
         """Test condition description for clear skies."""
         service = SevenTimerService()
 
-        description = service._describe_conditions(
-            seeing=0.8,
-            transparency=21.0,
-            cloudcover=10
-        )
+        description = service._describe_conditions(seeing=0.8, transparency=21.0, cloudcover=10)
 
         assert "clear" in description.lower()
         assert "excellent seeing" in description.lower()
@@ -89,11 +82,7 @@ class TestSevenTimerService:
         """Test condition description for poor conditions."""
         service = SevenTimerService()
 
-        description = service._describe_conditions(
-            seeing=5.0,
-            transparency=16.0,
-            cloudcover=95
-        )
+        description = service._describe_conditions(seeing=5.0, transparency=16.0, cloudcover=95)
 
         assert "overcast" in description.lower()
         assert "poor" in description.lower()
@@ -102,16 +91,12 @@ class TestSevenTimerService:
         """Test condition description for moderate conditions."""
         service = SevenTimerService()
 
-        description = service._describe_conditions(
-            seeing=1.5,
-            transparency=19.0,
-            cloudcover=40
-        )
+        description = service._describe_conditions(seeing=1.5, transparency=19.0, cloudcover=40)
 
         assert "partly cloudy" in description.lower() or "mostly cloudy" in description.lower()
         assert "good" in description.lower() or "average" in description.lower()
 
-    @patch('app.services.seven_timer_service.requests.get')
+    @patch("app.services.seven_timer_service.requests.get")
     def test_get_astronomy_forecast_success(self, mock_get, sample_location):
         """Test successful 7Timer API call."""
         # Mock API response
@@ -125,17 +110,10 @@ class TestSevenTimerService:
                     "transparency": 6,
                     "cloudcover": 2,
                     "temp2m": 10,
-                    "wind10m": {"speed": 3}
+                    "wind10m": {"speed": 3},
                 },
-                {
-                    "timepoint": 3,
-                    "seeing": 3,
-                    "transparency": 5,
-                    "cloudcover": 3,
-                    "temp2m": 8,
-                    "wind10m": {"speed": 2}
-                }
-            ]
+                {"timepoint": 3, "seeing": 3, "transparency": 5, "cloudcover": 3, "temp2m": 8, "wind10m": {"speed": 2}},
+            ],
         }
         mock_response.raise_for_status = Mock()
         mock_get.return_value = mock_response
@@ -152,7 +130,7 @@ class TestSevenTimerService:
         assert all(f.seeing_arcseconds is not None for f in forecasts)
         assert all(f.transparency_magnitude is not None for f in forecasts)
 
-    @patch('app.services.seven_timer_service.requests.get')
+    @patch("app.services.seven_timer_service.requests.get")
     def test_get_astronomy_forecast_api_error(self, mock_get, sample_location):
         """Test 7Timer API error handling."""
         mock_get.side_effect = Exception("API error")
@@ -165,7 +143,7 @@ class TestSevenTimerService:
 
         assert forecasts == []  # Should return empty list on error
 
-    @patch('app.services.seven_timer_service.requests.get')
+    @patch("app.services.seven_timer_service.requests.get")
     def test_get_astronomy_forecast_no_dataseries(self, mock_get, sample_location):
         """Test 7Timer response with no dataseries."""
         mock_response = Mock()
@@ -199,7 +177,7 @@ class TestWeatherService:
             conditions="Clear",
             seeing_arcseconds=0.8,
             transparency_magnitude=21.5,
-            source="composite"
+            source="composite",
         )
         score = service.calculate_weather_score(composite_forecast)
         assert score >= 0.9  # Should be very high
@@ -214,7 +192,7 @@ class TestWeatherService:
             conditions="Overcast",
             seeing_arcseconds=8.0,
             transparency_magnitude=16.0,
-            source="composite"
+            source="composite",
         )
         score = service.calculate_weather_score(poor_composite)
         assert score < 0.3  # Should be very low
@@ -233,7 +211,7 @@ class TestWeatherService:
             conditions="Clear",
             seeing_arcseconds=0.6,
             transparency_magnitude=21.0,
-            source="7timer"
+            source="7timer",
         )
         score = service.calculate_weather_score(astro_forecast)
         assert score >= 0.85
@@ -248,7 +226,7 @@ class TestWeatherService:
             conditions="Clear",
             seeing_arcseconds=7.0,
             transparency_magnitude=16.5,
-            source="7timer"
+            source="7timer",
         )
         score = service.calculate_weather_score(poor_astro)
         assert score < 0.45  # Slightly higher than expected due to scoring algorithm
@@ -304,22 +282,16 @@ class TestWeatherService:
         service = WeatherService()
 
         # Test with seeing info
-        merged = service._merge_conditions(
-            "Clear sky",
-            "Partly cloudy, excellent seeing, good transparency"
-        )
+        merged = service._merge_conditions("Clear sky", "Partly cloudy, excellent seeing, good transparency")
         assert "Clear sky" in merged
         assert "seeing" in merged.lower() or "transparency" in merged.lower()
 
         # Test without seeing info
-        merged = service._merge_conditions(
-            "Clear sky",
-            "Partly cloudy"
-        )
+        merged = service._merge_conditions("Clear sky", "Partly cloudy")
         assert merged == "Clear sky"
 
-    @patch('app.services.weather_service.SevenTimerService')
-    @patch('app.services.weather_service.requests.get')
+    @patch("app.services.weather_service.SevenTimerService")
+    @patch("app.services.weather_service.requests.get")
     def test_merge_forecasts_time_matching(self, mock_get, mock_seven_timer, sample_location):
         """Test forecast merging with time window matching."""
         # Mock OpenWeatherMap response
@@ -331,15 +303,15 @@ class TestWeatherService:
                     "clouds": {"all": 10},
                     "main": {"humidity": 50, "temp": 10},
                     "wind": {"speed": 3},
-                    "weather": [{"description": "clear sky"}]
+                    "weather": [{"description": "clear sky"}],
                 },
                 {
                     "dt": int(datetime(2025, 11, 6, 3, 0, 0, tzinfo=pytz.UTC).timestamp()),
                     "clouds": {"all": 20},
                     "main": {"humidity": 55, "temp": 9},
                     "wind": {"speed": 4},
-                    "weather": [{"description": "few clouds"}]
-                }
+                    "weather": [{"description": "few clouds"}],
+                },
             ]
         }
         mock_owm_response.raise_for_status = Mock()
@@ -357,7 +329,7 @@ class TestWeatherService:
                 conditions="Clear",
                 seeing_arcseconds=1.2,
                 transparency_magnitude=20.0,
-                source="7timer"
+                source="7timer",
             )
         ]
         mock_seven_timer.return_value = mock_seven_timer_instance
@@ -375,8 +347,8 @@ class TestWeatherService:
         if composite_forecasts:
             assert any(f.seeing_arcseconds is not None for f in composite_forecasts)
 
-    @patch('app.services.weather_service.SevenTimerService')
-    @patch('app.services.weather_service.requests.get')
+    @patch("app.services.weather_service.SevenTimerService")
+    @patch("app.services.weather_service.requests.get")
     def test_forecast_fallback_owm_only(self, mock_get, mock_seven_timer, sample_location):
         """Test fallback to OpenWeatherMap only."""
         # Mock OpenWeatherMap response
@@ -388,7 +360,7 @@ class TestWeatherService:
                     "clouds": {"all": 10},
                     "main": {"humidity": 50, "temp": 10},
                     "wind": {"speed": 3},
-                    "weather": [{"description": "clear sky"}]
+                    "weather": [{"description": "clear sky"}],
                 }
             ]
         }
@@ -411,8 +383,8 @@ class TestWeatherService:
         assert all(f.source == "openweathermap" for f in forecasts)
         assert all(f.seeing_arcseconds is None for f in forecasts)
 
-    @patch('app.services.weather_service.SevenTimerService')
-    @patch('app.services.weather_service.requests.get')
+    @patch("app.services.weather_service.SevenTimerService")
+    @patch("app.services.weather_service.requests.get")
     def test_forecast_fallback_seven_timer_only(self, mock_get, mock_seven_timer, sample_location):
         """Test fallback to 7Timer only."""
         # Mock OpenWeatherMap failure
@@ -430,7 +402,7 @@ class TestWeatherService:
                 conditions="Clear",
                 seeing_arcseconds=1.2,
                 transparency_magnitude=20.0,
-                source="7timer"
+                source="7timer",
             )
         ]
         mock_seven_timer.return_value = mock_seven_timer_instance
@@ -446,8 +418,8 @@ class TestWeatherService:
         assert all(f.source == "7timer" for f in forecasts)
         assert all(f.seeing_arcseconds is not None for f in forecasts)
 
-    @patch('app.services.weather_service.SevenTimerService')
-    @patch('app.services.weather_service.requests.get')
+    @patch("app.services.weather_service.SevenTimerService")
+    @patch("app.services.weather_service.requests.get")
     def test_forecast_complete_failure(self, mock_get, mock_seven_timer, sample_location):
         """Test fallback to default forecast when both APIs fail."""
         # Mock both API failures

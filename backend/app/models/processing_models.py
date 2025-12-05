@@ -1,14 +1,16 @@
 """SQLAlchemy models for direct file processing (no sessions)."""
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, Text, JSON, ForeignKey, BigInteger
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import JSON, BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
 
 class ProcessingFile(Base):
     """Individual FITS file for processing."""
+
     __tablename__ = "processing_files"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -26,6 +28,7 @@ class ProcessingFile(Base):
 
 class ProcessingPipeline(Base):
     """Processing pipeline (workflow template)."""
+
     __tablename__ = "processing_pipelines"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -43,13 +46,14 @@ class ProcessingPipeline(Base):
 
 class ProcessingJob(Base):
     """Processing job execution."""
+
     __tablename__ = "processing_jobs"
 
     id = Column(Integer, primary_key=True, index=True)
     file_id = Column(Integer, ForeignKey("processing_files.id"), nullable=False)
     pipeline_id = Column(Integer, ForeignKey("processing_pipelines.id"), nullable=False)
     container_id = Column(String(64), nullable=True)  # Docker container ID
-    status = Column(String(20), default='queued')  # queued, starting, running, complete, failed, cancelled
+    status = Column(String(20), default="queued")  # queued, starting, running, complete, failed, cancelled
     progress_percent = Column(Float, default=0.0)
     current_step = Column(String(50), nullable=True)
     started_at = Column(DateTime, nullable=True)

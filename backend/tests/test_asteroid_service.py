@@ -1,19 +1,14 @@
 """Tests for asteroid service."""
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from sqlalchemy.orm import Session
 
-from app.services.asteroid_service import AsteroidService
-from app.models import (
-    AsteroidTarget,
-    AsteroidOrbitalElements,
-    AsteroidEphemeris,
-    AsteroidVisibility,
-    Location,
-)
+from app.models import AsteroidEphemeris, AsteroidOrbitalElements, AsteroidTarget, AsteroidVisibility, Location
 from app.models.catalog_models import AsteroidCatalog
+from app.services.asteroid_service import AsteroidService
 
 
 @pytest.fixture
@@ -38,7 +33,7 @@ def sample_orbital_elements():
         inclination_deg=10.59,
         arg_perihelion_deg=73.6,
         ascending_node_deg=80.3,
-        mean_anomaly_deg=77.37
+        mean_anomaly_deg=77.37,
     )
 
 
@@ -60,7 +55,7 @@ def sample_asteroid(sample_orbital_elements):
         asteroid_type="Main Belt",
         discovery_date="1801-01-01",  # String, not datetime
         data_source="MPC",
-        notes="Dwarf planet"
+        notes="Dwarf planet",
     )
 
 
@@ -68,11 +63,7 @@ def sample_asteroid(sample_orbital_elements):
 def sample_location():
     """Create sample observer location."""
     return Location(
-        name="Test Observatory",
-        latitude=45.0,
-        longitude=-111.0,
-        elevation=1500.0,
-        timezone="America/Denver"
+        name="Test Observatory", latitude=45.0, longitude=-111.0, elevation=1500.0, timezone="America/Denver"
     )
 
 
@@ -94,7 +85,7 @@ class TestAsteroidService:
         # Mock the database operations
         mock_db.add = Mock()
         mock_db.commit = Mock()
-        mock_db.refresh = Mock(side_effect=lambda x: setattr(x, 'id', 1))
+        mock_db.refresh = Mock(side_effect=lambda x: setattr(x, "id", 1))
 
         result = asteroid_service.add_asteroid(sample_asteroid)
 
@@ -236,7 +227,7 @@ class TestAsteroidEphemeris:
             orbital_elements=sample_orbital_elements,
             absolute_magnitude=None,  # No magnitude
             slope_parameter=0.15,  # Default value, cannot be None
-            current_magnitude=None
+            current_magnitude=None,
         )
         time_utc = datetime(2024, 6, 15, 12, 0, 0)
 
@@ -252,9 +243,7 @@ class TestAsteroidVisibility:
         """Test computing visibility for an asteroid."""
         time_utc = datetime(2024, 6, 15, 2, 0, 0)  # Night time
 
-        result = asteroid_service.compute_visibility(
-            sample_asteroid, sample_location, time_utc
-        )
+        result = asteroid_service.compute_visibility(sample_asteroid, sample_location, time_utc)
 
         assert result is not None
         assert result.asteroid == sample_asteroid
@@ -269,9 +258,7 @@ class TestAsteroidVisibility:
         # At noon, Ceres might be below horizon
         time_utc = datetime(2024, 6, 15, 12, 0, 0)
 
-        result = asteroid_service.compute_visibility(
-            sample_asteroid, sample_location, time_utc
-        )
+        result = asteroid_service.compute_visibility(sample_asteroid, sample_location, time_utc)
 
         # is_visible should match altitude > 0
         assert result.is_visible == (result.altitude_deg > 0)
@@ -280,24 +267,18 @@ class TestAsteroidVisibility:
 class TestGetVisibleAsteroids:
     """Test getting visible asteroids."""
 
-    def test_get_visible_asteroids_empty_catalog(
-        self, asteroid_service, mock_db, sample_location
-    ):
+    def test_get_visible_asteroids_empty_catalog(self, asteroid_service, mock_db, sample_location):
         """Test getting visible asteroids from empty catalog."""
         mock_query = Mock()
         mock_query.order_by.return_value.all.return_value = []
         mock_db.query.return_value = mock_query
 
         time_utc = datetime(2024, 6, 15, 2, 0, 0)
-        result = asteroid_service.get_visible_asteroids(
-            sample_location, time_utc
-        )
+        result = asteroid_service.get_visible_asteroids(sample_location, time_utc)
 
         assert result == []
 
-    def test_get_visible_asteroids_filters_by_magnitude(
-        self, asteroid_service, mock_db, sample_location
-    ):
+    def test_get_visible_asteroids_filters_by_magnitude(self, asteroid_service, mock_db, sample_location):
         """Test that visible asteroids filters by maximum magnitude."""
         # Create mock asteroid that is too faint
         mock_db_asteroid = MagicMock(spec=AsteroidCatalog)
@@ -328,9 +309,7 @@ class TestGetVisibleAsteroids:
         mock_db.query.return_value = mock_query
 
         time_utc = datetime(2024, 6, 15, 2, 0, 0)
-        result = asteroid_service.get_visible_asteroids(
-            sample_location, time_utc, max_magnitude=12.0
-        )
+        result = asteroid_service.get_visible_asteroids(sample_location, time_utc, max_magnitude=12.0)
 
         # Should be empty because asteroid is too faint
         assert result == []

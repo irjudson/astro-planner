@@ -1,15 +1,17 @@
 """GPU-accelerated image processing operations."""
 
-import numpy as np
-from pathlib import Path
-from typing import Dict, Any, Tuple
 import logging
+from pathlib import Path
+from typing import Any, Dict, Tuple
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 # Try to import GPU libraries
 try:
     import cupy as cp
+
     GPU_AVAILABLE = True
     logger.info("CuPy (GPU) available")
 except ImportError:
@@ -33,26 +35,21 @@ def check_gpu_available() -> Dict[str, Any]:
 
         gpu_info = []
         for i in range(gpu_count):
-            device = cp.cuda.Device(i)
+            cp.cuda.Device(i)
             props = cp.cuda.runtime.getDeviceProperties(i)
 
-            gpu_info.append({
-                "id": i,
-                "name": props['name'].decode(),
-                "memory_gb": props['totalGlobalMem'] / 1e9,
-                "compute_capability": f"{props['major']}.{props['minor']}"
-            })
+            gpu_info.append(
+                {
+                    "id": i,
+                    "name": props["name"].decode(),
+                    "memory_gb": props["totalGlobalMem"] / 1e9,
+                    "compute_capability": f"{props['major']}.{props['minor']}",
+                }
+            )
 
-        return {
-            "available": True,
-            "count": gpu_count,
-            "devices": gpu_info
-        }
+        return {"available": True, "count": gpu_count, "devices": gpu_info}
     except Exception as e:
-        return {
-            "available": False,
-            "error": str(e)
-        }
+        return {"available": False, "error": str(e)}
 
 
 def load_fits(fits_path: str) -> Tuple[np.ndarray, Any]:
@@ -75,11 +72,7 @@ def save_fits(fits_path: str, data: np.ndarray, header: Any):
     fits.writeto(fits_path, data, header, overwrite=True)
 
 
-def gpu_histogram_stretch(
-    input_path: str,
-    output_path: str,
-    params: Dict[str, Any]
-) -> str:
+def gpu_histogram_stretch(input_path: str, output_path: str, params: Dict[str, Any]) -> str:
     """
     GPU-accelerated histogram stretch using CuPy.
     10-50x faster than CPU for large FITS files.
@@ -103,10 +96,7 @@ def gpu_histogram_stretch(
     logger.info(f"Stretch points: black={black_point}, white={white_point}")
 
     # Apply stretch on GPU
-    gpu_stretched = cp.clip(
-        (gpu_data - black_point) / (white_point - black_point),
-        0, 1
-    )
+    gpu_stretched = cp.clip((gpu_data - black_point) / (white_point - black_point), 0, 1)
 
     # Apply midtones transfer function
     midtones = params.get("midtones", 0.5)
@@ -122,11 +112,7 @@ def gpu_histogram_stretch(
     return output_path
 
 
-def cpu_histogram_stretch(
-    input_path: str,
-    output_path: str,
-    params: Dict[str, Any]
-) -> str:
+def cpu_histogram_stretch(input_path: str, output_path: str, params: Dict[str, Any]) -> str:
     """CPU fallback for histogram stretch."""
     logger.info(f"CPU histogram stretch: {input_path} -> {output_path}")
 
@@ -144,10 +130,7 @@ def cpu_histogram_stretch(
     logger.info(f"Stretch points: black={black_point}, white={white_point}")
 
     # Apply stretch
-    stretched = np.clip(
-        (data - black_point) / (white_point - black_point),
-        0, 1
-    )
+    stretched = np.clip((data - black_point) / (white_point - black_point), 0, 1)
 
     # Apply midtones transfer function
     midtones = params.get("midtones", 0.5)
@@ -170,12 +153,7 @@ def mtf_cpu(data: np.ndarray, midtones: float) -> np.ndarray:
     return (midtones - 1) * data / ((2 * midtones - 1) * data - midtones)
 
 
-def histogram_stretch(
-    input_path: str,
-    output_path: str,
-    params: Dict[str, Any],
-    use_gpu: bool = True
-) -> str:
+def histogram_stretch(input_path: str, output_path: str, params: Dict[str, Any], use_gpu: bool = True) -> str:
     """
     Histogram stretch with automatic GPU/CPU selection.
     """
@@ -189,11 +167,7 @@ def histogram_stretch(
         return cpu_histogram_stretch(input_path, output_path, params)
 
 
-def export_image(
-    input_path: str,
-    output_path: str,
-    params: Dict[str, Any]
-) -> str:
+def export_image(input_path: str, output_path: str, params: Dict[str, Any]) -> str:
     """
     Export FITS to JPEG/TIFF/PNG.
     """

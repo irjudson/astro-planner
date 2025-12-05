@@ -10,14 +10,15 @@ import asyncio
 import json
 import logging
 import socket
-from enum import Enum
-from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Any, Callable, Dict, Optional
 
 
 class SeestarState(Enum):
     """Telescope operation states."""
+
     DISCONNECTED = "disconnected"
     CONNECTED = "connected"
     SLEWING = "slewing"
@@ -32,6 +33,7 @@ class SeestarState(Enum):
 @dataclass
 class SeestarStatus:
     """Current telescope status."""
+
     connected: bool
     state: SeestarState
     current_ra_hours: Optional[float] = None
@@ -45,21 +47,25 @@ class SeestarStatus:
 
 class SeestarClientError(Exception):
     """Base exception for Seestar client errors."""
+
     pass
 
 
 class ConnectionError(SeestarClientError):
     """Raised when connection to telescope fails."""
+
     pass
 
 
 class CommandError(SeestarClientError):
     """Raised when a telescope command fails."""
+
     pass
 
 
 class TimeoutError(SeestarClientError):
     """Raised when a command times out."""
+
     pass
 
 
@@ -108,10 +114,7 @@ class SeestarClient:
         self._receive_task: Optional[asyncio.Task] = None
 
         # State tracking
-        self._status = SeestarStatus(
-            connected=False,
-            state=SeestarState.DISCONNECTED
-        )
+        self._status = SeestarStatus(connected=False, state=SeestarState.DISCONNECTED)
         self._operation_states: Dict[str, str] = {}
 
         # Callbacks
@@ -205,8 +208,7 @@ class SeestarClient:
             self.logger.info(f"Connecting to Seestar at {host}:{port}")
 
             self._reader, self._writer = await asyncio.wait_for(
-                asyncio.open_connection(host, port),
-                timeout=self.CONNECTION_TIMEOUT
+                asyncio.open_connection(host, port), timeout=self.CONNECTION_TIMEOUT
             )
 
             self._connected = True
@@ -311,12 +313,7 @@ class SeestarClient:
         # Update internal state based on events
         # (Could parse Event messages here if needed)
 
-    async def _send_command(
-        self,
-        method: str,
-        params: Any = None,
-        timeout: Optional[float] = None
-    ) -> Dict[str, Any]:
+    async def _send_command(self, method: str, params: Any = None, timeout: Optional[float] = None) -> Dict[str, Any]:
         """Send command to telescope and wait for response.
 
         Args:
@@ -340,10 +337,7 @@ class SeestarClient:
         self._command_id += 1
 
         # Build message
-        message = {
-            "method": method,
-            "id": cmd_id
-        }
+        message = {"method": method, "id": cmd_id}
         if params is not None:
             message["params"] = params
 
@@ -368,10 +362,7 @@ class SeestarClient:
 
         # Wait for response
         try:
-            response = await asyncio.wait_for(
-                future,
-                timeout=timeout or self.COMMAND_TIMEOUT
-            )
+            response = await asyncio.wait_for(future, timeout=timeout or self.COMMAND_TIMEOUT)
         except asyncio.TimeoutError:
             self._pending_responses.pop(cmd_id, None)
             raise TimeoutError(f"Command timeout: {method}")
@@ -389,11 +380,7 @@ class SeestarClient:
     # ========================================================================
 
     async def goto_target(
-        self,
-        ra_hours: float,
-        dec_degrees: float,
-        target_name: str = "Target",
-        use_lp_filter: bool = False
+        self, ra_hours: float, dec_degrees: float, target_name: str = "Target", use_lp_filter: bool = False
     ) -> bool:
         """Slew telescope to target and start viewing.
 
@@ -415,7 +402,7 @@ class SeestarClient:
             "mode": "star",
             "target_ra_dec": [ra_hours, dec_degrees],
             "target_name": target_name,
-            "lp_filter": use_lp_filter
+            "lp_filter": use_lp_filter,
         }
 
         self._update_status(state=SeestarState.SLEWING, current_target=target_name)
@@ -548,11 +535,7 @@ class SeestarClient:
 
         return result
 
-    async def set_exposure(
-        self,
-        stack_exposure_ms: int = 10000,
-        continuous_exposure_ms: int = 500
-    ) -> bool:
+    async def set_exposure(self, stack_exposure_ms: int = 10000, continuous_exposure_ms: int = 500) -> bool:
         """Set exposure times.
 
         Args:
@@ -567,24 +550,14 @@ class SeestarClient:
         """
         self.logger.info(f"Setting exposure: stack={stack_exposure_ms}ms, continuous={continuous_exposure_ms}ms")
 
-        params = {
-            "exp_ms": {
-                "stack_l": stack_exposure_ms,
-                "continuous": continuous_exposure_ms
-            }
-        }
+        params = {"exp_ms": {"stack_l": stack_exposure_ms, "continuous": continuous_exposure_ms}}
 
         response = await self._send_command("set_setting", params)
 
         self.logger.info(f"Set exposure response: {response}")
         return response.get("result") == 0
 
-    async def configure_dither(
-        self,
-        enabled: bool = True,
-        pixels: int = 50,
-        interval: int = 10
-    ) -> bool:
+    async def configure_dither(self, enabled: bool = True, pixels: int = 50, interval: int = 10) -> bool:
         """Configure dithering settings.
 
         Args:
@@ -600,13 +573,7 @@ class SeestarClient:
         """
         self.logger.info(f"Configuring dither: enabled={enabled}, pixels={pixels}, interval={interval}")
 
-        params = {
-            "stack_dither": {
-                "enable": enabled,
-                "pix": pixels,
-                "interval": interval
-            }
-        }
+        params = {"stack_dither": {"enable": enabled, "pix": pixels, "interval": interval}}
 
         response = await self._send_command("set_setting", params)
 

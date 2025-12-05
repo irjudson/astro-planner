@@ -1,25 +1,22 @@
 """Service layer tests."""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 import pytz
 
-from app.services.weather_service import WeatherService
-from app.services.scheduler_service import SchedulerService
+from app.models import DSOTarget, Location, ObservingConstraints, WeatherForecast
 from app.services.catalog_service import CatalogService
 from app.services.ephemeris_service import EphemerisService
-from app.models import Location, DSOTarget, ObservingConstraints, WeatherForecast
+from app.services.scheduler_service import SchedulerService
+from app.services.weather_service import WeatherService
 
 
 @pytest.fixture
 def sample_location():
     """Sample location."""
     return Location(
-        name="Three Forks, MT",
-        latitude=45.9183,
-        longitude=-111.5433,
-        elevation=1234.0,
-        timezone="America/Denver"
+        name="Three Forks, MT", latitude=45.9183, longitude=-111.5433, elevation=1234.0, timezone="America/Denver"
     )
 
 
@@ -34,7 +31,7 @@ def sample_target():
         dec_degrees=41.2692,
         magnitude=3.4,
         size_arcmin=178.0,
-        description="Large spiral galaxy"
+        description="Large spiral galaxy",
     )
 
 
@@ -52,7 +49,7 @@ class TestWeatherService:
             humidity=40.0,
             temperature=15.0,
             wind_speed=2.0,
-            conditions="Clear"
+            conditions="Clear",
         )
         score = service.calculate_weather_score(perfect_forecast)
         assert score >= 0.9  # Should be very high
@@ -64,7 +61,7 @@ class TestWeatherService:
             humidity=90.0,
             temperature=15.0,
             wind_speed=15.0,
-            conditions="Overcast"
+            conditions="Overcast",
         )
         score = service.calculate_weather_score(poor_forecast)
         assert score < 0.4  # Should trigger weather warning
@@ -76,7 +73,7 @@ class TestWeatherService:
             humidity=60.0,
             temperature=15.0,
             wind_speed=5.0,
-            conditions="Partly cloudy"
+            conditions="Partly cloudy",
         )
         score = service.calculate_weather_score(moderate_forecast)
         assert 0.4 <= score <= 0.9
@@ -161,9 +158,7 @@ class TestEphemerisService:
         service = EphemerisService()
         time = datetime.now(pytz.timezone(sample_location.timezone))
 
-        altitude, azimuth = service.calculate_position(
-            sample_target, sample_location, time
-        )
+        altitude, azimuth = service.calculate_position(sample_target, sample_location, time)
 
         assert -90 <= altitude <= 90
         assert 0 <= azimuth <= 360
@@ -174,10 +169,7 @@ class TestEphemerisService:
         time = datetime.now(pytz.timezone(sample_location.timezone))
 
         # Should return boolean (or numpy boolean)
-        is_visible = service.is_target_visible(
-            sample_target, sample_location, time,
-            min_alt=30.0, max_alt=80.0
-        )
+        is_visible = service.is_target_visible(sample_target, sample_location, time, min_alt=30.0, max_alt=80.0)
         # Accept both bool and numpy bool
         assert is_visible in [True, False]
 
@@ -193,7 +185,7 @@ class TestSchedulerService:
             max_altitude=80.0,
             setup_time_minutes=15,
             object_types=["galaxy", "nebula", "cluster"],
-            planning_mode="balanced"
+            planning_mode="balanced",
         )
 
     def test_planning_mode_balanced(self, sample_location, sample_constraints, override_get_db):
@@ -212,7 +204,7 @@ class TestSchedulerService:
             max_altitude=80.0,
             setup_time_minutes=15,
             object_types=["galaxy", "nebula"],
-            planning_mode="quality"
+            planning_mode="quality",
         )
         assert constraints.planning_mode == "quality"
 
@@ -223,7 +215,7 @@ class TestSchedulerService:
             max_altitude=80.0,
             setup_time_minutes=15,
             object_types=["galaxy", "nebula", "cluster"],
-            planning_mode="quantity"
+            planning_mode="quantity",
         )
         assert constraints.planning_mode == "quantity"
 
@@ -239,11 +231,9 @@ class TestSchedulerService:
             ra_hours=0.0,
             dec_degrees=0.0,
             magnitude=5.0,
-            size_arcmin=100.0
+            size_arcmin=100.0,
         )
-        exposure, frames = service._calculate_exposure_settings(
-            bright_target, timedelta(minutes=60)
-        )
+        exposure, frames = service._calculate_exposure_settings(bright_target, timedelta(minutes=60))
         assert exposure == 10  # Default exposure for Seestar
         assert frames >= 10
 
@@ -255,10 +245,8 @@ class TestSchedulerService:
             ra_hours=0.0,
             dec_degrees=0.0,
             magnitude=10.0,
-            size_arcmin=10.0
+            size_arcmin=10.0,
         )
-        exposure, frames = service._calculate_exposure_settings(
-            faint_target, timedelta(minutes=60)
-        )
+        exposure, frames = service._calculate_exposure_settings(faint_target, timedelta(minutes=60))
         assert exposure == 10  # Should use max exposure (Seestar limit)
         assert frames >= 10

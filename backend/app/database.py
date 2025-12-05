@@ -3,7 +3,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
 
 from app.core.config import get_settings
 
@@ -17,7 +16,7 @@ print(f"DATABASE_URL: {DATABASE_URL}")
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
-    echo=False  # Set to True for SQL logging during development
+    echo=False,  # Set to True for SQL logging during development
 )
 
 # Create session factory
@@ -26,9 +25,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create test engine for test database
 TEST_DATABASE_URL = settings.test_database_url
 test_engine = create_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in TEST_DATABASE_URL else {},
-    echo=False
+    TEST_DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in TEST_DATABASE_URL else {}, echo=False
 )
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 

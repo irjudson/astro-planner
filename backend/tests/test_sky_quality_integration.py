@@ -1,9 +1,11 @@
 """Integration tests for sky quality filtering in plan generation."""
 
-import pytest
 from datetime import datetime
+
+import pytest
+
+from app.models import Location, ObservingConstraints, PlanRequest
 from app.services.planner_service import PlannerService
-from app.models import PlanRequest, Location, ObservingConstraints
 
 
 @pytest.fixture
@@ -21,17 +23,10 @@ class TestSkyQualityIntegration:
         # Arrange: Create a plan request for a dark sky location
         request = PlanRequest(
             location=Location(
-                name="Three Forks, MT",
-                latitude=45.92,
-                longitude=-111.28,
-                elevation=1234.0,
-                timezone="America/Denver"
+                name="Three Forks, MT", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula", "cluster"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula", "cluster"]),
         )
 
         # Act: Generate plan
@@ -49,17 +44,12 @@ class TestSkyQualityIntegration:
         # Arrange: Dark sky location (Three Forks, MT - expected Bortle 1-3)
         request = PlanRequest(
             location=Location(
-                name="Three Forks, MT",
-                latitude=45.92,
-                longitude=-111.28,
-                elevation=1234.0,
-                timezone="America/Denver"
+                name="Three Forks, MT", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
             constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula", "cluster", "planetary_nebula"]
-            )
+                min_altitude=30.0, object_types=["galaxy", "nebula", "cluster", "planetary_nebula"]
+            ),
         )
 
         # Act: Generate plan
@@ -79,17 +69,10 @@ class TestSkyQualityIntegration:
         # Arrange: Light polluted location (NYC - expected Bortle 8-9)
         request = PlanRequest(
             location=Location(
-                name="New York City",
-                latitude=40.7128,
-                longitude=-74.0060,
-                elevation=10.0,
-                timezone="America/New_York"
+                name="New York City", latitude=40.7128, longitude=-74.0060, elevation=10.0, timezone="America/New_York"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula", "cluster"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula", "cluster"]),
         )
 
         # Act: Generate plan
@@ -112,13 +95,10 @@ class TestSkyQualityIntegration:
                 latitude=39.7392,
                 longitude=-104.9903,
                 elevation=1655.0,
-                timezone="America/Denver"
+                timezone="America/Denver",
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula", "cluster"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula", "cluster"]),
         )
 
         # Act: Generate plan
@@ -139,17 +119,10 @@ class TestSkyQualityIntegration:
         # Arrange
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula"]),
         )
 
         # Act
@@ -160,64 +133,61 @@ class TestSkyQualityIntegration:
         suitable_types = plan.sky_quality["suitable_for"]
         for obj_type in suitable_types:
             assert obj_type in [
-                "galaxy", "nebula", "cluster", "planetary_nebula",
-                "planet", "moon", "comet", "asteroid"
+                "galaxy",
+                "nebula",
+                "cluster",
+                "planetary_nebula",
+                "planet",
+                "moon",
+                "comet",
+                "asteroid",
             ], f"Object type '{obj_type}' should be singular"
 
             # Should not have plural forms
             assert obj_type not in [
-                "galaxies", "nebulae", "clusters", "planetary_nebulae",
-                "planets", "moons", "comets", "asteroids"
+                "galaxies",
+                "nebulae",
+                "clusters",
+                "planetary_nebulae",
+                "planets",
+                "moons",
+                "comets",
+                "asteroids",
             ], f"Object type should not be plural: {obj_type}"
 
     def test_sky_quality_affects_scheduled_targets(self, test_db):
         """Test that sky quality filtering affects which targets get scheduled."""
         # Arrange: Two locations with different sky quality
         dark_location = Location(
-            name="Dark Site",
-            latitude=45.92,
-            longitude=-111.28,
-            elevation=1234.0,
-            timezone="America/Denver"
+            name="Dark Site", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
         )
 
         city_location = Location(
-            name="City",
-            latitude=40.7128,
-            longitude=-74.0060,
-            elevation=10.0,
-            timezone="America/New_York"
+            name="City", latitude=40.7128, longitude=-74.0060, elevation=10.0, timezone="America/New_York"
         )
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            object_types=["galaxy", "nebula", "cluster"]
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula", "cluster"])
 
         # Act: Generate plans for both locations
         planner = PlannerService(test_db)
 
-        dark_plan = planner.generate_plan(PlanRequest(
-            location=dark_location,
-            observing_date="2025-01-15",
-            constraints=constraints
-        ))
+        dark_plan = planner.generate_plan(
+            PlanRequest(location=dark_location, observing_date="2025-01-15", constraints=constraints)
+        )
 
-        city_plan = planner.generate_plan(PlanRequest(
-            location=city_location,
-            observing_date="2025-01-15",
-            constraints=constraints
-        ))
+        city_plan = planner.generate_plan(
+            PlanRequest(location=city_location, observing_date="2025-01-15", constraints=constraints)
+        )
 
         # Assert: Dark site should have more targets than city
         # (because more object types are suitable)
-        assert dark_plan.total_targets >= city_plan.total_targets, \
-            "Dark sky site should have at least as many targets as city"
+        assert (
+            dark_plan.total_targets >= city_plan.total_targets
+        ), "Dark sky site should have at least as many targets as city"
 
         # Dark site should have galaxies, city should not
         dark_types = set(t.target.object_type for t in dark_plan.scheduled_targets)
         city_types = set(t.target.object_type for t in city_plan.scheduled_targets)
 
         if "galaxy" in dark_types:
-            assert "galaxy" not in city_types, \
-                "City plan should not include galaxies"
+            assert "galaxy" not in city_types, "City plan should not include galaxies"

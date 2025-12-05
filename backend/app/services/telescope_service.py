@@ -6,17 +6,19 @@ coordinating the execution of scheduled observation plans.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any, Callable
-from enum import Enum
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Callable, List, Optional
 
-from app.clients.seestar_client import SeestarClient, SeestarState, CommandError, TimeoutError as SeestarTimeoutError
+from app.clients.seestar_client import CommandError, SeestarClient
+from app.clients.seestar_client import TimeoutError as SeestarTimeoutError
 from app.models import ScheduledTarget
 
 
 class ExecutionState(Enum):
     """Execution state for observation plan."""
+
     IDLE = "idle"
     STARTING = "starting"
     RUNNING = "running"
@@ -30,6 +32,7 @@ class ExecutionState(Enum):
 @dataclass
 class ExecutionError:
     """Error encountered during execution."""
+
     timestamp: datetime
     target_index: int
     target_name: str
@@ -41,6 +44,7 @@ class ExecutionError:
 @dataclass
 class TargetProgress:
     """Progress tracking for a single target."""
+
     target: ScheduledTarget
     index: int
     started: bool = False
@@ -57,6 +61,7 @@ class TargetProgress:
 @dataclass
 class ExecutionProgress:
     """Overall execution progress."""
+
     execution_id: str
     state: ExecutionState
     total_targets: int
@@ -158,7 +163,7 @@ class TelescopeService:
         execution_id: str,
         targets: List[ScheduledTarget],
         configure_settings: bool = True,
-        park_when_done: bool = True
+        park_when_done: bool = True,
     ) -> ExecutionProgress:
         """Execute an observation plan.
 
@@ -173,7 +178,12 @@ class TelescopeService:
         Raises:
             ValueError: If execution is already running
         """
-        if self._execution_state not in [ExecutionState.IDLE, ExecutionState.COMPLETED, ExecutionState.ABORTED, ExecutionState.ERROR]:
+        if self._execution_state not in [
+            ExecutionState.IDLE,
+            ExecutionState.COMPLETED,
+            ExecutionState.ABORTED,
+            ExecutionState.ERROR,
+        ]:
             raise ValueError(f"Cannot start execution: current state is {self._execution_state}")
 
         self.logger.info(f"Starting execution {execution_id} with {len(targets)} targets")
@@ -191,10 +201,7 @@ class TelescopeService:
             targets_completed=0,
             targets_failed=0,
             start_time=datetime.now(),
-            target_progress=[
-                TargetProgress(target=target, index=i)
-                for i, target in enumerate(targets)
-            ]
+            target_progress=[TargetProgress(target=target, index=i) for i, target in enumerate(targets)],
         )
 
         self._execution_state = ExecutionState.STARTING
@@ -219,7 +226,7 @@ class TelescopeService:
                 self._update_progress(
                     current_target_index=i,
                     current_target_name=target.target.name,
-                    progress_percent=(i / len(targets)) * 100.0
+                    progress_percent=(i / len(targets)) * 100.0,
                 )
 
                 # Execute target
@@ -231,17 +238,13 @@ class TelescopeService:
                     self._progress.targets_failed += 1
 
                 self._update_progress(
-                    targets_completed=self._progress.targets_completed,
-                    targets_failed=self._progress.targets_failed
+                    targets_completed=self._progress.targets_completed, targets_failed=self._progress.targets_failed
                 )
 
             # Execution complete
             if self._execution_state == ExecutionState.RUNNING:
                 self._execution_state = ExecutionState.COMPLETED
-                self._update_progress(
-                    state=ExecutionState.COMPLETED,
-                    progress_percent=100.0
-                )
+                self._update_progress(state=ExecutionState.COMPLETED, progress_percent=100.0)
 
             # Park telescope if requested
             if park_when_done and self._execution_state == ExecutionState.COMPLETED:
@@ -276,11 +279,7 @@ class TelescopeService:
             await self.client.set_exposure(stack_exposure_ms=10000)
 
             # Configure dithering
-            await self.client.configure_dither(
-                enabled=True,
-                pixels=50,
-                interval=10
-            )
+            await self.client.configure_dither(enabled=True, pixels=50, interval=10)
 
             self.logger.info("Telescope configuration complete")
 
@@ -302,8 +301,7 @@ class TelescopeService:
         target_progress.start_time = datetime.now()
 
         self.logger.info(
-            f"Executing target {index + 1}/{len(self._targets)}: "
-            f"{target.target.name} ({target.target.catalog_id})"
+            f"Executing target {index + 1}/{len(self._targets)}: " f"{target.target.name} ({target.target.catalog_id})"
         )
 
         try:
@@ -334,24 +332,20 @@ class TelescopeService:
                 target_index=index,
                 target_name=target.target.name,
                 phase="execution",
-                error_message=str(e)
+                error_message=str(e),
             )
             target_progress.errors.append(error)
             self._progress.errors.append(error)
             return False
 
-    async def _goto_target_with_retry(
-        self,
-        progress: TargetProgress,
-        target: ScheduledTarget
-    ) -> bool:
+    async def _goto_target_with_retry(self, progress: TargetProgress, target: ScheduledTarget) -> bool:
         """Goto target with retry logic."""
         for attempt in range(self.MAX_RETRIES):
             try:
                 await self.client.goto_target(
                     ra_hours=target.target.ra_hours,
                     dec_degrees=target.target.dec_degrees,
-                    target_name=target.target.name
+                    target_name=target.target.name,
                 )
 
                 # Wait for goto to complete (simplified - would monitor state in production)
@@ -370,7 +364,7 @@ class TelescopeService:
                     target_name=target.target.name,
                     phase="goto",
                     error_message=str(e),
-                    retry_count=attempt
+                    retry_count=attempt,
                 )
                 progress.errors.append(error)
 
@@ -404,7 +398,7 @@ class TelescopeService:
                     target_name=progress.target.target.name,
                     phase="focus",
                     error_message=str(e),
-                    retry_count=attempt
+                    retry_count=attempt,
                 )
                 progress.errors.append(error)
 
@@ -416,11 +410,7 @@ class TelescopeService:
 
         return False
 
-    async def _image_target_with_retry(
-        self,
-        progress: TargetProgress,
-        target: ScheduledTarget
-    ) -> bool:
+    async def _image_target_with_retry(self, progress: TargetProgress, target: ScheduledTarget) -> bool:
         """Image target with retry logic."""
         for attempt in range(self.MAX_RETRIES):
             try:
@@ -453,7 +443,7 @@ class TelescopeService:
                     target_name=progress.target.target.name,
                     phase="imaging",
                     error_message=str(e),
-                    retry_count=attempt
+                    retry_count=attempt,
                 )
                 progress.errors.append(error)
 

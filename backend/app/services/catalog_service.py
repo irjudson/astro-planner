@@ -1,9 +1,11 @@
 """DSO catalog management service."""
 
 from typing import List, Optional
+
 from sqlalchemy.orm import Session
+
 from app.models import DSOTarget
-from app.models.catalog_models import DSOCatalog, ConstellationName
+from app.models.catalog_models import ConstellationName, DSOCatalog
 
 
 class CatalogService:
@@ -17,7 +19,7 @@ class CatalogService:
         """Convert database model to DSOTarget."""
         # Generate catalog ID (e.g., "M31", "NGC224", "IC434", "C80")
         # For Messier objects (stored with common_name like "M031"), use that as catalog_id
-        if dso.common_name and dso.common_name.startswith('M') and dso.common_name[1:].isdigit():
+        if dso.common_name and dso.common_name.startswith("M") and dso.common_name[1:].isdigit():
             # Convert M031 -> M31 by removing leading zeros
             messier_num = int(dso.common_name[1:])
             catalog_id = f"M{messier_num}"
@@ -39,13 +41,13 @@ class CatalogService:
         mag = dso.magnitude if dso.magnitude else 99.0
 
         # Generate description
-        type_name = dso.object_type.replace('_', ' ').title()
+        type_name = dso.object_type.replace("_", " ").title()
         # Look up full constellation name
         full_constellation = self._get_constellation_full_name(dso.constellation) if dso.constellation else None
         description = f"{type_name} in {full_constellation}" if full_constellation else type_name
 
         # Add common name if available and different from Messier/catalog designation
-        if dso.common_name and not (dso.common_name.startswith('M') and dso.common_name[1:].isdigit()):
+        if dso.common_name and not (dso.common_name.startswith("M") and dso.common_name[1:].isdigit()):
             description += f" - {dso.common_name}"
 
         # Add additional info for better descriptions
@@ -62,7 +64,7 @@ class CatalogService:
             dec_degrees=dso.dec_degrees,
             magnitude=mag,
             size_arcmin=size_arcmin,
-            description=description
+            description=description,
         )
 
     def _get_constellation_full_name(self, abbreviation: str) -> str:
@@ -70,9 +72,7 @@ class CatalogService:
         if not abbreviation:
             return None
 
-        constellation = self.db.query(ConstellationName).filter(
-            ConstellationName.abbreviation == abbreviation
-        ).first()
+        constellation = self.db.query(ConstellationName).filter(ConstellationName.abbreviation == abbreviation).first()
 
         return constellation.full_name if constellation else abbreviation
 
@@ -110,30 +110,28 @@ class CatalogService:
         catalog_id_upper = catalog_id.upper()
 
         # For Messier objects, search by common_name (stored as M042, M031, etc.)
-        if catalog_id_upper.startswith('M') and len(catalog_id_upper) > 1 and catalog_id_upper[1:].isdigit():
+        if catalog_id_upper.startswith("M") and len(catalog_id_upper) > 1 and catalog_id_upper[1:].isdigit():
             # Pad the Messier number to 3 digits (M42 -> M042)
             messier_padded = f"M{int(catalog_id_upper[1:]):03d}"
-            dso = self.db.query(DSOCatalog).filter(
-                DSOCatalog.common_name == messier_padded
-            ).first()
-        elif catalog_id_upper.startswith('C') and len(catalog_id_upper) > 1 and catalog_id_upper[1:].isdigit():
+            dso = self.db.query(DSOCatalog).filter(DSOCatalog.common_name == messier_padded).first()
+        elif catalog_id_upper.startswith("C") and len(catalog_id_upper) > 1 and catalog_id_upper[1:].isdigit():
             # Caldwell objects (C1-C109)
             caldwell_number = int(catalog_id_upper[1:])
-            dso = self.db.query(DSOCatalog).filter(
-                DSOCatalog.caldwell_number == caldwell_number
-            ).first()
-        elif catalog_id_upper.startswith('NGC'):
+            dso = self.db.query(DSOCatalog).filter(DSOCatalog.caldwell_number == caldwell_number).first()
+        elif catalog_id_upper.startswith("NGC"):
             catalog_number = int(catalog_id_upper[3:])
-            dso = self.db.query(DSOCatalog).filter(
-                DSOCatalog.catalog_name == 'NGC',
-                DSOCatalog.catalog_number == catalog_number
-            ).first()
-        elif catalog_id_upper.startswith('IC'):
+            dso = (
+                self.db.query(DSOCatalog)
+                .filter(DSOCatalog.catalog_name == "NGC", DSOCatalog.catalog_number == catalog_number)
+                .first()
+            )
+        elif catalog_id_upper.startswith("IC"):
             catalog_number = int(catalog_id_upper[2:])
-            dso = self.db.query(DSOCatalog).filter(
-                DSOCatalog.catalog_name == 'IC',
-                DSOCatalog.catalog_number == catalog_number
-            ).first()
+            dso = (
+                self.db.query(DSOCatalog)
+                .filter(DSOCatalog.catalog_name == "IC", DSOCatalog.catalog_number == catalog_number)
+                .first()
+            )
         else:
             return None
 
@@ -148,7 +146,7 @@ class CatalogService:
         max_magnitude: Optional[float] = None,
         constellation: Optional[str] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[DSOTarget]:
         """
         Filter targets by various criteria.
@@ -198,9 +196,11 @@ class CatalogService:
         Returns:
             List of Caldwell DSOTarget objects ordered by Caldwell number
         """
-        query = self.db.query(DSOCatalog).filter(
-            DSOCatalog.caldwell_number.isnot(None)
-        ).order_by(DSOCatalog.caldwell_number.asc())
+        query = (
+            self.db.query(DSOCatalog)
+            .filter(DSOCatalog.caldwell_number.isnot(None))
+            .order_by(DSOCatalog.caldwell_number.asc())
+        )
 
         if limit:
             query = query.limit(limit).offset(offset)

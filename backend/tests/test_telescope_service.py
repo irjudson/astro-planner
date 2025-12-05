@@ -1,16 +1,13 @@
 """Tests for telescope service."""
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, AsyncMock, patch
-from app.services.telescope_service import (
-    TelescopeService,
-    ExecutionState,
-    ExecutionProgress,
-    ExecutionError
-)
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
 from app.clients.seestar_client import SeestarClient, SeestarState
-from app.models import ScheduledTarget, DSOTarget, TargetScore
+from app.models import DSOTarget, ScheduledTarget, TargetScore
+from app.services.telescope_service import ExecutionError, ExecutionProgress, ExecutionState, TelescopeService
 
 
 class TestTelescopeService:
@@ -45,7 +42,7 @@ class TestTelescopeService:
                 dec_degrees=41.269,
                 magnitude=3.4,
                 size_arcmin=190.0,
-                description="Andromeda Galaxy"
+                description="Andromeda Galaxy",
             ),
             start_time=datetime(2025, 11, 1, 20, 0),
             end_time=datetime(2025, 11, 1, 23, 0),
@@ -57,12 +54,7 @@ class TestTelescopeService:
             field_rotation_rate=0.5,
             recommended_exposure=10,
             recommended_frames=180,
-            score=TargetScore(
-                visibility_score=0.95,
-                weather_score=0.90,
-                object_score=0.85,
-                total_score=0.90
-            )
+            score=TargetScore(visibility_score=0.95, weather_score=0.90, object_score=0.85, total_score=0.90),
         )
 
     def test_init(self, service, mock_client):
@@ -123,7 +115,7 @@ class TestTelescopeService:
             total_targets=5,
             current_target_index=2,
             targets_completed=2,
-            targets_failed=0
+            targets_failed=0,
         )
 
         progress = service.progress
@@ -140,7 +132,7 @@ class TestTelescopeService:
             target_name="M31",
             phase="slewing",
             error_message="Slew failed",
-            retry_count=2
+            retry_count=2,
         )
 
         assert error.timestamp == now
@@ -158,7 +150,7 @@ class TestTelescopeService:
             current_target_index=5,
             targets_completed=5,
             targets_failed=0,
-            progress_percent=50.0  # Fixed: must set explicitly, not calculated
+            progress_percent=50.0,  # Fixed: must set explicitly, not calculated
         )
 
         assert progress.progress_percent == 50.0
@@ -171,7 +163,7 @@ class TestTelescopeService:
             total_targets=0,
             current_target_index=0,
             targets_completed=0,
-            targets_failed=0
+            targets_failed=0,
         )
 
         assert progress.progress_percent == 0.0
@@ -220,7 +212,7 @@ class TestTelescopeServiceExecutePlan:
                 dec_degrees=41.269,
                 magnitude=3.4,
                 size_arcmin=190.0,
-                description="Andromeda Galaxy"
+                description="Andromeda Galaxy",
             ),
             start_time=datetime(2025, 11, 1, 20, 0),
             end_time=datetime(2025, 11, 1, 20, 1),  # Short duration for tests
@@ -232,12 +224,7 @@ class TestTelescopeServiceExecutePlan:
             field_rotation_rate=0.5,
             recommended_exposure=10,
             recommended_frames=6,
-            score=TargetScore(
-                visibility_score=0.95,
-                weather_score=0.90,
-                object_score=0.85,
-                total_score=0.90
-            )
+            score=TargetScore(visibility_score=0.95, weather_score=0.90, object_score=0.85, total_score=0.90),
         )
 
     def test_set_progress_callback(self, service):
@@ -250,12 +237,9 @@ class TestTelescopeServiceExecutePlan:
     async def test_execute_plan_with_target(self, service, mock_client, sample_target):
         """Test executing plan with a single target."""
         # Use short sleep times by mocking
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-exec-123",
-                [sample_target],
-                configure_settings=True,
-                park_when_done=False
+                "test-exec-123", [sample_target], configure_settings=True, park_when_done=False
             )
 
         assert result.state == ExecutionState.COMPLETED
@@ -270,12 +254,9 @@ class TestTelescopeServiceExecutePlan:
     @pytest.mark.asyncio
     async def test_execute_plan_with_park(self, service, mock_client, sample_target):
         """Test executing plan with parking at end."""
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-exec-park",
-                [sample_target],
-                configure_settings=False,
-                park_when_done=True
+                "test-exec-park", [sample_target], configure_settings=False, park_when_done=True
             )
 
         assert result.state == ExecutionState.COMPLETED
@@ -292,13 +273,8 @@ class TestTelescopeServiceExecutePlan:
     @pytest.mark.asyncio
     async def test_execute_plan_configure_telescope(self, service, mock_client, sample_target):
         """Test telescope configuration during execution."""
-        with patch('asyncio.sleep', new_callable=AsyncMock):
-            await service.execute_plan(
-                "test-config",
-                [sample_target],
-                configure_settings=True,
-                park_when_done=False
-            )
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await service.execute_plan("test-config", [sample_target], configure_settings=True, park_when_done=False)
 
         mock_client.set_exposure.assert_called_once()
         mock_client.configure_dither.assert_called_once()
@@ -307,14 +283,12 @@ class TestTelescopeServiceExecutePlan:
     async def test_execute_plan_goto_failure(self, service, mock_client, sample_target):
         """Test handling goto failure."""
         from app.clients.seestar_client import CommandError
+
         mock_client.goto_target.side_effect = CommandError("Goto failed")
 
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-goto-fail",
-                [sample_target],
-                configure_settings=False,
-                park_when_done=False
+                "test-goto-fail", [sample_target], configure_settings=False, park_when_done=False
             )
 
         assert result.targets_failed == 1
@@ -325,14 +299,12 @@ class TestTelescopeServiceExecutePlan:
     async def test_execute_plan_focus_failure(self, service, mock_client, sample_target):
         """Test handling focus failure."""
         from app.clients.seestar_client import CommandError
+
         mock_client.auto_focus.side_effect = CommandError("Focus failed")
 
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-focus-fail",
-                [sample_target],
-                configure_settings=False,
-                park_when_done=False
+                "test-focus-fail", [sample_target], configure_settings=False, park_when_done=False
             )
 
         assert result.targets_failed == 1
@@ -342,14 +314,12 @@ class TestTelescopeServiceExecutePlan:
     async def test_execute_plan_imaging_failure(self, service, mock_client, sample_target):
         """Test handling imaging failure."""
         from app.clients.seestar_client import CommandError
+
         mock_client.start_imaging.side_effect = CommandError("Imaging failed")
 
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-imaging-fail",
-                [sample_target],
-                configure_settings=False,
-                park_when_done=False
+                "test-imaging-fail", [sample_target], configure_settings=False, park_when_done=False
             )
 
         assert result.targets_failed == 1
@@ -367,7 +337,7 @@ class TestTelescopeServiceExecutePlan:
                 dec_degrees=-5.391,
                 magnitude=4.0,
                 size_arcmin=65.0,
-                description="Orion Nebula"
+                description="Orion Nebula",
             ),
             start_time=datetime(2025, 11, 1, 21, 0),
             end_time=datetime(2025, 11, 1, 21, 1),
@@ -379,12 +349,7 @@ class TestTelescopeServiceExecutePlan:
             field_rotation_rate=0.5,
             recommended_exposure=10,
             recommended_frames=6,
-            score=TargetScore(
-                visibility_score=0.90,
-                weather_score=0.85,
-                object_score=0.80,
-                total_score=0.85
-            )
+            score=TargetScore(visibility_score=0.90, weather_score=0.85, object_score=0.80, total_score=0.85),
         )
 
         async def abort_after_first(*args, **kwargs):
@@ -394,12 +359,9 @@ class TestTelescopeServiceExecutePlan:
 
         mock_client.goto_target.side_effect = abort_after_first
 
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-abort",
-                [sample_target, target2],
-                configure_settings=False,
-                park_when_done=False
+                "test-abort", [sample_target, target2], configure_settings=False, park_when_done=False
             )
 
         assert result.state == ExecutionState.ABORTED
@@ -410,13 +372,8 @@ class TestTelescopeServiceExecutePlan:
         callback = Mock()
         service.set_progress_callback(callback)
 
-        with patch('asyncio.sleep', new_callable=AsyncMock):
-            await service.execute_plan(
-                "test-callback",
-                [sample_target],
-                configure_settings=False,
-                park_when_done=False
-            )
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            await service.execute_plan("test-callback", [sample_target], configure_settings=False, park_when_done=False)
 
         assert callback.called
         # Callback should be called multiple times during execution
@@ -428,13 +385,10 @@ class TestTelescopeServiceExecutePlan:
         callback = Mock(side_effect=Exception("Callback error"))
         service.set_progress_callback(callback)
 
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             # Should complete without raising despite callback error
             result = await service.execute_plan(
-                "test-callback-error",
-                [sample_target],
-                configure_settings=False,
-                park_when_done=False
+                "test-callback-error", [sample_target], configure_settings=False, park_when_done=False
             )
 
         assert result.state == ExecutionState.COMPLETED
@@ -442,12 +396,9 @@ class TestTelescopeServiceExecutePlan:
     @pytest.mark.asyncio
     async def test_update_progress_calculates_time(self, service, mock_client, sample_target):
         """Test that progress updates calculate elapsed time."""
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-time",
-                [sample_target],
-                configure_settings=False,
-                park_when_done=False
+                "test-time", [sample_target], configure_settings=False, park_when_done=False
             )
 
         assert result.start_time is not None
@@ -468,12 +419,9 @@ class TestTelescopeServiceExecutePlan:
         """Test that configuration failure doesn't stop execution."""
         mock_client.set_exposure.side_effect = Exception("Config failed")
 
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await service.execute_plan(
-                "test-config-fail",
-                [sample_target],
-                configure_settings=True,
-                park_when_done=False
+                "test-config-fail", [sample_target], configure_settings=True, park_when_done=False
             )
 
         # Should still complete despite config failure
@@ -483,10 +431,7 @@ class TestTelescopeServiceExecutePlan:
         """Test TargetProgress dataclass."""
         from app.services.telescope_service import TargetProgress
 
-        progress = TargetProgress(
-            target=sample_target,
-            index=0
-        )
+        progress = TargetProgress(target=sample_target, index=0)
 
         assert progress.target == sample_target
         assert progress.index == 0

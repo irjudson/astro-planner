@@ -1,10 +1,11 @@
 """Main FastAPI application."""
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pathlib import Path
+from fastapi.staticfiles import StaticFiles
 
 from app.api import router
 from app.core import get_settings
@@ -19,7 +20,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
+    openapi_url="/api/openapi.json",
 )
 
 # Configure CORS
@@ -37,6 +38,7 @@ app.include_router(router, prefix="/api")
 # Route for shared plan viewer
 frontend_path = Path(__file__).parent.parent / "frontend"
 
+
 @app.get("/plan/{plan_id}")
 async def serve_plan_viewer(plan_id: str):
     """Serve the plan viewer page for shared plans."""
@@ -45,6 +47,7 @@ async def serve_plan_viewer(plan_id: str):
         return FileResponse(plan_html)
     else:
         return {"error": "Plan viewer not found"}
+
 
 # Serve static frontend files
 if frontend_path.exists():
@@ -70,9 +73,5 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=settings.reload
-    )
+
+    uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=settings.reload)

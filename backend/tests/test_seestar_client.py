@@ -1,15 +1,17 @@
 """Tests for Seestar S50 client."""
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
+
 from app.clients.seestar_client import (
+    CommandError,
+    ConnectionError,
     SeestarClient,
     SeestarState,
     SeestarStatus,
-    ConnectionError,
-    CommandError,
-    TimeoutError
+    TimeoutError,
 )
 
 
@@ -42,6 +44,7 @@ class TestSeestarClient:
 
     def test_command_when_not_connected(self, client):
         """Test sending command when not connected."""
+
         async def test():
             with pytest.raises(ConnectionError, match="Not connected"):
                 await client._send_command("test_method")

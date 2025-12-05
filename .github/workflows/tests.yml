@@ -7,8 +7,50 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  quality:
+    name: Code Quality
     runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install quality tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort ruff mypy bandit[toml]
+        pip install pydantic>=2.0.0 types-requests types-pytz
+
+    - name: Check formatting with black
+      run: |
+        black --check --line-length=120 backend/app backend/tests
+
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only --profile=black --line-length=120 backend/app backend/tests
+
+    - name: Lint with ruff
+      run: |
+        ruff check backend/app --config backend/pyproject.toml
+
+    - name: Type check with mypy
+      run: |
+        cd backend
+        mypy app --config-file=pyproject.toml
+      continue-on-error: true  # Start permissive, will remove later
+
+    - name: Security check with bandit
+      run: |
+        bandit -r backend/app -c backend/pyproject.toml
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: quality
 
     services:
       postgres:
@@ -48,7 +90,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements-test.txt') }}
@@ -60,12 +102,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r backend/requirements.txt
         pip install -r backend/requirements-test.txt
-
-    - name: Lint with ruff
-      run: |
-        pip install ruff
-        ruff check backend/app --select E,F,W --ignore E501
-      continue-on-error: true
 
     - name: Create test database
       run: |
@@ -91,7 +127,7 @@ jobs:
         REDIS_URL: redis://localhost:6379/1
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./backend/coverage.xml
         flags: unittests
@@ -99,6 +135,7 @@ jobs:
       continue-on-error: true
 
   integration:
+    name: Integration Tests
     runs-on: ubuntu-latest
     needs: test
 
@@ -168,3 +205,19 @@ jobs:
       env:
         DATABASE_URL: postgresql://pg:buffalo-jump@localhost:5432/astro-planner
         REDIS_URL: redis://localhost:6379/1
+
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [quality, test, integration]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.quality.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.integration.result }}" != "success" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All jobs passed!"

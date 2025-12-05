@@ -5,15 +5,12 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from app.processing import gpu_ops
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -71,27 +68,18 @@ class PipelineRunner:
             logger.info(f"Pipeline execution complete for job {self.job_id}")
             logger.info(f"Output files: {output_files}")
 
-            return {
-                "status": "success",
-                "output_files": [str(f) for f in output_files]
-            }
+            return {"status": "success", "output_files": [str(f) for f in output_files]}
 
         except Exception as e:
             logger.error(f"Pipeline execution failed: {e}", exc_info=True)
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     def _step_histogram_stretch(self, input_file: str, params: Dict[str, Any]) -> str:
         """Execute histogram stretch step."""
         output_file = self.working_dir / "stretched.fit"
 
         gpu_ops.histogram_stretch(
-            input_path=input_file,
-            output_path=str(output_file),
-            params=params,
-            use_gpu=self.use_gpu
+            input_path=input_file, output_path=str(output_file), params=params, use_gpu=self.use_gpu
         )
 
         return str(output_file)
@@ -109,11 +97,7 @@ class PipelineRunner:
         else:
             output_file = self.output_dir / f"final.{format_type}"
 
-        gpu_ops.export_image(
-            input_path=input_file,
-            output_path=str(output_file),
-            params=params
-        )
+        gpu_ops.export_image(input_path=input_file, output_path=str(output_file), params=params)
 
         return str(output_file)
 
@@ -130,7 +114,7 @@ def main():
         logger.error(f"Config file not found: {config_path}")
         sys.exit(1)
 
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
 
     # Create runner and execute
@@ -139,7 +123,7 @@ def main():
 
     # Write result
     result_path = Path(config["output_dir"]) / "result.json"
-    with open(result_path, 'w') as f:
+    with open(result_path, "w") as f:
         json.dump(result, f, indent=2)
 
     # Exit with appropriate code

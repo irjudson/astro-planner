@@ -1,10 +1,10 @@
 """Celery tasks for processing jobs."""
 
 import asyncio
-from typing import Dict, Any
+from typing import Any, Dict
 
-from app.tasks.celery_app import celery_app
 from app.services.processing_service import ProcessingService
+from app.tasks.celery_app import celery_app
 
 
 @celery_app.task(bind=True, name="process_file")
@@ -24,9 +24,7 @@ def process_file_task(self, file_id: int, pipeline_id: int, job_id: int) -> Dict
     asyncio.set_event_loop(loop)
 
     try:
-        result = loop.run_until_complete(
-            service.execute_pipeline(file_id, pipeline_id, job_id)
-        )
+        result = loop.run_until_complete(service.execute_pipeline(file_id, pipeline_id, job_id))
         return result
     finally:
         loop.close()

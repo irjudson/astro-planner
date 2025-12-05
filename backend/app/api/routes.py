@@ -1,29 +1,28 @@
 """API routes for the Astro Planner."""
 
-from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import List, Optional, Dict
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.models import (
-    PlanRequest, ObservingPlan, DSOTarget, Location, ExportFormat, ScheduledTarget
-)
-from app.services.planner_service import PlannerService
-from app.services.catalog_service import CatalogService
-from app.clients.seestar_client import SeestarClient, SeestarState
-from app.services.telescope_service import TelescopeService, ExecutionState
-from app.services.light_pollution_service import LightPollutionService
-from app.database import get_db
-from pydantic import BaseModel
+from app.api.asteroids import router as asteroid_router
+from app.api.astronomy import router as astronomy_router
 
 # Import comet, asteroid, planet, processing, plans, and astronomy routers
 from app.api.comets import router as comet_router
-from app.api.asteroids import router as asteroid_router
 from app.api.planets import router as planet_router
-from app.api.processing import router as processing_router
 from app.api.plans import router as plans_router
-from app.api.astronomy import router as astronomy_router
+from app.api.processing import router as processing_router
+from app.clients.seestar_client import SeestarClient
+from app.database import get_db
+from app.models import DSOTarget, ExportFormat, Location, ObservingPlan, PlanRequest, ScheduledTarget
+from app.services.catalog_service import CatalogService
+from app.services.light_pollution_service import LightPollutionService
+from app.services.planner_service import PlannerService
+from app.services.telescope_service import TelescopeService
 
 router = APIRouter()
 
@@ -42,10 +41,12 @@ telescope_service = TelescopeService(seestar_client)
 # In-memory storage for shared plans (in production, use Redis or database)
 shared_plans: Dict[str, ObservingPlan] = {}
 
+
 # Request/Response models for telescope endpoints
 class TelescopeConnectRequest(BaseModel):
     host: str = "seestar.local"
     port: int = 4700  # Port 4700 for firmware v5.x
+
 
 class ExecutePlanRequest(BaseModel):
     scheduled_targets: List[ScheduledTarget]
@@ -76,6 +77,7 @@ async def generate_plan(request: PlanRequest, db: Session = Depends(get_db)):
         return plan
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error generating plan: {str(e)}")
 
@@ -88,7 +90,7 @@ async def list_targets(
     max_magnitude: Optional[float] = Query(None, description="Maximum magnitude (fainter limit)"),
     constellation: Optional[str] = Query(None, description="Filter by constellation (3-letter abbreviation)"),
     limit: Optional[int] = Query(100, description="Maximum number of results (default: 100, max: 1000)", le=1000),
-    offset: int = Query(0, description="Offset for pagination (default: 0)", ge=0)
+    offset: int = Query(0, description="Offset for pagination (default: 0)", ge=0),
 ):
     """
     List available DSO targets with advanced filtering.
@@ -124,7 +126,7 @@ async def list_targets(
             max_magnitude=max_magnitude,
             constellation=constellation,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
         return targets
     except Exception as e:
@@ -152,8 +154,10 @@ async def get_target(catalog_id: str, db: Session = Depends(get_db)):
 @router.get("/caldwell", response_model=List[DSOTarget])
 async def list_caldwell_targets(
     db: Session = Depends(get_db),
-    limit: Optional[int] = Query(109, description="Maximum number of results (default: all 109 Caldwell objects)", le=109),
-    offset: int = Query(0, description="Offset for pagination (default: 0)", ge=0)
+    limit: Optional[int] = Query(
+        109, description="Maximum number of results (default: all 109 Caldwell objects)", le=109
+    ),
+    offset: int = Query(0, description="Offset for pagination (default: 0)", ge=0),
 ):
     """
     List all Caldwell catalog targets.
@@ -192,71 +196,66 @@ async def get_catalog_stats(db: Session = Depends(get_db)):
         Catalog statistics dictionary
     """
     try:
-        from sqlalchemy import func, case
+        from sqlalchemy import case, func
+
         from app.models.catalog_models import DSOCatalog
 
         # Total objects
         total = db.query(func.count(DSOCatalog.id)).scalar()
 
         # By object type
-        by_type_query = db.query(
-            DSOCatalog.object_type,
-            func.count(DSOCatalog.id)
-        ).group_by(DSOCatalog.object_type).order_by(func.count(DSOCatalog.id).desc()).all()
+        by_type_query = (
+            db.query(DSOCatalog.object_type, func.count(DSOCatalog.id))
+            .group_by(DSOCatalog.object_type)
+            .order_by(func.count(DSOCatalog.id).desc())
+            .all()
+        )
         by_type = {row[0]: row[1] for row in by_type_query}
 
         # By catalog
-        by_catalog_query = db.query(
-            DSOCatalog.catalog_name,
-            func.count(DSOCatalog.id)
-        ).group_by(DSOCatalog.catalog_name).order_by(func.count(DSOCatalog.id).desc()).all()
+        by_catalog_query = (
+            db.query(DSOCatalog.catalog_name, func.count(DSOCatalog.id))
+            .group_by(DSOCatalog.catalog_name)
+            .order_by(func.count(DSOCatalog.id).desc())
+            .all()
+        )
         by_catalog = {row[0]: row[1] for row in by_catalog_query}
 
         # Count Caldwell objects
-        caldwell_count = db.query(func.count(DSOCatalog.id)).filter(
-            DSOCatalog.caldwell_number.isnot(None)
-        ).scalar()
+        caldwell_count = db.query(func.count(DSOCatalog.id)).filter(DSOCatalog.caldwell_number.isnot(None)).scalar()
         by_catalog["Caldwell"] = caldwell_count
 
         # Count Messier objects (stored with common_name starting with M)
-        messier_count = db.query(func.count(DSOCatalog.id)).filter(
-            DSOCatalog.common_name.like('M%')
-        ).scalar()
+        messier_count = db.query(func.count(DSOCatalog.id)).filter(DSOCatalog.common_name.like("M%")).scalar()
         by_catalog["Messier"] = messier_count
 
         # Magnitude ranges
-        mag_query = db.query(
-            func.count(case((DSOCatalog.magnitude <= 5, 1))).label('very_bright'),
-            func.count(case(((DSOCatalog.magnitude > 5) & (DSOCatalog.magnitude <= 10), 1))).label('bright'),
-            func.count(case(((DSOCatalog.magnitude > 10) & (DSOCatalog.magnitude <= 15), 1))).label('moderate'),
-            func.count(case((DSOCatalog.magnitude > 15, 1))).label('faint')
-        ).filter(
-            DSOCatalog.magnitude.isnot(None),
-            DSOCatalog.magnitude < 99
-        ).one()
+        mag_query = (
+            db.query(
+                func.count(case((DSOCatalog.magnitude <= 5, 1))).label("very_bright"),
+                func.count(case(((DSOCatalog.magnitude > 5) & (DSOCatalog.magnitude <= 10), 1))).label("bright"),
+                func.count(case(((DSOCatalog.magnitude > 10) & (DSOCatalog.magnitude <= 15), 1))).label("moderate"),
+                func.count(case((DSOCatalog.magnitude > 15, 1))).label("faint"),
+            )
+            .filter(DSOCatalog.magnitude.isnot(None), DSOCatalog.magnitude < 99)
+            .one()
+        )
 
         magnitude_ranges = {
             "<=5.0 (Very Bright)": mag_query.very_bright,
             "5.0-10.0 (Bright)": mag_query.bright,
             "10.0-15.0 (Moderate)": mag_query.moderate,
-            ">15.0 (Faint)": mag_query.faint
+            ">15.0 (Faint)": mag_query.faint,
         }
 
-        return {
-            "total_objects": total,
-            "by_type": by_type,
-            "by_catalog": by_catalog,
-            "by_magnitude": magnitude_ranges
-        }
+        return {"total_objects": total, "by_type": by_type, "by_catalog": by_catalog, "by_magnitude": magnitude_ranges}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching catalog stats: {str(e)}")
 
 
 @router.post("/twilight")
 async def calculate_twilight(
-    location: Location,
-    date: str = Query(..., description="ISO date (YYYY-MM-DD)"),
-    db: Session = Depends(get_db)
+    location: Location, date: str = Query(..., description="ISO date (YYYY-MM-DD)"), db: Session = Depends(get_db)
 ):
     """
     Calculate twilight times for a specific location and date.
@@ -281,7 +280,7 @@ async def calculate_twilight(
 async def export_plan(
     plan: ObservingPlan,
     format: str = Query(..., description="Export format: json, seestar_plan, seestar_alp, text, csv"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Export an observing plan in various formats.
@@ -330,7 +329,7 @@ async def share_plan(plan: ObservingPlan):
             "plan_id": plan_id,
             "share_url": f"/plan/{plan_id}",
             "api_url": f"/api/shared-plans/{plan_id}",
-            "message": "Plan saved successfully"
+            "message": "Plan saved successfully",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error sharing plan: {str(e)}")
@@ -360,6 +359,7 @@ async def get_shared_plan(plan_id: str):
 # Telescope Control Endpoints
 # ========================================================================
 
+
 @router.post("/telescope/connect")
 async def connect_telescope(request: TelescopeConnectRequest):
     """
@@ -381,7 +381,7 @@ async def connect_telescope(request: TelescopeConnectRequest):
             "port": request.port,
             "state": status.state.value,
             "firmware_version": status.firmware_version,
-            "message": "Connected to Seestar S50"
+            "message": "Connected to Seestar S50",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
@@ -397,10 +397,7 @@ async def disconnect_telescope():
     """
     try:
         await seestar_client.disconnect()
-        return {
-            "connected": False,
-            "message": "Disconnected from telescope"
-        }
+        return {"connected": False, "message": "Disconnected from telescope"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Disconnect failed: {str(e)}")
 
@@ -422,7 +419,7 @@ async def get_telescope_status():
         "firmware_version": status.firmware_version,
         "is_tracking": status.is_tracking,
         "last_update": status.last_update.isoformat() if status.last_update else None,
-        "last_error": status.last_error
+        "last_error": status.last_error,
     }
 
 
@@ -443,24 +440,22 @@ async def execute_plan(request: ExecutePlanRequest):
     try:
         if not seestar_client.connected:
             raise HTTPException(
-                status_code=400,
-                detail="Telescope not connected. Connect first using /telescope/connect"
+                status_code=400, detail="Telescope not connected. Connect first using /telescope/connect"
             )
 
         # Check if there's already an active execution
-        from app.models.telescope_models import TelescopeExecution
         from app.database import SessionLocal
+        from app.models.telescope_models import TelescopeExecution
 
         db = SessionLocal()
         try:
-            active_execution = db.query(TelescopeExecution).filter(
-                TelescopeExecution.state.in_(['starting', 'running'])
-            ).first()
+            active_execution = (
+                db.query(TelescopeExecution).filter(TelescopeExecution.state.in_(["starting", "running"])).first()
+            )
 
             if active_execution:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Execution already in progress: {active_execution.execution_id}"
+                    status_code=400, detail=f"Execution already in progress: {active_execution.execution_id}"
                 )
         finally:
             db.close()
@@ -469,8 +464,8 @@ async def execute_plan(request: ExecutePlanRequest):
         execution_id = str(uuid.uuid4())[:8]
 
         # Get telescope connection info
-        telescope_host = request.dict().get('telescope_host') or seestar_client.host or '192.168.2.47'
-        telescope_port = request.dict().get('telescope_port') or seestar_client.port or 4700
+        telescope_host = request.dict().get("telescope_host") or seestar_client.host or "192.168.2.47"
+        telescope_port = request.dict().get("telescope_port") or seestar_client.port or 4700
 
         # Convert targets to dict for Celery serialization
         targets_data = [t.dict() for t in request.scheduled_targets]
@@ -483,7 +478,7 @@ async def execute_plan(request: ExecutePlanRequest):
             targets_data=targets_data,
             telescope_host=telescope_host,
             telescope_port=telescope_port,
-            park_when_done=request.park_when_done
+            park_when_done=request.park_when_done,
         )
 
         return {
@@ -491,7 +486,7 @@ async def execute_plan(request: ExecutePlanRequest):
             "celery_task_id": task.id,
             "status": "started",
             "total_targets": len(request.scheduled_targets),
-            "message": "Execution started. Use /telescope/progress to monitor."
+            "message": "Execution started. Use /telescope/progress to monitor.",
         }
 
     except HTTPException:
@@ -515,22 +510,18 @@ async def get_execution_progress():
     Returns:
         Execution progress details
     """
-    from app.models.telescope_models import TelescopeExecution
-    from app.database import SessionLocal
     from datetime import timedelta
+
+    from app.database import SessionLocal
+    from app.models.telescope_models import TelescopeExecution
 
     db = SessionLocal()
     try:
         # Get most recent active or recent execution
-        execution = db.query(TelescopeExecution).order_by(
-            TelescopeExecution.started_at.desc()
-        ).first()
+        execution = db.query(TelescopeExecution).order_by(TelescopeExecution.started_at.desc()).first()
 
         if not execution:
-            return {
-                "state": "idle",
-                "message": "No execution in progress"
-            }
+            return {"state": "idle", "message": "No execution in progress"}
 
         # Format elapsed time
         elapsed_time = None
@@ -559,7 +550,7 @@ async def get_execution_progress():
             "progress_percent": round(execution.progress_percent, 1),
             "elapsed_time": elapsed_time,
             "estimated_remaining": estimated_remaining,
-            "errors": errors
+            "errors": errors,
         }
 
     finally:
@@ -577,22 +568,19 @@ async def abort_execution():
         Abort status
     """
     try:
-        from app.tasks.telescope_tasks import abort_observation_plan_task
-        from app.models.telescope_models import TelescopeExecution
         from app.database import SessionLocal
+        from app.models.telescope_models import TelescopeExecution
+        from app.tasks.telescope_tasks import abort_observation_plan_task
 
         db = SessionLocal()
         try:
             # Find running execution
-            execution = db.query(TelescopeExecution).filter(
-                TelescopeExecution.state.in_(['starting', 'running'])
-            ).first()
+            execution = (
+                db.query(TelescopeExecution).filter(TelescopeExecution.state.in_(["starting", "running"])).first()
+            )
 
             if not execution:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No execution in progress to abort"
-                )
+                raise HTTPException(status_code=400, detail="No execution in progress to abort")
 
             execution_id = execution.execution_id
 
@@ -602,17 +590,10 @@ async def abort_execution():
         # Abort via Celery task
         result = abort_observation_plan_task.delay(execution_id).get(timeout=5)
 
-        if not result.get('success'):
-            raise HTTPException(
-                status_code=500,
-                detail=result.get('error', 'Unknown error aborting execution')
-            )
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=result.get("error", "Unknown error aborting execution"))
 
-        return {
-            "status": "aborted",
-            "execution_id": execution_id,
-            "message": "Execution aborted successfully"
-        }
+        return {"status": "aborted", "execution_id": execution_id, "message": "Execution aborted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Abort failed: {str(e)}")
 
@@ -632,15 +613,9 @@ async def park_telescope():
         success = await telescope_service.park_telescope()
 
         if success:
-            return {
-                "status": "parking",
-                "message": "Telescope parking"
-            }
+            return {"status": "parking", "message": "Telescope parking"}
         else:
-            return {
-                "status": "error",
-                "message": "Failed to park telescope"
-            }
+            return {"status": "error", "message": "Failed to park telescope"}
     except HTTPException:
         raise
     except Exception as e:
@@ -658,9 +633,8 @@ async def get_telescope_preview():
     Returns:
         Preview image information with path for download
     """
-    from pathlib import Path
     import os
-    from datetime import datetime
+    from pathlib import Path
 
     try:
         # Look for recent JPEG files in /fits directory
@@ -669,19 +643,16 @@ async def get_telescope_preview():
         if not fits_root.exists():
             return {
                 "available": False,
-                "message": "Telescope image directory not mounted. Configure FITS_DIR environment variable."
+                "message": "Telescope image directory not mounted. Configure FITS_DIR environment variable.",
             }
 
         # Find all JPEG files (Seestar creates preview JPEGs during stacking)
         jpeg_files = []
-        for ext in ['*.jpg', '*.jpeg', '*.JPG', '*.JPEG']:
+        for ext in ["*.jpg", "*.jpeg", "*.JPG", "*.JPEG"]:
             jpeg_files.extend(fits_root.rglob(ext))
 
         if not jpeg_files:
-            return {
-                "available": False,
-                "message": "No preview images found. Start imaging on the telescope first."
-            }
+            return {"available": False, "message": "No preview images found. Start imaging on the telescope first."}
 
         # Sort by modification time, get most recent
         latest_image = max(jpeg_files, key=lambda p: p.stat().st_mtime)
@@ -700,7 +671,7 @@ async def get_telescope_preview():
             "size_bytes": file_stats.st_size,
             "modified_at": modified_time.isoformat(),
             "download_url": f"/api/telescope/preview/download?path={relative_path}",
-            "message": f"Latest image from {modified_time.strftime('%H:%M:%S')}"
+            "message": f"Latest image from {modified_time.strftime('%H:%M:%S')}",
         }
 
     except Exception as e:
@@ -718,9 +689,10 @@ async def download_telescope_preview(path: str = Query(..., description="Relativ
     Returns:
         Image file for display
     """
-    from pathlib import Path
-    from fastapi.responses import FileResponse
     import os
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
 
     try:
         fits_root = Path(os.getenv("FITS_DIR", "/fits"))
@@ -740,11 +712,7 @@ async def download_telescope_preview(path: str = Query(..., description="Relativ
             raise HTTPException(status_code=400, detail="Path is not a file")
 
         # Return image with appropriate MIME type
-        return FileResponse(
-            path=str(requested_path),
-            media_type="image/jpeg",
-            filename=requested_path.name
-        )
+        return FileResponse(path=str(requested_path), media_type="image/jpeg", filename=requested_path.name)
 
     except HTTPException:
         raise
@@ -780,7 +748,7 @@ async def get_sky_quality(lat: float, lon: float, location_name: str = Query("Un
             latitude=lat,
             longitude=lon,
             elevation=0.0,  # Not needed for light pollution
-            timezone="UTC"  # Not needed for light pollution
+            timezone="UTC",  # Not needed for light pollution
         )
 
         # Get sky quality data
@@ -792,11 +760,7 @@ async def get_sky_quality(lat: float, lon: float, location_name: str = Query("Un
 
         # Return combined data
         return {
-            "location": {
-                "name": location_name,
-                "latitude": lat,
-                "longitude": lon
-            },
+            "location": {"name": location_name, "latitude": lat, "longitude": lon},
             "bortle_class": sky_quality.bortle_class,
             "bortle_name": sky_quality.bortle_name,
             "sqm_estimate": sky_quality.sqm_estimate,
@@ -806,11 +770,12 @@ async def get_sky_quality(lat: float, lon: float, location_name: str = Query("Un
             "limiting_magnitude": sky_quality.limiting_magnitude,
             "milky_way_visibility": sky_quality.milky_way_visibility,
             "data_source": sky_quality.light_pollution_source,
-            "recommendations": recommendations
+            "recommendations": recommendations,
         }
 
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching sky quality: {str(e)}")
 
@@ -827,5 +792,5 @@ async def health_check():
         "status": "healthy",
         "service": "astro-planner-api",
         "version": "1.0.0",
-        "telescope_connected": seestar_client.connected
+        "telescope_connected": seestar_client.connected,
     }

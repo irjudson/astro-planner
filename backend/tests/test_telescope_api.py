@@ -1,17 +1,14 @@
 """Tests for telescope API endpoints."""
 
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from datetime import datetime
 
-from app.main import app
 from app.clients.seestar_client import SeestarClient, SeestarState, SeestarStatus
-from app.services.telescope_service import (
-    TelescopeService,
-    ExecutionState,
-    ExecutionProgress
-)
+from app.main import app
+from app.services.telescope_service import ExecutionProgress, ExecutionState, TelescopeService
 
 
 @pytest.fixture
@@ -28,14 +25,16 @@ def mock_telescope_service():
     service.progress = None
     service.park_telescope = AsyncMock(return_value=True)
     service.abort_execution = AsyncMock()
-    service.execute_plan = AsyncMock(return_value=ExecutionProgress(
-        execution_id="test-123",
-        state=ExecutionState.COMPLETED,
-        total_targets=5,
-        current_target_index=5,
-        targets_completed=5,
-        targets_failed=0
-    ))
+    service.execute_plan = AsyncMock(
+        return_value=ExecutionProgress(
+            execution_id="test-123",
+            state=ExecutionState.COMPLETED,
+            total_targets=5,
+            current_target_index=5,
+            targets_completed=5,
+            targets_failed=0,
+        )
+    )
     return service
 
 
@@ -44,11 +43,7 @@ def mock_seestar_client():
     """Create mock Seestar client."""
     client = Mock(spec=SeestarClient)
     client.connected = False
-    client.status = SeestarStatus(
-        connected=False,
-        state=SeestarState.DISCONNECTED,
-        firmware_version=None
-    )
+    client.status = SeestarStatus(connected=False, state=SeestarState.DISCONNECTED, firmware_version=None)
     client.connect = AsyncMock(return_value=True)
     client.disconnect = AsyncMock()
     return client
@@ -59,18 +54,13 @@ class TestTelescopeEndpoints:
 
     def test_connect_success(self, client, mock_seestar_client):
         """Test successful telescope connection."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client):
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
             mock_seestar_client.connected = True
             mock_seestar_client.status = SeestarStatus(
-                connected=True,
-                state=SeestarState.CONNECTED,
-                firmware_version="5.50"
+                connected=True, state=SeestarState.CONNECTED, firmware_version="5.50"
             )
 
-            response = client.post(
-                "/api/telescope/connect",
-                json={"host": "192.168.2.47", "port": 4700}
-            )
+            response = client.post("/api/telescope/connect", json={"host": "192.168.2.47", "port": 4700})
 
             assert response.status_code == 200
             data = response.json()
@@ -81,20 +71,17 @@ class TestTelescopeEndpoints:
 
     def test_connect_failure(self, client, mock_seestar_client):
         """Test failed telescope connection."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client):
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
             mock_seestar_client.connect.side_effect = Exception("Connection failed")
 
-            response = client.post(
-                "/api/telescope/connect",
-                json={"host": "invalid.host", "port": 4700}
-            )
+            response = client.post("/api/telescope/connect", json={"host": "invalid.host", "port": 4700})
 
             assert response.status_code == 500
             assert "Connection failed" in response.json()["detail"]
 
     def test_disconnect(self, client, mock_seestar_client):
         """Test telescope disconnect."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client):
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
             response = client.post("/api/telescope/disconnect")
 
             assert response.status_code == 200
@@ -105,14 +92,14 @@ class TestTelescopeEndpoints:
 
     def test_status_when_connected(self, client, mock_seestar_client):
         """Test status endpoint when telescope connected."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client):
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
             mock_seestar_client.connected = True
             mock_seestar_client.status = SeestarStatus(
                 connected=True,
                 state=SeestarState.TRACKING,
                 firmware_version="5.50",
                 current_target="M31",
-                is_tracking=True
+                is_tracking=True,
             )
 
             response = client.get("/api/telescope/status")
@@ -127,7 +114,7 @@ class TestTelescopeEndpoints:
 
     def test_status_when_disconnected(self, client, mock_seestar_client):
         """Test status endpoint when telescope disconnected."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client):
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
             response = client.get("/api/telescope/status")
 
             assert response.status_code == 200
@@ -146,9 +133,11 @@ class TestTelescopeEndpoints:
         mock_task.id = "celery-task-123"
         mock_task.delay.return_value = mock_task
 
-        with patch('app.api.routes.seestar_client', mock_seestar_client), \
-             patch('app.database.SessionLocal', return_value=mock_db), \
-             patch('app.tasks.telescope_tasks.execute_observation_plan_task', mock_task):
+        with (
+            patch("app.api.routes.seestar_client", mock_seestar_client),
+            patch("app.database.SessionLocal", return_value=mock_db),
+            patch("app.tasks.telescope_tasks.execute_observation_plan_task", mock_task),
+        ):
             # Mock connected state
             mock_seestar_client.connected = True
             mock_seestar_client.host = "192.168.2.47"
@@ -165,7 +154,7 @@ class TestTelescopeEndpoints:
                             "dec_degrees": 41.269,
                             "magnitude": 3.4,
                             "size_arcmin": 190.0,
-                            "description": "Andromeda Galaxy"
+                            "description": "Andromeda Galaxy",
                         },
                         "start_time": "2025-11-01T20:00:00",
                         "end_time": "2025-11-01T23:00:00",
@@ -181,8 +170,8 @@ class TestTelescopeEndpoints:
                             "visibility_score": 0.95,
                             "weather_score": 0.90,
                             "object_score": 0.85,
-                            "total_score": 0.90
-                        }
+                            "total_score": 0.90,
+                        },
                     }
                 ]
             }
@@ -224,7 +213,7 @@ class TestTelescopeEndpoints:
         mock_db = MagicMock()
         mock_db.query.return_value.order_by.return_value.first.return_value = mock_execution
 
-        with patch('app.database.SessionLocal', return_value=mock_db):
+        with patch("app.database.SessionLocal", return_value=mock_db):
             response = client.get("/api/telescope/progress")
 
             assert response.status_code == 200
@@ -242,7 +231,7 @@ class TestTelescopeEndpoints:
         mock_db = MagicMock()
         mock_db.query.return_value.order_by.return_value.first.return_value = None
 
-        with patch('app.database.SessionLocal', return_value=mock_db):
+        with patch("app.database.SessionLocal", return_value=mock_db):
             response = client.get("/api/telescope/progress")
 
             assert response.status_code == 200
@@ -263,8 +252,10 @@ class TestTelescopeEndpoints:
         # Mock the Celery abort task
         mock_abort_task = MagicMock()
 
-        with patch('app.database.SessionLocal', return_value=mock_db), \
-             patch('app.tasks.telescope_tasks.abort_observation_plan_task', mock_abort_task):
+        with (
+            patch("app.database.SessionLocal", return_value=mock_db),
+            patch("app.tasks.telescope_tasks.abort_observation_plan_task", mock_abort_task),
+        ):
             response = client.post("/api/telescope/abort")
 
             assert response.status_code == 200
@@ -274,8 +265,10 @@ class TestTelescopeEndpoints:
 
     def test_park_telescope_success(self, client, mock_seestar_client, mock_telescope_service):
         """Test successful telescope parking."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client), \
-             patch('app.api.routes.telescope_service', mock_telescope_service):
+        with (
+            patch("app.api.routes.seestar_client", mock_seestar_client),
+            patch("app.api.routes.telescope_service", mock_telescope_service),
+        ):
             # Fixed: Mock connected state
             mock_seestar_client.connected = True
 
@@ -290,8 +283,10 @@ class TestTelescopeEndpoints:
 
     def test_park_telescope_failure(self, client, mock_seestar_client, mock_telescope_service):
         """Test failed telescope parking."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client), \
-             patch('app.api.routes.telescope_service', mock_telescope_service):
+        with (
+            patch("app.api.routes.seestar_client", mock_seestar_client),
+            patch("app.api.routes.telescope_service", mock_telescope_service),
+        ):
             # Fixed: Mock connected state
             mock_seestar_client.connected = True
             mock_telescope_service.park_telescope.return_value = False
@@ -306,38 +301,26 @@ class TestTelescopeEndpoints:
 
     def test_connect_with_custom_port(self, client, mock_seestar_client):
         """Test connection with custom port."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client):
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
             mock_seestar_client.connected = True
             mock_seestar_client.status = SeestarStatus(
-                connected=True,
-                state=SeestarState.CONNECTED,
-                firmware_version="4.50"
+                connected=True, state=SeestarState.CONNECTED, firmware_version="4.50"
             )
 
-            response = client.post(
-                "/api/telescope/connect",
-                json={"host": "192.168.1.100", "port": 5555}
-            )
+            response = client.post("/api/telescope/connect", json={"host": "192.168.1.100", "port": 5555})
 
             assert response.status_code == 200
-            mock_seestar_client.connect.assert_called_once_with(
-                "192.168.1.100", 5555
-            )
+            mock_seestar_client.connect.assert_called_once_with("192.168.1.100", 5555)
 
     def test_connect_with_default_port(self, client, mock_seestar_client):
         """Test connection uses default port 4700."""
-        with patch('app.api.routes.seestar_client', mock_seestar_client):
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
             mock_seestar_client.connected = True
             mock_seestar_client.status = SeestarStatus(
-                connected=True,
-                state=SeestarState.CONNECTED,
-                firmware_version="5.50"
+                connected=True, state=SeestarState.CONNECTED, firmware_version="5.50"
             )
 
-            response = client.post(
-                "/api/telescope/connect",
-                json={"host": "192.168.2.47"}
-            )
+            response = client.post("/api/telescope/connect", json={"host": "192.168.2.47"})
 
             # Should use default port 4700
             assert response.status_code == 200

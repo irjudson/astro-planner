@@ -1,10 +1,10 @@
 """JPL Horizons integration for fetching comet data."""
 
-from typing import Optional, List
 from datetime import datetime
-from astroquery.jplhorizons import Horizons
+from typing import List, Optional
+
 from astropy.time import Time
-import astropy.units as u
+from astroquery.jplhorizons import Horizons
 
 from app.models import CometTarget, OrbitalElements
 
@@ -16,11 +16,7 @@ class HorizonsService:
         """Initialize Horizons service."""
         pass
 
-    def fetch_comet_by_designation(
-        self,
-        designation: str,
-        epoch: Optional[datetime] = None
-    ) -> Optional[CometTarget]:
+    def fetch_comet_by_designation(self, designation: str, epoch: Optional[datetime] = None) -> Optional[CometTarget]:
         """
         Fetch comet orbital elements from JPL Horizons.
 
@@ -42,11 +38,7 @@ class HorizonsService:
             # Query Horizons for orbital elements
             # For comets, we need to use the designation as the target ID
             # Horizons uses specific formats, so we may need to adjust
-            obj = Horizons(
-                id=designation,
-                location='@sun',  # Heliocentric
-                epochs=epoch_time.jd
-            )
+            obj = Horizons(id=designation, location="@sun", epochs=epoch_time.jd)  # Heliocentric
 
             # Get orbital elements
             elements = obj.elements()
@@ -58,10 +50,10 @@ class HorizonsService:
             elem = elements[0]
 
             # Parse comet type from eccentricity
-            e = float(elem['e'])
+            e = float(elem["e"])
             if e < 1.0:
                 # Elliptical orbit
-                period_years = float(elem['P']) if 'P' in elem.colnames else None
+                period_years = float(elem["P"]) if "P" in elem.colnames else None
                 if period_years and period_years < 20:
                     comet_type = "short-period"
                 else:
@@ -72,13 +64,13 @@ class HorizonsService:
 
             # Create orbital elements
             orbital_elements = OrbitalElements(
-                epoch_jd=float(elem['datetime_jd']),
-                perihelion_distance_au=float(elem['q']),
+                epoch_jd=float(elem["datetime_jd"]),
+                perihelion_distance_au=float(elem["q"]),
                 eccentricity=e,
-                inclination_deg=float(elem['incl']),
-                arg_perihelion_deg=float(elem['w']),
-                ascending_node_deg=float(elem['Omega']),
-                perihelion_time_jd=float(elem['Tp_jd'])
+                inclination_deg=float(elem["incl"]),
+                arg_perihelion_deg=float(elem["w"]),
+                ascending_node_deg=float(elem["Omega"]),
+                perihelion_time_jd=float(elem["Tp_jd"]),
             )
 
             # Extract magnitude parameters if available
@@ -86,15 +78,15 @@ class HorizonsService:
             mag_slope = 4.0  # Default for comets
 
             # Try to get magnitude from element set
-            if 'M1' in elem.colnames:  # Absolute magnitude
-                absolute_mag = float(elem['M1'])
-            if 'K1' in elem.colnames:  # Magnitude slope
-                mag_slope = float(elem['K1'])
+            if "M1" in elem.colnames:  # Absolute magnitude
+                absolute_mag = float(elem["M1"])
+            if "K1" in elem.colnames:  # Magnitude slope
+                mag_slope = float(elem["K1"])
 
             # Estimate current magnitude if available
             current_mag = None
-            if 'V' in elem.colnames:
-                current_mag = float(elem['V'])
+            if "V" in elem.colnames:
+                current_mag = float(elem["V"])
 
             # Create comet target
             comet = CometTarget(
@@ -108,7 +100,7 @@ class HorizonsService:
                 activity_status="unknown",
                 discovery_date=None,  # Not typically in elements
                 data_source="JPL Horizons",
-                notes=f"Orbital elements from JPL Horizons, epoch JD {orbital_elements.epoch_jd}"
+                notes=f"Orbital elements from JPL Horizons, epoch JD {orbital_elements.epoch_jd}",
             )
 
             return comet
@@ -117,11 +109,7 @@ class HorizonsService:
             print(f"Error fetching comet {designation} from Horizons: {e}")
             return None
 
-    def fetch_bright_comets(
-        self,
-        max_magnitude: float = 12.0,
-        epoch: Optional[datetime] = None
-    ) -> List[CometTarget]:
+    def fetch_bright_comets(self, max_magnitude: float = 12.0, epoch: Optional[datetime] = None) -> List[CometTarget]:
         """
         Fetch list of currently bright comets.
 
@@ -171,8 +159,8 @@ class HorizonsService:
         designation: str,
         start_time: datetime,
         end_time: Optional[datetime] = None,
-        step: str = '1d',
-        location: str = '500'  # Geocentric
+        step: str = "1d",
+        location: str = "500",  # Geocentric
     ) -> dict:
         """
         Fetch ephemeris (positions) for a comet over a time range.
@@ -193,42 +181,37 @@ class HorizonsService:
 
             if end_time:
                 end_t = Time(end_time)
-                epochs = {'start': start_t.iso, 'stop': end_t.iso, 'step': step}
+                epochs = {"start": start_t.iso, "stop": end_t.iso, "step": step}
             else:
                 epochs = start_t.jd
 
             # Query Horizons
-            obj = Horizons(
-                id=designation,
-                location=location,
-                epochs=epochs
-            )
+            obj = Horizons(id=designation, location=location, epochs=epochs)
 
             # Get ephemeris
             eph = obj.ephemerides()
 
             # Convert to dictionary format
-            result = {
-                'designation': designation,
-                'data': []
-            }
+            result = {"designation": designation, "data": []}
 
             for row in eph:
-                result['data'].append({
-                    'datetime_jd': float(row['datetime_jd']),
-                    'datetime_str': row['datetime_str'],
-                    'ra_deg': float(row['RA']),
-                    'dec_deg': float(row['DEC']),
-                    'ra_hours': float(row['RA']) / 15.0,
-                    'dec_degrees': float(row['DEC']),
-                    'delta_au': float(row['delta']),  # Earth distance
-                    'r_au': float(row['r']),  # Sun distance
-                    'elongation_deg': float(row['elong']) if 'elong' in row.colnames else None,
-                    'magnitude': float(row['V']) if 'V' in row.colnames else None,
-                })
+                result["data"].append(
+                    {
+                        "datetime_jd": float(row["datetime_jd"]),
+                        "datetime_str": row["datetime_str"],
+                        "ra_deg": float(row["RA"]),
+                        "dec_deg": float(row["DEC"]),
+                        "ra_hours": float(row["RA"]) / 15.0,
+                        "dec_degrees": float(row["DEC"]),
+                        "delta_au": float(row["delta"]),  # Earth distance
+                        "r_au": float(row["r"]),  # Sun distance
+                        "elongation_deg": float(row["elong"]) if "elong" in row.colnames else None,
+                        "magnitude": float(row["V"]) if "V" in row.colnames else None,
+                    }
+                )
 
             return result
 
         except Exception as e:
             print(f"Error fetching ephemeris for {designation}: {e}")
-            return {'designation': designation, 'data': [], 'error': str(e)}
+            return {"designation": designation, "data": [], "error": str(e)}

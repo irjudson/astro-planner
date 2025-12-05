@@ -1,15 +1,11 @@
 """API endpoints for planet information and ephemeris."""
 
-from fastapi import APIRouter, HTTPException, Query
-from typing import List
 from datetime import datetime
+from typing import List
 
-from app.models import (
-    Location,
-    PlanetTarget,
-    PlanetEphemeris,
-    PlanetVisibility
-)
+from fastapi import APIRouter, HTTPException, Query
+
+from app.models import Location, PlanetEphemeris, PlanetTarget, PlanetVisibility
 from app.services.planet_service import PlanetService
 
 router = APIRouter(prefix="/planets", tags=["planets"])
@@ -67,8 +63,7 @@ async def get_planet(planet_name: str):
 
 @router.post("/{planet_name}/ephemeris", response_model=PlanetEphemeris)
 async def compute_ephemeris(
-    planet_name: str,
-    time_utc: datetime = Query(..., description="UTC time for ephemeris (ISO format)")
+    planet_name: str, time_utc: datetime = Query(..., description="UTC time for ephemeris (ISO format)")
 ):
     """
     Compute ephemeris (position and properties) for a planet at a specific time.
@@ -104,9 +99,7 @@ async def compute_ephemeris(
 
 @router.post("/{planet_name}/visibility", response_model=PlanetVisibility)
 async def compute_visibility(
-    planet_name: str,
-    location: Location,
-    time_utc: datetime = Query(..., description="UTC time for visibility check")
+    planet_name: str, location: Location, time_utc: datetime = Query(..., description="UTC time for visibility check")
 ):
     """
     Compute visibility of a planet from a specific location at a specific time.
@@ -149,7 +142,7 @@ async def get_visible_planets(
     location: Location,
     time_utc: datetime = Query(..., description="UTC time for visibility check"),
     min_altitude: float = Query(0.0, description="Minimum altitude in degrees (default: 0 = horizon)"),
-    include_daytime: bool = Query(False, description="Include planets visible during daytime (e.g., Venus)")
+    include_daytime: bool = Query(False, description="Include planets visible during daytime (e.g., Venus)"),
 ):
     """
     Get all planets currently visible from a location.
@@ -186,10 +179,7 @@ async def get_visible_planets(
     """
     try:
         visible_planets = planet_service.get_visible_planets(
-            location=location,
-            time_utc=time_utc,
-            min_altitude=min_altitude,
-            include_daytime=include_daytime
+            location=location, time_utc=time_utc, min_altitude=min_altitude, include_daytime=include_daytime
         )
         return visible_planets
     except Exception as e:

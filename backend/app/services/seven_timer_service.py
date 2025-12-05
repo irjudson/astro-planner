@@ -6,7 +6,8 @@ which provides astronomy-optimized weather predictions.
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List
+
 import requests
 
 from app.models import Location, WeatherForecast
@@ -41,14 +42,14 @@ class SevenTimerService:
 
     # 7Timer cloudcover scale to percentage
     CLOUDCOVER_TO_PERCENT = {
-        1: 6,    # 0%-6%
-        2: 19,   # 6%-19%
-        3: 31,   # 19%-31%
-        4: 44,   # 31%-44%
-        5: 56,   # 44%-56%
-        6: 69,   # 56%-69%
-        7: 81,   # 69%-81%
-        8: 94,   # 81%-94%
+        1: 6,  # 0%-6%
+        2: 19,  # 6%-19%
+        3: 31,  # 19%-31%
+        4: 44,  # 31%-44%
+        5: 56,  # 44%-56%
+        6: 69,  # 56%-69%
+        7: 81,  # 69%-81%
+        8: 94,  # 81%-94%
         9: 100,  # 94%-100%
     }
 
@@ -57,10 +58,7 @@ class SevenTimerService:
         self.logger = logging.getLogger(__name__)
 
     def get_astronomy_forecast(
-        self,
-        location: Location,
-        start_time: datetime,
-        end_time: datetime
+        self, location: Location, start_time: datetime, end_time: datetime
     ) -> List[WeatherForecast]:
         """Get astronomy-specific weather forecast from 7Timer.
 
@@ -84,27 +82,17 @@ class SevenTimerService:
             }
 
             self.logger.info(
-                f"Fetching 7Timer forecast for {location.name} "
-                f"({location.latitude}, {location.longitude})"
+                f"Fetching 7Timer forecast for {location.name} " f"({location.latitude}, {location.longitude})"
             )
 
             # Make API request
-            response = requests.get(
-                self.BASE_URL,
-                params=params,
-                timeout=self.REQUEST_TIMEOUT
-            )
+            response = requests.get(self.BASE_URL, params=params, timeout=self.REQUEST_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
 
             # Parse forecast data
-            forecasts = self._parse_forecast_data(
-                data,
-                location,
-                start_time,
-                end_time
-            )
+            forecasts = self._parse_forecast_data(data, location, start_time, end_time)
 
             self.logger.info(f"Retrieved {len(forecasts)} 7Timer forecast periods")
             return forecasts
@@ -117,11 +105,7 @@ class SevenTimerService:
             return []
 
     def _parse_forecast_data(
-        self,
-        data: Dict[str, Any],
-        location: Location,
-        start_time: datetime,
-        end_time: datetime
+        self, data: Dict[str, Any], location: Location, start_time: datetime, end_time: datetime
     ) -> List[WeatherForecast]:
         """Parse 7Timer API response into WeatherForecast objects.
 
@@ -188,14 +172,10 @@ class SevenTimerService:
                     humidity=50.0,  # Not provided by 7Timer astro endpoint
                     temperature=temp,
                     wind_speed=wind_speed,
-                    conditions=self._describe_conditions(
-                        seeing_arcsec,
-                        transparency_mag,
-                        cloudcover_pct
-                    ),
+                    conditions=self._describe_conditions(seeing_arcsec, transparency_mag, cloudcover_pct),
                     seeing_arcseconds=seeing_arcsec,
                     transparency_magnitude=transparency_mag,
-                    source="7timer"
+                    source="7timer",
                 )
 
                 forecasts.append(forecast)
@@ -259,12 +239,7 @@ class SevenTimerService:
         """
         return float(self.CLOUDCOVER_TO_PERCENT.get(cloudcover_raw, 50))
 
-    def _describe_conditions(
-        self,
-        seeing: float,
-        transparency: float,
-        cloudcover: float
-    ) -> str:
+    def _describe_conditions(self, seeing: float, transparency: float, cloudcover: float) -> str:
         """Generate human-readable conditions description.
 
         Args:

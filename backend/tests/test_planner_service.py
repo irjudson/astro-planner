@@ -1,10 +1,12 @@
 """Comprehensive tests for planner service."""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 import pytz
+
+from app.models import Location, ObservingConstraints, PlanRequest
 from app.services.planner_service import PlannerService
-from app.models import PlanRequest, Location, ObservingConstraints
 
 
 @pytest.mark.slow
@@ -27,17 +29,10 @@ class TestPlannerServiceComprehensive:
         """Test generating a basic observing plan."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -54,17 +49,10 @@ class TestPlannerServiceComprehensive:
         """Test that plan includes complete session info."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -84,18 +72,10 @@ class TestPlannerServiceComprehensive:
         """Test that setup time is added to imaging start."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"],
-                setup_time_minutes=30
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"], setup_time_minutes=30),
         )
 
         planner = PlannerService(override_get_db)
@@ -109,19 +89,12 @@ class TestPlannerServiceComprehensive:
         """Test daytime planning mode uses different imaging window."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
             constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["planet"],
-                daytime_planning=True,
-                setup_time_minutes=15
-            )
+                min_altitude=30.0, object_types=["planet"], daytime_planning=True, setup_time_minutes=15
+            ),
         )
 
         planner = PlannerService(override_get_db)
@@ -137,17 +110,10 @@ class TestPlannerServiceComprehensive:
         """Test that plan only includes requested object types."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"]  # Only galaxies
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),  # Only galaxies
         )
 
         planner = PlannerService(override_get_db)
@@ -162,17 +128,10 @@ class TestPlannerServiceComprehensive:
         """Test that plan only includes bright enough objects."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula", "cluster"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula", "cluster"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -188,17 +147,10 @@ class TestPlannerServiceComprehensive:
         """Test that plan includes weather forecast."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -211,17 +163,10 @@ class TestPlannerServiceComprehensive:
         """Test that plan includes sky quality information."""
         request = PlanRequest(
             location=Location(
-                name="Three Forks, MT",
-                latitude=45.92,
-                longitude=-111.28,
-                elevation=1234.0,
-                timezone="America/Denver"
+                name="Three Forks, MT", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -237,17 +182,10 @@ class TestPlannerServiceComprehensive:
         """Test that coverage percentage is calculated."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -264,17 +202,10 @@ class TestPlannerServiceComprehensive:
         """Test plan generation with no object types specified."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=[]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=[]),
         )
 
         planner = PlannerService(override_get_db)
@@ -288,17 +219,10 @@ class TestPlannerServiceComprehensive:
         """Test plan generation includes comets when requested."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["comet", "galaxy"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["comet", "galaxy"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -320,18 +244,9 @@ class TestPlannerServiceComprehensive:
 
         for tz, lat, lon in test_cases:
             request = PlanRequest(
-                location=Location(
-                    name="Test Location",
-                    latitude=lat,
-                    longitude=lon,
-                    elevation=1000.0,
-                    timezone=tz
-                ),
+                location=Location(name="Test Location", latitude=lat, longitude=lon, elevation=1000.0, timezone=tz),
                 observing_date="2025-01-15",
-                constraints=ObservingConstraints(
-                    min_altitude=30.0,
-                    object_types=["galaxy"]
-                )
+                constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),
             )
 
             planner = PlannerService(override_get_db)
@@ -350,27 +265,21 @@ class TestPlannerServiceComprehensive:
             latitude=45.0,  # Northern hemisphere
             longitude=-110.0,
             elevation=1000.0,
-            timezone="America/Denver"
+            timezone="America/Denver",
         )
 
         # Winter date (longer nights)
         winter_request = PlanRequest(
             location=location,
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),
         )
 
         # Summer date (shorter nights)
         summer_request = PlanRequest(
             location=location,
             observing_date="2025-07-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -383,11 +292,7 @@ class TestPlannerServiceComprehensive:
     def test_calculate_twilight_basic(self, override_get_db):
         """Test basic twilight calculation."""
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         planner = PlannerService(override_get_db)
@@ -404,11 +309,7 @@ class TestPlannerServiceComprehensive:
     def test_calculate_twilight_returns_iso_strings(self, override_get_db):
         """Test that twilight times are returned as ISO format strings."""
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         planner = PlannerService(override_get_db)
@@ -424,11 +325,7 @@ class TestPlannerServiceComprehensive:
     def test_calculate_twilight_times_exist(self, override_get_db):
         """Test that all twilight times are returned and parseable."""
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         planner = PlannerService(override_get_db)
@@ -436,10 +333,14 @@ class TestPlannerServiceComprehensive:
 
         # Verify all required keys are present and parseable
         required_keys = [
-            "sunset", "sunrise",
-            "civil_twilight_end", "civil_twilight_start",
-            "nautical_twilight_end", "nautical_twilight_start",
-            "astronomical_twilight_end", "astronomical_twilight_start"
+            "sunset",
+            "sunrise",
+            "civil_twilight_end",
+            "civil_twilight_start",
+            "nautical_twilight_end",
+            "nautical_twilight_start",
+            "astronomical_twilight_end",
+            "astronomical_twilight_start",
         ]
 
         for key in required_keys:
@@ -451,20 +352,13 @@ class TestPlannerServiceComprehensive:
     def test_generate_plan_preserves_location(self, override_get_db):
         """Test that generated plan preserves the request location."""
         location = Location(
-            name="Three Forks, MT",
-            latitude=45.92,
-            longitude=-111.28,
-            elevation=1234.0,
-            timezone="America/Denver"
+            name="Three Forks, MT", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
         )
 
         request = PlanRequest(
             location=location,
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy"]),
         )
 
         planner = PlannerService(override_get_db)
@@ -481,17 +375,10 @@ class TestPlannerServiceComprehensive:
         """Test that scheduled targets have start time and duration."""
         request = PlanRequest(
             location=Location(
-                name="Test Location",
-                latitude=45.0,
-                longitude=-110.0,
-                elevation=1000.0,
-                timezone="America/Denver"
+                name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
             ),
             observing_date="2025-01-15",
-            constraints=ObservingConstraints(
-                min_altitude=30.0,
-                object_types=["galaxy", "nebula", "cluster"]
-            )
+            constraints=ObservingConstraints(min_altitude=30.0, object_types=["galaxy", "nebula", "cluster"]),
         )
 
         planner = PlannerService(override_get_db)

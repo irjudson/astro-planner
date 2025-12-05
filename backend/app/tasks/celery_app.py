@@ -1,18 +1,14 @@
 """Celery application configuration."""
 
 import os
+
 from celery import Celery
 
 # Get Redis URL from environment
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # Create Celery app
-celery_app = Celery(
-    "astro_planner",
-    broker=REDIS_URL,
-    backend=REDIS_URL,
-    include=["app.tasks.processing_tasks"]
-)
+celery_app = Celery("astro_planner", broker=REDIS_URL, backend=REDIS_URL, include=["app.tasks.processing_tasks"])
 
 # Configure Celery
 celery_app.conf.update(

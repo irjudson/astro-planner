@@ -1,13 +1,12 @@
 """Comprehensive tests for scheduler service."""
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 import pytz
+
+from app.models import DSOTarget, Location, ObservingConstraints, SessionInfo, WeatherForecast
 from app.services.scheduler_service import SchedulerService
-from app.models import (
-    DSOTarget, Location, SessionInfo, ObservingConstraints,
-    WeatherForecast
-)
 
 
 @pytest.mark.slow
@@ -28,11 +27,7 @@ class TestSchedulerServiceComprehensive:
 
         # Create test location
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         # Create test targets
@@ -45,7 +40,7 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=41.269,
                 magnitude=3.4,
                 size_arcmin=178.0,
-                description="Andromeda Galaxy"
+                description="Andromeda Galaxy",
             ),
             DSOTarget(
                 catalog_id="M42",
@@ -55,8 +50,8 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=-5.391,
                 magnitude=4.0,
                 size_arcmin=65.0,
-                description="Orion Nebula"
-            )
+                description="Orion Nebula",
+            ),
         ]
 
         # Create session info
@@ -76,23 +71,15 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
         # Create constraints
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0,
-            planning_mode="balanced"
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0, planning_mode="balanced")
 
         # Schedule session
         scheduled = scheduler.schedule_session(
-            targets=targets,
-            location=location,
-            session=session,
-            constraints=constraints,
-            weather_forecasts=[]
+            targets=targets, location=location, session=session, constraints=constraints, weather_forecasts=[]
         )
 
         # Should return a list of scheduled targets
@@ -104,11 +91,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         targets = [
@@ -120,8 +103,9 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=45.0,
                 magnitude=8.0,
                 size_arcmin=10.0,
-                description=f"Test target {i}"
-            ) for i in range(1, 20)
+                description=f"Test target {i}",
+            )
+            for i in range(1, 20)
         ]
 
         tz = pytz.timezone("America/Denver")
@@ -140,22 +124,14 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
         # Quality mode constraints
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0,
-            planning_mode="quality"
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0, planning_mode="quality")
 
         scheduled = scheduler.schedule_session(
-            targets=targets,
-            location=location,
-            session=session,
-            constraints=constraints,
-            weather_forecasts=[]
+            targets=targets, location=location, session=session, constraints=constraints, weather_forecasts=[]
         )
 
         # Quality mode should schedule fewer targets with longer durations
@@ -171,11 +147,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         targets = [
@@ -187,8 +159,9 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=45.0,
                 magnitude=8.0,
                 size_arcmin=10.0,
-                description=f"Test target {i}"
-            ) for i in range(1, 30)
+                description=f"Test target {i}",
+            )
+            for i in range(1, 30)
         ]
 
         tz = pytz.timezone("America/Denver")
@@ -207,22 +180,14 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
         # Quantity mode constraints
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0,
-            planning_mode="quantity"
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0, planning_mode="quantity")
 
         scheduled = scheduler.schedule_session(
-            targets=targets,
-            location=location,
-            session=session,
-            constraints=constraints,
-            weather_forecasts=[]
+            targets=targets, location=location, session=session, constraints=constraints, weather_forecasts=[]
         )
 
         # Quantity mode should schedule more targets with shorter durations
@@ -235,11 +200,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         # Single target that will be visible for long time
@@ -252,7 +213,7 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=41.269,
                 magnitude=3.4,
                 size_arcmin=178.0,
-                description="Andromeda Galaxy"
+                description="Andromeda Galaxy",
             )
         ]
 
@@ -272,21 +233,13 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0,
-            planning_mode="balanced"
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0, planning_mode="balanced")
 
         scheduled = scheduler.schedule_session(
-            targets=targets,
-            location=location,
-            session=session,
-            constraints=constraints,
-            weather_forecasts=[]
+            targets=targets, location=location, session=session, constraints=constraints, weather_forecasts=[]
         )
 
         # Should schedule at most once
@@ -299,11 +252,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         targets = [
@@ -315,7 +264,7 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=41.269,
                 magnitude=3.4,
                 size_arcmin=178.0,
-                description="Andromeda Galaxy"
+                description="Andromeda Galaxy",
             )
         ]
 
@@ -335,7 +284,7 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
         # Create weather forecast
@@ -346,22 +295,19 @@ class TestSchedulerServiceComprehensive:
                 humidity=50.0,
                 cloud_cover=20.0,
                 wind_speed=5.0,
-                conditions="clear"
-            ) for i in range(8)
+                conditions="clear",
+            )
+            for i in range(8)
         ]
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0,
-            planning_mode="balanced"
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0, planning_mode="balanced")
 
         scheduled = scheduler.schedule_session(
             targets=targets,
             location=location,
             session=session,
             constraints=constraints,
-            weather_forecasts=weather_forecasts
+            weather_forecasts=weather_forecasts,
         )
 
         # Should successfully schedule with weather data
@@ -372,11 +318,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         targets = [
@@ -388,7 +330,7 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=41.269,
                 magnitude=3.4,
                 size_arcmin=178.0,
-                description="Andromeda Galaxy"
+                description="Andromeda Galaxy",
             )
         ]
 
@@ -408,21 +350,13 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0,
-            planning_mode="balanced"
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0, planning_mode="balanced")
 
         scheduled = scheduler.schedule_session(
-            targets=targets,
-            location=location,
-            session=session,
-            constraints=constraints,
-            weather_forecasts=[]
+            targets=targets, location=location, session=session, constraints=constraints, weather_forecasts=[]
         )
 
         # Check each scheduled target has complete info
@@ -445,11 +379,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         target = DSOTarget(
@@ -460,21 +390,16 @@ class TestSchedulerServiceComprehensive:
             dec_degrees=41.269,
             magnitude=3.4,
             size_arcmin=178.0,
-            description="Andromeda Galaxy"
+            description="Andromeda Galaxy",
         )
 
         tz = pytz.timezone("America/Denver")
         start = tz.localize(datetime(2025, 1, 15, 20, 0, 0))
         end = tz.localize(datetime(2025, 1, 16, 4, 0, 0))
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0)
 
-        duration = scheduler._calculate_visibility_duration(
-            target, location, start, end, constraints
-        )
+        duration = scheduler._calculate_visibility_duration(target, location, start, end, constraints)
 
         # Should return a timedelta
         assert isinstance(duration, timedelta)
@@ -486,11 +411,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         target = DSOTarget(
@@ -501,21 +422,16 @@ class TestSchedulerServiceComprehensive:
             dec_degrees=41.269,
             magnitude=3.4,
             size_arcmin=178.0,
-            description="Andromeda Galaxy"
+            description="Andromeda Galaxy",
         )
 
         tz = pytz.timezone("America/Denver")
         time = tz.localize(datetime(2025, 1, 15, 22, 0, 0))
         duration = timedelta(minutes=60)
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0)
 
-        score = scheduler._score_target(
-            target, location, time, duration, constraints, weather_score=0.8
-        )
+        score = scheduler._score_target(target, location, time, duration, constraints, weather_score=0.8)
 
         # Should return TargetScore with all components
         assert score.visibility_score is not None
@@ -533,11 +449,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         # Bright target
@@ -549,7 +461,7 @@ class TestSchedulerServiceComprehensive:
             dec_degrees=41.269,
             magnitude=3.4,  # Bright
             size_arcmin=178.0,
-            description="Andromeda Galaxy"
+            description="Andromeda Galaxy",
         )
 
         # Faint target
@@ -561,24 +473,17 @@ class TestSchedulerServiceComprehensive:
             dec_degrees=38.883,
             magnitude=10.4,  # Faint
             size_arcmin=4.0,
-            description="Faint cluster"
+            description="Faint cluster",
         )
 
         tz = pytz.timezone("America/Denver")
         time = tz.localize(datetime(2025, 1, 15, 22, 0, 0))
         duration = timedelta(minutes=60)
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0)
 
-        bright_score = scheduler._score_target(
-            bright_target, location, time, duration, constraints, weather_score=0.8
-        )
-        faint_score = scheduler._score_target(
-            faint_target, location, time, duration, constraints, weather_score=0.8
-        )
+        bright_score = scheduler._score_target(bright_target, location, time, duration, constraints, weather_score=0.8)
+        faint_score = scheduler._score_target(faint_target, location, time, duration, constraints, weather_score=0.8)
 
         # Bright target should generally have higher object score
         # (though not guaranteed due to size factor)
@@ -590,11 +495,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         # Target that will be setting
@@ -606,7 +507,7 @@ class TestSchedulerServiceComprehensive:
             dec_degrees=41.269,
             magnitude=3.4,
             size_arcmin=178.0,
-            description="Andromeda Galaxy"
+            description="Andromeda Galaxy",
         )
 
         tz = pytz.timezone("America/Denver")
@@ -614,14 +515,9 @@ class TestSchedulerServiceComprehensive:
         end_time = tz.localize(datetime(2025, 1, 16, 4, 0, 0))
         lookahead = timedelta(minutes=120)
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0)
 
-        bonus = scheduler._calculate_urgency_bonus(
-            target, location, current_time, end_time, constraints, lookahead
-        )
+        bonus = scheduler._calculate_urgency_bonus(target, location, current_time, end_time, constraints, lookahead)
 
         # Should return a number >= 0
         assert isinstance(bonus, float)
@@ -639,7 +535,7 @@ class TestSchedulerServiceComprehensive:
             dec_degrees=41.269,
             magnitude=3.4,
             size_arcmin=178.0,
-            description="Andromeda Galaxy"
+            description="Andromeda Galaxy",
         )
 
         duration = timedelta(minutes=60)
@@ -663,7 +559,7 @@ class TestSchedulerServiceComprehensive:
             dec_degrees=41.269,
             magnitude=3.4,
             size_arcmin=178.0,
-            description="Andromeda Galaxy"
+            description="Andromeda Galaxy",
         )
 
         duration = timedelta(minutes=120)  # 2 hours
@@ -702,15 +598,10 @@ class TestSchedulerServiceComprehensive:
                 humidity=50.0,
                 cloud_cover=20.0,
                 wind_speed=5.0,
-                conditions="clear"
+                conditions="clear",
             ),
             WeatherForecast(
-                timestamp=time,
-                temperature=10.0,
-                humidity=50.0,
-                cloud_cover=10.0,
-                wind_speed=3.0,
-                conditions="clear"
+                timestamp=time, temperature=10.0, humidity=50.0, cloud_cover=10.0, wind_speed=3.0, conditions="clear"
             ),
             WeatherForecast(
                 timestamp=time + timedelta(hours=1),
@@ -718,8 +609,8 @@ class TestSchedulerServiceComprehensive:
                 humidity=50.0,
                 cloud_cover=30.0,
                 wind_speed=7.0,
-                conditions="partly cloudy"
-            )
+                conditions="partly cloudy",
+            ),
         ]
 
         score = scheduler._get_weather_score_for_time(time, weather_forecasts)
@@ -732,11 +623,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         # Target that might be below horizon or too low
@@ -749,7 +636,7 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=-72.081,  # Far southern object
                 magnitude=4.0,
                 size_arcmin=31.0,
-                description="47 Tucanae"
+                description="47 Tucanae",
             )
         ]
 
@@ -769,22 +656,16 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
         # High minimum altitude
         constraints = ObservingConstraints(
-            min_altitude=60.0,  # Very high minimum
-            max_altitude=80.0,
-            planning_mode="balanced"
+            min_altitude=60.0, max_altitude=80.0, planning_mode="balanced"  # Very high minimum
         )
 
         scheduled = scheduler.schedule_session(
-            targets=targets,
-            location=location,
-            session=session,
-            constraints=constraints,
-            weather_forecasts=[]
+            targets=targets, location=location, session=session, constraints=constraints, weather_forecasts=[]
         )
 
         # All scheduled targets should meet altitude requirement
@@ -797,11 +678,7 @@ class TestSchedulerServiceComprehensive:
         scheduler = SchedulerService()
 
         location = Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1000.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1000.0, timezone="America/Denver"
         )
 
         targets = [
@@ -813,8 +690,9 @@ class TestSchedulerServiceComprehensive:
                 dec_degrees=45.0,
                 magnitude=8.0,
                 size_arcmin=10.0,
-                description=f"Test target {i}"
-            ) for i in range(1, 10)
+                description=f"Test target {i}",
+            )
+            for i in range(1, 10)
         ]
 
         tz = pytz.timezone("America/Denver")
@@ -833,21 +711,13 @@ class TestSchedulerServiceComprehensive:
             sunrise=end + timedelta(hours=2),
             imaging_start=start,
             imaging_end=end,
-            total_imaging_minutes=480
+            total_imaging_minutes=480,
         )
 
-        constraints = ObservingConstraints(
-            min_altitude=30.0,
-            max_altitude=80.0,
-            planning_mode="balanced"
-        )
+        constraints = ObservingConstraints(min_altitude=30.0, max_altitude=80.0, planning_mode="balanced")
 
         scheduled = scheduler.schedule_session(
-            targets=targets,
-            location=location,
-            session=session,
-            constraints=constraints,
-            weather_forecasts=[]
+            targets=targets, location=location, session=session, constraints=constraints, weather_forecasts=[]
         )
 
         # Check that there are gaps between targets (slew time)

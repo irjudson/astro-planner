@@ -1,9 +1,11 @@
 """Tests for moon phase and visibility service."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
-from app.services.moon_service import MoonService, MoonPhaseInfo, MoonEphemeris, MoonVisibility, DarkSkyWindow
+
+import pytest
+
 from app.models import Location
+from app.services.moon_service import DarkSkyWindow, MoonEphemeris, MoonPhaseInfo, MoonService, MoonVisibility
 
 
 @pytest.fixture
@@ -16,11 +18,7 @@ def moon_service():
 def test_location():
     """Fixture for test location (Three Forks, MT)."""
     return Location(
-        name="Three Forks, MT",
-        latitude=45.92,
-        longitude=-111.28,
-        elevation=1234.0,
-        timezone="America/Denver"
+        name="Three Forks, MT", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
     )
 
 
@@ -220,12 +218,7 @@ class TestDarkSkyWindow:
         twilight_end = datetime(2025, 1, 11, 2, 0, 0, tzinfo=timezone.utc)
         twilight_start = datetime(2025, 1, 12, 12, 0, 0, tzinfo=timezone.utc)
 
-        window = moon_service.calculate_dark_sky_window(
-            test_location,
-            observing_date,
-            twilight_end,
-            twilight_start
-        )
+        window = moon_service.calculate_dark_sky_window(test_location, observing_date, twilight_end, twilight_start)
 
         # Verify structure (times will be normalized to timezone-naive)
         assert window.astronomical_twilight_end.replace(tzinfo=None) == twilight_end.replace(tzinfo=None)
@@ -248,12 +241,7 @@ class TestDarkSkyWindow:
         twilight_end = datetime(2025, 1, 25, 2, 0, 0, tzinfo=timezone.utc)
         twilight_start = datetime(2025, 1, 26, 12, 0, 0, tzinfo=timezone.utc)
 
-        window = moon_service.calculate_dark_sky_window(
-            test_location,
-            observing_date,
-            twilight_end,
-            twilight_start
-        )
+        window = moon_service.calculate_dark_sky_window(test_location, observing_date, twilight_end, twilight_start)
 
         # Full moon is typically up all night, limiting dark sky time
         # The calculation should reflect this
@@ -265,12 +253,7 @@ class TestDarkSkyWindow:
         twilight_end = datetime(2025, 1, 15, 2, 0, 0, tzinfo=timezone.utc)
         twilight_start = datetime(2025, 1, 16, 12, 0, 0, tzinfo=timezone.utc)
 
-        window = moon_service.calculate_dark_sky_window(
-            test_location,
-            observing_date,
-            twilight_end,
-            twilight_start
-        )
+        window = moon_service.calculate_dark_sky_window(test_location, observing_date, twilight_end, twilight_start)
 
         # Total should equal sum of evening + morning
         assert abs(window.moon_free_hours - (window.evening_window_hours + window.morning_window_hours)) < 0.01
@@ -287,8 +270,14 @@ class TestMoonServiceIntegration:
         ephemeris = moon_service.compute_ephemeris(test_time)
         assert ephemeris is not None
         assert ephemeris.phase_info.phase_name in [
-            "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
-            "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"
+            "New Moon",
+            "Waxing Crescent",
+            "First Quarter",
+            "Waxing Gibbous",
+            "Full Moon",
+            "Waning Gibbous",
+            "Last Quarter",
+            "Waning Crescent",
         ]
 
         # Step 2: Compute visibility
@@ -299,12 +288,7 @@ class TestMoonServiceIntegration:
         twilight_end = test_time + timedelta(hours=1)
         twilight_start = test_time + timedelta(hours=12)
 
-        window = moon_service.calculate_dark_sky_window(
-            test_location,
-            test_time,
-            twilight_end,
-            twilight_start
-        )
+        window = moon_service.calculate_dark_sky_window(test_location, test_time, twilight_end, twilight_start)
         assert window is not None
 
     def test_different_locations(self, moon_service):
@@ -370,5 +354,8 @@ class TestMoonServiceIntegration:
             assert ephemeris.phase_info.phase_name in [
                 expected_phase,
                 # Allow adjacent phases for edge cases
-                "Waxing Crescent", "Waning Crescent", "Waxing Gibbous", "Waning Gibbous"
+                "Waxing Crescent",
+                "Waning Crescent",
+                "Waxing Gibbous",
+                "Waning Gibbous",
             ]

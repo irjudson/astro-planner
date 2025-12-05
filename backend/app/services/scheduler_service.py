@@ -1,16 +1,12 @@
 """Observing session scheduler using greedy algorithm with urgency lookahead."""
 
 from datetime import datetime, timedelta
-from typing import List, Tuple, Optional
-import pytz
+from typing import List, Optional, Tuple
 
-from app.models import (
-    Location, DSOTarget, ScheduledTarget, TargetScore,
-    ObservingConstraints, SessionInfo
-)
+from app.core import get_settings
+from app.models import DSOTarget, Location, ObservingConstraints, ScheduledTarget, SessionInfo, TargetScore
 from app.services.ephemeris_service import EphemerisService
 from app.services.weather_service import WeatherService
-from app.core import get_settings
 
 
 class SchedulerService:
@@ -28,7 +24,7 @@ class SchedulerService:
         location: Location,
         session: SessionInfo,
         constraints: ObservingConstraints,
-        weather_forecasts: List
+        weather_forecasts: List,
     ) -> List[ScheduledTarget]:
         """
         Schedule targets for an observing session using greedy algorithm.
@@ -88,7 +84,7 @@ class SchedulerService:
                 end_time=session.imaging_end,
                 constraints=constraints,
                 weather_forecasts=weather_forecasts,
-                observed_targets=observed_targets
+                observed_targets=observed_targets,
             )
 
             if best_target is None or duration < min_duration or target_score < min_score_threshold:
@@ -101,35 +97,22 @@ class SchedulerService:
                 duration = max_duration
 
             # Calculate positions and field rotation
-            start_alt, start_az = self.ephemeris.calculate_position(
-                best_target, location, current_time
-            )
+            start_alt, start_az = self.ephemeris.calculate_position(best_target, location, current_time)
             end_time = current_time + duration
-            end_alt, end_az = self.ephemeris.calculate_position(
-                best_target, location, end_time
-            )
+            end_alt, end_az = self.ephemeris.calculate_position(best_target, location, end_time)
 
             # Field rotation rate at midpoint
             mid_time = current_time + (duration / 2)
-            rotation_rate = self.ephemeris.calculate_field_rotation_rate(
-                best_target, location, mid_time
-            )
+            rotation_rate = self.ephemeris.calculate_field_rotation_rate(best_target, location, mid_time)
 
             # Calculate recommended exposure settings
-            recommended_exposure, recommended_frames = self._calculate_exposure_settings(
-                best_target, duration
-            )
+            recommended_exposure, recommended_frames = self._calculate_exposure_settings(best_target, duration)
 
             # Get weather score for this time
-            weather_score = self._get_weather_score_for_time(
-                current_time, weather_forecasts
-            )
+            weather_score = self._get_weather_score_for_time(current_time, weather_forecasts)
 
             # Calculate full score
-            target_score = self._score_target(
-                best_target, location, current_time, duration,
-                constraints, weather_score
-            )
+            target_score = self._score_target(best_target, location, current_time, duration, constraints, weather_score)
 
             # Create scheduled target
             scheduled_target = ScheduledTarget(
@@ -144,7 +127,7 @@ class SchedulerService:
                 field_rotation_rate=rotation_rate,
                 recommended_exposure=recommended_exposure,
                 recommended_frames=recommended_frames,
-                score=target_score
+                score=target_score,
             )
 
             scheduled.append(scheduled_target)
@@ -163,7 +146,7 @@ class SchedulerService:
         end_time: datetime,
         constraints: ObservingConstraints,
         weather_forecasts: List,
-        observed_targets: set
+        observed_targets: set,
     ) -> Tuple[Optional[DSOTarget], timedelta, float]:
         """
         Find the best target for the current time using urgency-based scoring.
@@ -193,29 +176,21 @@ class SchedulerService:
 
             # Check if target is visible now
             if not self.ephemeris.is_target_visible(
-                target, location, current_time,
-                constraints.min_altitude, constraints.max_altitude
+                target, location, current_time, constraints.min_altitude, constraints.max_altitude
             ):
                 continue
 
             # Calculate how long target will remain visible
-            duration = self._calculate_visibility_duration(
-                target, location, current_time, end_time, constraints
-            )
+            duration = self._calculate_visibility_duration(target, location, current_time, end_time, constraints)
 
             if duration < timedelta(minutes=self.settings.min_target_duration_minutes):
                 continue
 
             # Get weather score
-            weather_score = self._get_weather_score_for_time(
-                current_time, weather_forecasts
-            )
+            weather_score = self._get_weather_score_for_time(current_time, weather_forecasts)
 
             # Score the target
-            score_data = self._score_target(
-                target, location, current_time, duration,
-                constraints, weather_score
-            )
+            score_data = self._score_target(target, location, current_time, duration, constraints, weather_score)
 
             # Apply urgency bonus (targets setting soon get priority)
             urgency_bonus = self._calculate_urgency_bonus(
@@ -237,7 +212,7 @@ class SchedulerService:
         location: Location,
         start_time: datetime,
         end_time: datetime,
-        constraints: ObservingConstraints
+        constraints: ObservingConstraints,
     ) -> timedelta:
         """
         Calculate how long a target remains visible within constraints.
@@ -248,15 +223,13 @@ class SchedulerService:
         """
         # First check if target is visible at start (should be, but verify)
         if not self.ephemeris.is_target_visible(
-            target, location, start_time,
-            constraints.min_altitude, constraints.max_altitude
+            target, location, start_time, constraints.min_altitude, constraints.max_altitude
         ):
             return timedelta(0)
 
         # Check if target stays visible until session end
         if self.ephemeris.is_target_visible(
-            target, location, end_time,
-            constraints.min_altitude, constraints.max_altitude
+            target, location, end_time, constraints.min_altitude, constraints.max_altitude
         ):
             return end_time - start_time
 
@@ -270,8 +243,7 @@ class SchedulerService:
             mid = low + (high - low) / 2
 
             if self.ephemeris.is_target_visible(
-                target, location, mid,
-                constraints.min_altitude, constraints.max_altitude
+                target, location, mid, constraints.min_altitude, constraints.max_altitude
             ):
                 # Still visible at mid, search later half
                 low = mid
@@ -288,7 +260,7 @@ class SchedulerService:
         time: datetime,
         duration: timedelta,
         constraints: ObservingConstraints,
-        weather_score: float
+        weather_score: float,
     ) -> TargetScore:
         """
         Calculate composite score for a target.
@@ -325,9 +297,7 @@ class SchedulerService:
             )
 
         # Field rotation score (lower is better)
-        rotation_rate = self.ephemeris.calculate_field_rotation_rate(
-            target, location, time
-        )
+        rotation_rate = self.ephemeris.calculate_field_rotation_rate(target, location, time)
         if rotation_rate < 0.5:
             rotation_score = 1.0
         elif rotation_rate > 2.0:
@@ -342,8 +312,7 @@ class SchedulerService:
         else:
             duration_score = duration_minutes / 120.0
 
-        visibility_score = (altitude_score * 0.5 + rotation_score * 0.3 +
-                          duration_score * 0.2)
+        visibility_score = altitude_score * 0.5 + rotation_score * 0.3 + duration_score * 0.2
 
         # Object score
         # Brightness score (brighter is better, up to mag 10)
@@ -355,8 +324,7 @@ class SchedulerService:
             brightness_score = 1.0 - ((target.magnitude - 6) / 4) * 0.7
 
         # Size score (prefer objects that fit well in FOV)
-        fov_diag = ((self.settings.seestar_fov_width ** 2 +
-                    self.settings.seestar_fov_height ** 2) ** 0.5) * 60  # arcmin
+        fov_diag = ((self.settings.seestar_fov_width**2 + self.settings.seestar_fov_height**2) ** 0.5) * 60  # arcmin
         size_ratio = target.size_arcmin / fov_diag
 
         if 0.3 < size_ratio < 1.2:
@@ -371,20 +339,16 @@ class SchedulerService:
             else:
                 size_score = 1.0 - ((size_ratio - 1.2) / 1.8) * 0.5
 
-        object_score = (brightness_score * 0.6 + size_score * 0.4)
+        object_score = brightness_score * 0.6 + size_score * 0.4
 
         # Combined score
-        total_score = (
-            visibility_score * 0.4 +
-            weather_score * 0.3 +
-            object_score * 0.3
-        )
+        total_score = visibility_score * 0.4 + weather_score * 0.3 + object_score * 0.3
 
         return TargetScore(
             visibility_score=visibility_score,
             weather_score=weather_score,
             object_score=object_score,
-            total_score=total_score
+            total_score=total_score,
         )
 
     def _calculate_urgency_bonus(
@@ -394,7 +358,7 @@ class SchedulerService:
         current_time: datetime,
         end_time: datetime,
         constraints: ObservingConstraints,
-        lookahead: timedelta
+        lookahead: timedelta,
     ) -> float:
         """
         Calculate urgency bonus for targets setting soon.
@@ -408,12 +372,10 @@ class SchedulerService:
             return 0.0
 
         is_visible_now = self.ephemeris.is_target_visible(
-            target, location, current_time,
-            constraints.min_altitude, constraints.max_altitude
+            target, location, current_time, constraints.min_altitude, constraints.max_altitude
         )
         is_visible_later = self.ephemeris.is_target_visible(
-            target, location, future_time,
-            constraints.min_altitude, constraints.max_altitude
+            target, location, future_time, constraints.min_altitude, constraints.max_altitude
         )
 
         # If target is setting within lookahead, give urgency bonus
@@ -422,9 +384,7 @@ class SchedulerService:
         else:
             return 0.0
 
-    def _calculate_exposure_settings(
-        self, target: DSOTarget, duration: timedelta
-    ) -> Tuple[int, int]:
+    def _calculate_exposure_settings(self, target: DSOTarget, duration: timedelta) -> Tuple[int, int]:
         """
         Calculate recommended exposure time and frame count.
 
@@ -452,17 +412,12 @@ class SchedulerService:
 
         return exposure, frame_count
 
-    def _get_weather_score_for_time(
-        self, time: datetime, weather_forecasts: List
-    ) -> float:
+    def _get_weather_score_for_time(self, time: datetime, weather_forecasts: List) -> float:
         """Get weather score for a specific time from forecasts."""
         if not weather_forecasts:
             return 0.8  # Default optimistic score
 
         # Find closest forecast
-        closest_forecast = min(
-            weather_forecasts,
-            key=lambda f: abs((f.timestamp - time).total_seconds())
-        )
+        closest_forecast = min(weather_forecasts, key=lambda f: abs((f.timestamp - time).total_seconds()))
 
         return self.weather.calculate_weather_score(closest_forecast)

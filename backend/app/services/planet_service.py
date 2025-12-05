@@ -2,18 +2,13 @@
 
 from datetime import datetime
 from typing import List, Optional
+
 import numpy as np
-from astropy.time import Time
-from astropy.coordinates import EarthLocation, AltAz, get_sun, get_body, solar_system_ephemeris
 from astropy import units as u
+from astropy.coordinates import AltAz, EarthLocation, get_body, get_sun, solar_system_ephemeris
+from astropy.time import Time
 
-from app.models import (
-    Location,
-    PlanetTarget,
-    PlanetEphemeris,
-    PlanetVisibility
-)
-
+from app.models import Location, PlanetEphemeris, PlanetTarget, PlanetVisibility
 
 # Static planet data
 PLANET_DATA = {
@@ -24,7 +19,7 @@ PLANET_DATA = {
         "rotation_period_hours": 1407.6,  # Very slow rotation
         "has_rings": False,
         "num_moons": 0,
-        "notes": "Closest planet to the Sun, best viewed during twilight near greatest elongation"
+        "notes": "Closest planet to the Sun, best viewed during twilight near greatest elongation",
     },
     "Venus": {
         "planet_type": "terrestrial",
@@ -33,7 +28,7 @@ PLANET_DATA = {
         "rotation_period_hours": 5832.5,  # Retrograde rotation
         "has_rings": False,
         "num_moons": 0,
-        "notes": "Brightest planet, often visible during daytime, shows phases like the Moon"
+        "notes": "Brightest planet, often visible during daytime, shows phases like the Moon",
     },
     "Mars": {
         "planet_type": "terrestrial",
@@ -42,7 +37,7 @@ PLANET_DATA = {
         "rotation_period_hours": 24.623,
         "has_rings": False,
         "num_moons": 2,
-        "notes": "The Red Planet, shows polar caps and surface features in telescopes"
+        "notes": "The Red Planet, shows polar caps and surface features in telescopes",
     },
     "Jupiter": {
         "planet_type": "gas_giant",
@@ -51,7 +46,7 @@ PLANET_DATA = {
         "rotation_period_hours": 9.925,
         "has_rings": True,  # Faint ring system
         "num_moons": 95,  # As of 2023
-        "notes": "Largest planet, shows cloud bands, Great Red Spot, and four Galilean moons"
+        "notes": "Largest planet, shows cloud bands, Great Red Spot, and four Galilean moons",
     },
     "Saturn": {
         "planet_type": "gas_giant",
@@ -60,7 +55,7 @@ PLANET_DATA = {
         "rotation_period_hours": 10.656,
         "has_rings": True,  # Prominent ring system
         "num_moons": 146,  # As of 2023
-        "notes": "Famous for spectacular ring system, Cassini Division visible in small telescopes"
+        "notes": "Famous for spectacular ring system, Cassini Division visible in small telescopes",
     },
     "Uranus": {
         "planet_type": "ice_giant",
@@ -69,7 +64,7 @@ PLANET_DATA = {
         "rotation_period_hours": 17.24,  # Retrograde rotation, tilted on side
         "has_rings": True,  # Faint ring system
         "num_moons": 27,
-        "notes": "Blue-green disk in telescopes, rotates on its side"
+        "notes": "Blue-green disk in telescopes, rotates on its side",
     },
     "Neptune": {
         "planet_type": "ice_giant",
@@ -78,7 +73,7 @@ PLANET_DATA = {
         "rotation_period_hours": 16.11,
         "has_rings": True,  # Faint ring system
         "num_moons": 14,
-        "notes": "Deep blue color, farthest major planet, requires telescope to observe"
+        "notes": "Deep blue color, farthest major planet, requires telescope to observe",
     },
     "Moon": {
         "planet_type": "satellite",
@@ -87,7 +82,7 @@ PLANET_DATA = {
         "rotation_period_hours": 655.7,  # Tidally locked (same as orbital period)
         "has_rings": False,
         "num_moons": 0,
-        "notes": "Earth's only natural satellite, excellent for surface detail imaging, shows phases and libration"
+        "notes": "Earth's only natural satellite, excellent for surface detail imaging, shows phases and libration",
     },
     "Sun": {
         "planet_type": "star",
@@ -96,8 +91,8 @@ PLANET_DATA = {
         "rotation_period_hours": 609.12,  # At equator (~25.4 days)
         "has_rings": False,
         "num_moons": 0,
-        "notes": "⚠️ REQUIRES PROPER SOLAR FILTER! Never observe without certified solar filter. Good for sunspots, prominences, solar disk imaging"
-    }
+        "notes": "⚠️ REQUIRES PROPER SOLAR FILTER! Never observe without certified solar filter. Good for sunspots, prominences, solar disk imaging",
+    },
 }
 
 
@@ -107,7 +102,7 @@ class PlanetService:
     def __init__(self):
         """Initialize planet service."""
         # Use built-in ephemeris for planets
-        solar_system_ephemeris.set('builtin')
+        solar_system_ephemeris.set("builtin")
 
     def get_all_planets(self) -> List[PlanetTarget]:
         """
@@ -118,10 +113,7 @@ class PlanetService:
         """
         planets = []
         for name, data in PLANET_DATA.items():
-            planet = PlanetTarget(
-                name=name,
-                **data
-            )
+            planet = PlanetTarget(name=name, **data)
             planets.append(planet)
         return planets
 
@@ -141,10 +133,7 @@ class PlanetService:
         if name_normalized not in PLANET_DATA:
             return None
 
-        return PlanetTarget(
-            name=name_normalized,
-            **PLANET_DATA[name_normalized]
-        )
+        return PlanetTarget(name=name_normalized, **PLANET_DATA[name_normalized])
 
     def compute_ephemeris(self, planet_name: str, time_utc: datetime) -> PlanetEphemeris:
         """
@@ -176,7 +165,7 @@ class PlanetService:
             sun = planet  # Sun is itself
         elif planet_name == "Moon":
             # Moon uses get_body
-            planet = get_body('moon', t)
+            planet = get_body("moon", t)
             sun = get_sun(t)
         else:
             # Get planet position using Astropy's get_body
@@ -225,7 +214,9 @@ class PlanetService:
             # cos(phase) = (r^2 + delta^2 - R^2) / (2 * r * delta)
             # where r = heliocentric distance, delta = geocentric distance, R = Earth-Sun distance (1 AU)
             earth_sun_dist = 1.0  # AU
-            cos_phase = (helio_distance_au**2 + distance_au**2 - earth_sun_dist**2) / (2 * helio_distance_au * distance_au)
+            cos_phase = (helio_distance_au**2 + distance_au**2 - earth_sun_dist**2) / (
+                2 * helio_distance_au * distance_au
+            )
             cos_phase = np.clip(cos_phase, -1, 1)  # Ensure valid range
             phase_angle_deg = np.degrees(np.arccos(cos_phase))
 
@@ -259,7 +250,7 @@ class PlanetService:
             angular_diameter_arcsec=angular_diameter_arcsec,
             phase_percent=phase_percent,
             elongation_deg=elongation_deg,
-            constellation=constellation
+            constellation=constellation,
         )
 
     def _get_heliocentric_distance(self, planet_name: str, t: Time) -> float:
@@ -275,7 +266,7 @@ class PlanetService:
         """
         # Get planet position relative to Sun
         # Use get_body with location at solar system barycenter
-        planet = get_body(planet_name.lower(), t)
+        get_body(planet_name.lower(), t)
 
         # For heliocentric distance, use rough semi-major axis approximation
         # (More accurate calculation would require barycentric coordinates)
@@ -284,14 +275,15 @@ class PlanetService:
 
         # Kepler's third law: a^3 = T^2 (with T in years, a in AU)
         orbital_period_years = orbital_period_days / 365.25
-        semi_major_axis_au = orbital_period_years ** (2.0/3.0)
+        semi_major_axis_au = orbital_period_years ** (2.0 / 3.0)
 
         # Return semi-major axis as rough approximation
         # (Could improve with actual heliocentric coordinates)
         return semi_major_axis_au
 
-    def _estimate_magnitude(self, planet_name: str, geo_dist_au: float,
-                           helio_dist_au: float, phase_angle_deg: float) -> float:
+    def _estimate_magnitude(
+        self, planet_name: str, geo_dist_au: float, helio_dist_au: float, phase_angle_deg: float
+    ) -> float:
         """
         Estimate visual magnitude of a planet.
 
@@ -318,7 +310,7 @@ class PlanetService:
             "Jupiter": -9.40,
             "Saturn": -8.88,  # Without rings, rings add ~+0.6
             "Uranus": -7.19,
-            "Neptune": -6.87
+            "Neptune": -6.87,
         }
 
         v0 = mag_params.get(planet_name, 0.0)
@@ -329,7 +321,7 @@ class PlanetService:
 
         # Phase angle correction (simplified)
         # Most planets use a quadratic phase function
-        phase_rad = np.radians(phase_angle_deg)
+        np.radians(phase_angle_deg)
         phase_correction = 0.0
 
         if planet_name in ["Mercury", "Venus"]:
@@ -343,8 +335,7 @@ class PlanetService:
         # Clamp to reasonable range
         return np.clip(magnitude, -10.0, 20.0)
 
-    def compute_visibility(self, planet_name: str, location: Location,
-                          time_utc: datetime) -> PlanetVisibility:
+    def compute_visibility(self, planet_name: str, location: Location, time_utc: datetime) -> PlanetVisibility:
         """
         Compute visibility of a planet at a specific location and time.
 
@@ -366,9 +357,7 @@ class PlanetService:
 
         # Set up observer location
         earth_location = EarthLocation(
-            lat=location.latitude * u.deg,
-            lon=location.longitude * u.deg,
-            height=location.elevation * u.m
+            lat=location.latitude * u.deg, lon=location.longitude * u.deg, height=location.elevation * u.m
         )
 
         # Convert to Astropy Time
@@ -404,16 +393,10 @@ class PlanetService:
         # - Good elongation from Sun
         # - Either nighttime OR bright enough for daytime (Venus/Mercury)
         can_observe_daytime = planet_name in ["Venus"] and ephemeris.magnitude < -3.0
-        recommended = (
-            is_visible and
-            elongation_ok and
-            (not is_daytime or can_observe_daytime)
-        )
+        recommended = is_visible and elongation_ok and (not is_daytime or can_observe_daytime)
 
         # Calculate rise and set times (simplified - next rise/set within 24 hours)
-        rise_time, set_time = self._calculate_rise_set_times(
-            planet_name, location, time_utc
-        )
+        rise_time, set_time = self._calculate_rise_set_times(planet_name, location, time_utc)
 
         return PlanetVisibility(
             planet=planet,
@@ -425,11 +408,12 @@ class PlanetService:
             elongation_ok=elongation_ok,
             recommended=recommended,
             rise_time=rise_time,
-            set_time=set_time
+            set_time=set_time,
         )
 
-    def _calculate_rise_set_times(self, planet_name: str, location: Location,
-                                  time_utc: datetime) -> tuple[Optional[datetime], Optional[datetime]]:
+    def _calculate_rise_set_times(
+        self, planet_name: str, location: Location, time_utc: datetime
+    ) -> tuple[Optional[datetime], Optional[datetime]]:
         """
         Calculate rise and set times for a planet.
 
@@ -446,9 +430,7 @@ class PlanetService:
         """
         # Set up observer location
         earth_location = EarthLocation(
-            lat=location.latitude * u.deg,
-            lon=location.longitude * u.deg,
-            height=location.elevation * u.m
+            lat=location.latitude * u.deg, lon=location.longitude * u.deg, height=location.elevation * u.m
         )
 
         # Search for rise/set over next 24 hours
@@ -485,9 +467,9 @@ class PlanetService:
 
         return rise_time, set_time
 
-    def get_visible_planets(self, location: Location, time_utc: datetime,
-                           min_altitude: float = 0.0,
-                           include_daytime: bool = False) -> List[PlanetVisibility]:
+    def get_visible_planets(
+        self, location: Location, time_utc: datetime, min_altitude: float = 0.0, include_daytime: bool = False
+    ) -> List[PlanetVisibility]:
         """
         Get all planets that are currently visible.
 

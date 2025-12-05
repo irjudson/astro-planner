@@ -1,15 +1,14 @@
 """Ephemeris calculations using Skyfield."""
 
-from datetime import datetime, timedelta
-from typing import Tuple, Dict
-import pytz
 import math
-from skyfield.api import load, wgs84, Star
-from skyfield import almanac
-from astropy.coordinates import SkyCoord
-from astropy import units as u
+from datetime import datetime, timedelta
+from typing import Dict, Tuple
 
-from app.models import Location, DSOTarget
+import pytz
+from skyfield import almanac
+from skyfield.api import Star, load, wgs84
+
+from app.models import DSOTarget, Location
 
 
 class EphemerisService:
@@ -18,13 +17,11 @@ class EphemerisService:
     def __init__(self):
         """Initialize with ephemeris data."""
         self.ts = load.timescale()
-        self.eph = load('de421.bsp')
-        self.earth = self.eph['earth']
-        self.sun = self.eph['sun']
+        self.eph = load("de421.bsp")
+        self.earth = self.eph["earth"]
+        self.sun = self.eph["sun"]
 
-    def calculate_twilight_times(
-        self, location: Location, date: datetime
-    ) -> Dict[str, datetime]:
+    def calculate_twilight_times(self, location: Location, date: datetime) -> Dict[str, datetime]:
         """
         Calculate twilight times for a given location and date.
 
@@ -36,9 +33,7 @@ class EphemerisService:
             Dictionary with sunset, twilight times, and sunrise
         """
         # Create observer location
-        topos = wgs84.latlon(
-            location.latitude, location.longitude, elevation_m=location.elevation
-        )
+        topos = wgs84.latlon(location.latitude, location.longitude, elevation_m=location.elevation)
 
         # Get timezone
         tz = pytz.timezone(location.timezone)
@@ -60,14 +55,12 @@ class EphemerisService:
 
         # Sunset/Sunrise (0° below horizon)
         sunset_idx = None
-        sunrise_idx = None
         for i, (t, event) in enumerate(zip(times, events)):
             if event == 0:  # Sunset
                 sunset_idx = i
-                twilight_times['sunset'] = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
+                twilight_times["sunset"] = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
             elif event == 1 and sunset_idx is not None:  # Sunrise after sunset
-                sunrise_idx = i
-                twilight_times['sunrise'] = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
+                twilight_times["sunrise"] = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
                 break
 
         # Use dark_twilight_day for all twilight calculations
@@ -79,31 +72,32 @@ class EphemerisService:
             dt = t.utc_datetime().replace(tzinfo=pytz.UTC).astimezone(tz)
 
             # Evening transitions (going from light to dark) - take first occurrence only
-            if i > 0 and events_twilight[i-1] == 4 and event == 3:
-                if 'civil_twilight_end' not in twilight_times:
-                    twilight_times['civil_twilight_end'] = dt
-            elif i > 0 and events_twilight[i-1] == 3 and event == 2:
-                if 'nautical_twilight_end' not in twilight_times:
-                    twilight_times['nautical_twilight_end'] = dt
-            elif i > 0 and events_twilight[i-1] == 2 and event == 1:
-                if 'astronomical_twilight_end' not in twilight_times:
-                    twilight_times['astronomical_twilight_end'] = dt
+            if i > 0 and events_twilight[i - 1] == 4 and event == 3:
+                if "civil_twilight_end" not in twilight_times:
+                    twilight_times["civil_twilight_end"] = dt
+            elif i > 0 and events_twilight[i - 1] == 3 and event == 2:
+                if "nautical_twilight_end" not in twilight_times:
+                    twilight_times["nautical_twilight_end"] = dt
+            elif i > 0 and events_twilight[i - 1] == 2 and event == 1:
+                if "astronomical_twilight_end" not in twilight_times:
+                    twilight_times["astronomical_twilight_end"] = dt
 
             # Morning transitions (going from dark to light) - take first occurrence only
-            elif i > 0 and events_twilight[i-1] == 1 and event == 2:
-                if 'astronomical_twilight_start' not in twilight_times:
-                    twilight_times['astronomical_twilight_start'] = dt
-            elif i > 0 and events_twilight[i-1] == 2 and event == 3:
-                if 'nautical_twilight_start' not in twilight_times:
-                    twilight_times['nautical_twilight_start'] = dt
-            elif i > 0 and events_twilight[i-1] == 3 and event == 4:
-                if 'civil_twilight_start' not in twilight_times:
-                    twilight_times['civil_twilight_start'] = dt
+            elif i > 0 and events_twilight[i - 1] == 1 and event == 2:
+                if "astronomical_twilight_start" not in twilight_times:
+                    twilight_times["astronomical_twilight_start"] = dt
+            elif i > 0 and events_twilight[i - 1] == 2 and event == 3:
+                if "nautical_twilight_start" not in twilight_times:
+                    twilight_times["nautical_twilight_start"] = dt
+            elif i > 0 and events_twilight[i - 1] == 3 and event == 4:
+                if "civil_twilight_start" not in twilight_times:
+                    twilight_times["civil_twilight_start"] = dt
 
         return twilight_times
 
     def _find_twilight_angle(self, observer, t0, t1, angle: float) -> Tuple[datetime, datetime]:
         """Find times when sun reaches a specific angle below horizon."""
+
         def sun_altitude_below(t):
             """Return True when sun is below the specified angle."""
             sun_apparent = observer.at(t).observe(self.sun).apparent()
@@ -127,9 +121,7 @@ class EphemerisService:
 
         return evening_time, morning_time
 
-    def calculate_position(
-        self, target: DSOTarget, location: Location, time: datetime
-    ) -> Tuple[float, float]:
+    def calculate_position(self, target: DSOTarget, location: Location, time: datetime) -> Tuple[float, float]:
         """
         Calculate altitude and azimuth for a target at a specific time.
 
@@ -142,19 +134,14 @@ class EphemerisService:
             Tuple of (altitude, azimuth) in degrees
         """
         # Create observer location
-        observer = self.earth + wgs84.latlon(
-            location.latitude, location.longitude, elevation_m=location.elevation
-        )
+        observer = self.earth + wgs84.latlon(location.latitude, location.longitude, elevation_m=location.elevation)
 
         # Convert time to UTC
         time_utc = time.astimezone(pytz.UTC)
         t = self.ts.from_datetime(time_utc)
 
         # Create star at target coordinates
-        star = Star(
-            ra_hours=target.ra_hours,
-            dec_degrees=target.dec_degrees
-        )
+        star = Star(ra_hours=target.ra_hours, dec_degrees=target.dec_degrees)
 
         # Calculate position
         astrometric = observer.at(t).observe(star)
@@ -163,9 +150,7 @@ class EphemerisService:
 
         return alt.degrees, az.degrees
 
-    def calculate_field_rotation_rate(
-        self, target: DSOTarget, location: Location, time: datetime
-    ) -> float:
+    def calculate_field_rotation_rate(self, target: DSOTarget, location: Location, time: datetime) -> float:
         """
         Calculate field rotation rate for alt-az mount.
 

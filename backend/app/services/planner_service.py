@@ -1,17 +1,13 @@
 """Main planner service that orchestrates the entire planning process."""
 
 from datetime import datetime, timedelta
-import pytz
 from typing import Dict
+
+import pytz
 from sqlalchemy.orm import Session
 
-from app.models import (
-    PlanRequest, ObservingPlan, SessionInfo, Location, ObservingConstraints
-)
-from app.services import (
-    EphemerisService, CatalogService, WeatherService,
-    SchedulerService, ExportService
-)
+from app.models import Location, ObservingPlan, PlanRequest, SessionInfo
+from app.services import CatalogService, EphemerisService, ExportService, SchedulerService, WeatherService
 from app.services.comet_service import CometService
 from app.services.light_pollution_service import LightPollutionService
 
@@ -52,9 +48,7 @@ class PlannerService:
         observing_date = tz.localize(observing_date) if observing_date.tzinfo is None else observing_date
 
         # Calculate twilight times for this date
-        twilight_times = self.ephemeris.calculate_twilight_times(
-            request.location, observing_date
-        )
+        twilight_times = self.ephemeris.calculate_twilight_times(request.location, observing_date)
 
         # Determine imaging window based on daytime_planning flag
         if request.constraints.daytime_planning:
@@ -65,31 +59,29 @@ class PlannerService:
             prev_twilight = self.ephemeris.calculate_twilight_times(request.location, prev_day)
             # Use sunrise from "next day" of previous twilight (which is our observing_date)
             # and sunset from current day
-            imaging_start = prev_twilight['sunrise'] + timedelta(
-                minutes=request.constraints.setup_time_minutes
-            )
-            imaging_end = twilight_times['sunset']
+            imaging_start = prev_twilight["sunrise"] + timedelta(minutes=request.constraints.setup_time_minutes)
+            imaging_end = twilight_times["sunset"]
         else:
             # Normal nighttime planning: observe during astronomical darkness
-            imaging_start = twilight_times['astronomical_twilight_end'] + timedelta(
+            imaging_start = twilight_times["astronomical_twilight_end"] + timedelta(
                 minutes=request.constraints.setup_time_minutes
             )
-            imaging_end = twilight_times['astronomical_twilight_start']
+            imaging_end = twilight_times["astronomical_twilight_start"]
 
         # Create session info
         session = SessionInfo(
             observing_date=request.observing_date,
-            sunset=twilight_times['sunset'],
-            civil_twilight_end=twilight_times['civil_twilight_end'],
-            nautical_twilight_end=twilight_times['nautical_twilight_end'],
-            astronomical_twilight_end=twilight_times['astronomical_twilight_end'],
-            astronomical_twilight_start=twilight_times['astronomical_twilight_start'],
-            nautical_twilight_start=twilight_times['nautical_twilight_start'],
-            civil_twilight_start=twilight_times['civil_twilight_start'],
-            sunrise=twilight_times['sunrise'],
+            sunset=twilight_times["sunset"],
+            civil_twilight_end=twilight_times["civil_twilight_end"],
+            nautical_twilight_end=twilight_times["nautical_twilight_end"],
+            astronomical_twilight_end=twilight_times["astronomical_twilight_end"],
+            astronomical_twilight_start=twilight_times["astronomical_twilight_start"],
+            nautical_twilight_start=twilight_times["nautical_twilight_start"],
+            civil_twilight_start=twilight_times["civil_twilight_start"],
+            sunrise=twilight_times["sunrise"],
             imaging_start=imaging_start,
             imaging_end=imaging_end,
-            total_imaging_minutes=0  # Will be calculated
+            total_imaging_minutes=0,  # Will be calculated
         )
 
         # Calculate total imaging time
@@ -112,7 +104,7 @@ class PlannerService:
         targets = self.catalog.filter_targets(
             object_types=request.constraints.object_types,
             max_magnitude=12.0,  # Practical limit for Seestar S50
-            limit=200  # Enough variety while keeping performance fast
+            limit=200,  # Enough variety while keeping performance fast
         )
 
         # Apply sky quality filtering if available
@@ -124,7 +116,9 @@ class PlannerService:
             targets = [t for t in targets if t.object_type in suitable_types]
             filtered_count = original_count - len(targets)
             if filtered_count > 0:
-                print(f"Sky quality filtering: removed {filtered_count} targets unsuitable for Bortle {sky_quality.bortle_class} conditions")
+                print(
+                    f"Sky quality filtering: removed {filtered_count} targets unsuitable for Bortle {sky_quality.bortle_class} conditions"
+                )
 
         # Add visible comets if "comet" is in object types
         if request.constraints.object_types and "comet" in request.constraints.object_types:
@@ -139,13 +133,14 @@ class PlannerService:
                     location=request.location,
                     time_utc=midpoint_utc,
                     min_altitude=request.constraints.min_altitude_degrees,
-                    max_magnitude=12.0  # Same limit as DSO targets
+                    max_magnitude=12.0,  # Same limit as DSO targets
                 )
 
                 # Convert comet visibility objects to DSOTarget format for scheduler compatibility
                 # This is a simplified conversion - comets need special handling for moving targets
                 for comet_vis in visible_comets:
                     from app.models import DSOTarget
+
                     comet_target = DSOTarget(
                         catalog_name="Comet",
                         catalog_id=comet_vis.comet.designation,
@@ -156,7 +151,7 @@ class PlannerService:
                         magnitude=comet_vis.ephemeris.magnitude,
                         size_arcmin=None,  # Comets vary
                         constellation=None,  # Would need to compute
-                        notes=f"Distance: {comet_vis.ephemeris.helio_distance_au:.2f} AU from Sun, {comet_vis.ephemeris.geo_distance_au:.2f} AU from Earth"
+                        notes=f"Distance: {comet_vis.ephemeris.helio_distance_au:.2f} AU from Sun, {comet_vis.ephemeris.geo_distance_au:.2f} AU from Earth",
                     )
                     targets.append(comet_target)
             except Exception as e:
@@ -164,11 +159,7 @@ class PlannerService:
                 print(f"Warning: Failed to add comets to plan: {e}")
 
         # Get weather forecast
-        weather_forecast = self.weather.get_forecast(
-            request.location,
-            session.imaging_start,
-            session.imaging_end
-        )
+        weather_forecast = self.weather.get_forecast(request.location, session.imaging_start, session.imaging_end)
 
         # Schedule targets
         scheduled_targets = self.scheduler.schedule_session(
@@ -176,14 +167,12 @@ class PlannerService:
             location=request.location,
             session=session,
             constraints=request.constraints,
-            weather_forecasts=weather_forecast
+            weather_forecasts=weather_forecast,
         )
 
         # Calculate coverage
         if scheduled_targets:
-            total_scheduled_time = sum(
-                st.duration_minutes for st in scheduled_targets
-            )
+            total_scheduled_time = sum(st.duration_minutes for st in scheduled_targets)
             coverage_percent = (total_scheduled_time / session.total_imaging_minutes) * 100
         else:
             coverage_percent = 0.0
@@ -196,7 +185,7 @@ class PlannerService:
             weather_forecast=weather_forecast,
             total_targets=len(scheduled_targets),
             coverage_percent=coverage_percent,
-            sky_quality=sky_quality_dict
+            sky_quality=sky_quality_dict,
         )
 
         return plan
@@ -213,11 +202,7 @@ class PlannerService:
             Dictionary of twilight times as ISO strings
         """
         observing_date = datetime.fromisoformat(date)
-        twilight_times = self.ephemeris.calculate_twilight_times(
-            location, observing_date
-        )
+        twilight_times = self.ephemeris.calculate_twilight_times(location, observing_date)
 
         # Convert to ISO strings
-        return {
-            key: value.isoformat() for key, value in twilight_times.items()
-        }
+        return {key: value.isoformat() for key, value in twilight_times.items()}

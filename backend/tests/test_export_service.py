@@ -1,21 +1,14 @@
 """Tests for export service."""
 
-import pytest
-import json
 import csv
-from io import StringIO
+import json
 from datetime import datetime
+from io import StringIO
 
+import pytest
+
+from app.models import DSOTarget, Location, ObservingPlan, ScheduledTarget, SessionInfo, TargetScore, WeatherForecast
 from app.services.export_service import ExportService
-from app.models import (
-    ObservingPlan,
-    ScheduledTarget,
-    DSOTarget,
-    TargetScore,
-    Location,
-    SessionInfo,
-    WeatherForecast,
-)
 
 
 @pytest.fixture
@@ -28,11 +21,7 @@ def export_service():
 def sample_location():
     """Create sample location."""
     return Location(
-        name="Three Forks, MT",
-        latitude=45.92,
-        longitude=-111.28,
-        elevation=1234.0,
-        timezone="America/Denver"
+        name="Three Forks, MT", latitude=45.92, longitude=-111.28, elevation=1234.0, timezone="America/Denver"
     )
 
 
@@ -51,7 +40,7 @@ def sample_session():
         sunrise=datetime(2025, 1, 16, 7, 45),
         imaging_start=datetime(2025, 1, 15, 19, 30),
         imaging_end=datetime(2025, 1, 16, 5, 30),
-        total_imaging_minutes=600
+        total_imaging_minutes=600,
     )
 
 
@@ -66,7 +55,7 @@ def sample_target():
         dec_degrees=41.269,
         magnitude=3.4,
         size_arcmin=190.0,
-        description="Nearest major galaxy"
+        description="Nearest major galaxy",
     )
 
 
@@ -85,12 +74,7 @@ def sample_scheduled_target(sample_target):
         field_rotation_rate=0.5,
         recommended_exposure=10,
         recommended_frames=180,
-        score=TargetScore(
-            visibility_score=0.95,
-            weather_score=0.90,
-            object_score=0.85,
-            total_score=0.90
-        )
+        score=TargetScore(visibility_score=0.95, weather_score=0.90, object_score=0.85, total_score=0.90),
     )
 
 
@@ -106,7 +90,7 @@ def sample_weather():
             wind_speed=5.0,
             conditions="Clear",
             seeing_arcseconds=3.0,
-            transparency_magnitude=5.5
+            transparency_magnitude=5.5,
         ),
         WeatherForecast(
             timestamp=datetime(2025, 1, 15, 22, 0),
@@ -116,8 +100,8 @@ def sample_weather():
             wind_speed=7.0,
             conditions="Partly cloudy",
             seeing_arcseconds=3.2,
-            transparency_magnitude=5.0
-        )
+            transparency_magnitude=5.0,
+        ),
     ]
 
 
@@ -131,7 +115,7 @@ def sample_plan(sample_location, sample_session, sample_scheduled_target, sample
         weather_forecast=sample_weather,
         total_targets=1,
         coverage_percent=30.0,
-        generated_at=datetime(2025, 1, 14, 12, 0, 0)
+        generated_at=datetime(2025, 1, 14, 12, 0, 0),
     )
 
 
@@ -145,7 +129,7 @@ def sample_plan_no_weather(sample_location, sample_session, sample_scheduled_tar
         weather_forecast=[],  # Empty list, not None
         total_targets=1,
         coverage_percent=30.0,
-        generated_at=datetime(2025, 1, 14, 12, 0, 0)
+        generated_at=datetime(2025, 1, 14, 12, 0, 0),
     )
 
 
@@ -443,7 +427,7 @@ class TestMultipleTargets:
                     dec_degrees=41.269,
                     magnitude=3.4,
                     size_arcmin=190.0,
-                    description="Nearest major galaxy"
+                    description="Nearest major galaxy",
                 ),
                 start_time=datetime(2025, 1, 15, 20, 0),
                 end_time=datetime(2025, 1, 15, 21, 30),
@@ -455,12 +439,7 @@ class TestMultipleTargets:
                 field_rotation_rate=0.5,
                 recommended_exposure=10,
                 recommended_frames=90,
-                score=TargetScore(
-                    visibility_score=0.95,
-                    weather_score=0.90,
-                    object_score=0.85,
-                    total_score=0.90
-                )
+                score=TargetScore(visibility_score=0.95, weather_score=0.90, object_score=0.85, total_score=0.90),
             ),
             ScheduledTarget(
                 target=DSOTarget(
@@ -471,7 +450,7 @@ class TestMultipleTargets:
                     dec_degrees=-5.391,
                     magnitude=4.0,
                     size_arcmin=65.0,
-                    description="Famous emission nebula"
+                    description="Famous emission nebula",
                 ),
                 start_time=datetime(2025, 1, 15, 22, 0),
                 end_time=datetime(2025, 1, 15, 23, 30),
@@ -483,13 +462,8 @@ class TestMultipleTargets:
                 field_rotation_rate=0.4,
                 recommended_exposure=10,
                 recommended_frames=90,
-                score=TargetScore(
-                    visibility_score=0.90,
-                    weather_score=0.85,
-                    object_score=0.90,
-                    total_score=0.88
-                )
-            )
+                score=TargetScore(visibility_score=0.90, weather_score=0.85, object_score=0.90, total_score=0.88),
+            ),
         ]
 
         return ObservingPlan(
@@ -499,7 +473,7 @@ class TestMultipleTargets:
             weather_forecast=sample_weather,
             total_targets=2,
             coverage_percent=60.0,
-            generated_at=datetime(2025, 1, 14, 12, 0, 0)
+            generated_at=datetime(2025, 1, 14, 12, 0, 0),
         )
 
     def test_csv_has_multiple_rows(self, export_service, multi_target_plan):

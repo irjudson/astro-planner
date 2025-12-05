@@ -2,18 +2,17 @@
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from datetime import datetime
+from typing import Any, Dict, List
 
 from celery import Task
-from sqlalchemy.orm import Session
 
-from app.tasks.celery_app import celery_app
-from app.database import SessionLocal
-from app.models.telescope_models import TelescopeExecution, TelescopeExecutionTarget
 from app.clients.seestar_client import SeestarClient
-from app.services.telescope_service import TelescopeService
+from app.database import SessionLocal
 from app.models import ScheduledTarget
+from app.models.telescope_models import TelescopeExecution, TelescopeExecutionTarget
+from app.services.telescope_service import TelescopeService
+from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -36,26 +35,18 @@ class TelescopeExecutionTask(Task):
     def telescope_service(self):
         """Get or create telescope service (singleton per worker)."""
         if self._telescope_service is None:
-            self._telescope_service = TelescopeService(
-                client=self.seestar_client,
-                logger=logger
-            )
+            self._telescope_service = TelescopeService(client=self.seestar_client, logger=logger)
         return self._telescope_service
 
 
-@celery_app.task(
-    bind=True,
-    base=TelescopeExecutionTask,
-    name="execute_observation_plan",
-    track_started=True
-)
+@celery_app.task(bind=True, base=TelescopeExecutionTask, name="execute_observation_plan", track_started=True)
 def execute_observation_plan_task(
     self,
     execution_id: str,
     targets_data: List[Dict[str, Any]],
     telescope_host: str,
     telescope_port: int = 4700,
-    park_when_done: bool = True
+    park_when_done: bool = True,
 ):
     """
     Execute an observation plan on the telescope.
@@ -82,7 +73,7 @@ def execute_observation_plan_task(
             telescope_host=telescope_host,
             telescope_port=telescope_port,
             park_when_done=park_when_done,
-            started_at=datetime.utcnow()
+            started_at=datetime.utcnow(),
         )
         db.add(execution)
         db.commit()
@@ -92,14 +83,14 @@ def execute_observation_plan_task(
 
         # Update Celery state
         self.update_state(
-            state='PROGRESS',
+            state="PROGRESS",
             meta={
-                'execution_id': execution_id,
-                'state': 'starting',
-                'current': 0,
-                'total': len(targets_data),
-                'status': 'Connecting to telescope...'
-            }
+                "execution_id": execution_id,
+                "state": "starting",
+                "current": 0,
+                "total": len(targets_data),
+                "status": "Connecting to telescope...",
+            },
         )
 
         # Connect to telescope
@@ -108,9 +99,7 @@ def execute_observation_plan_task(
 
         try:
             # Connect
-            loop.run_until_complete(
-                self.seestar_client.connect(telescope_host, telescope_port)
-            )
+            loop.run_until_complete(self.seestar_client.connect(telescope_host, telescope_port))
 
             logger.info(f"Connected to telescope at {telescope_host}:{telescope_port}")
 
@@ -131,7 +120,7 @@ def execute_observation_plan_task(
                     scheduled_start_time=target.start_time,
                     scheduled_duration_minutes=target.duration_minutes,
                     recommended_frames=target.recommended_frames,
-                    recommended_exposure_seconds=target.recommended_exposure
+                    recommended_exposure_seconds=target.recommended_exposure,
                 )
                 db.add(target_record)
             db.commit()
@@ -140,42 +129,52 @@ def execute_observation_plan_task(
             def progress_callback(progress):
                 try:
                     # Update execution record
-                    db.query(TelescopeExecution).filter(
-                        TelescopeExecution.id == execution.id
-                    ).update({
-                        'state': progress.state.value,
-                        'current_target_index': progress.current_target_index,
-                        'current_target_name': progress.current_target_name,
-                        'current_phase': progress.current_phase,
-                        'targets_completed': progress.targets_completed,
-                        'targets_failed': progress.targets_failed,
-                        'progress_percent': progress.progress_percent,
-                        'elapsed_seconds': int(progress.elapsed_time.total_seconds()) if progress.elapsed_time else 0,
-                        'estimated_remaining_seconds': int(progress.estimated_remaining.total_seconds()) if progress.estimated_remaining else None,
-                        'updated_at': datetime.utcnow()
-                    })
+                    db.query(TelescopeExecution).filter(TelescopeExecution.id == execution.id).update(
+                        {
+                            "state": progress.state.value,
+                            "current_target_index": progress.current_target_index,
+                            "current_target_name": progress.current_target_name,
+                            "current_phase": progress.current_phase,
+                            "targets_completed": progress.targets_completed,
+                            "targets_failed": progress.targets_failed,
+                            "progress_percent": progress.progress_percent,
+                            "elapsed_seconds": (
+                                int(progress.elapsed_time.total_seconds()) if progress.elapsed_time else 0
+                            ),
+                            "estimated_remaining_seconds": (
+                                int(progress.estimated_remaining.total_seconds())
+                                if progress.estimated_remaining
+                                else None
+                            ),
+                            "updated_at": datetime.utcnow(),
+                        }
+                    )
                     db.commit()
 
                     # Update Celery state for streaming
                     self.update_state(
-                        state='PROGRESS',
+                        state="PROGRESS",
                         meta={
-                            'execution_id': execution_id,
-                            'state': progress.state.value,
-                            'current': progress.targets_completed,
-                            'total': progress.total_targets,
-                            'current_target': progress.current_target_name,
-                            'current_phase': progress.current_phase,
-                            'progress_percent': progress.progress_percent,
-                            'elapsed_time': str(progress.elapsed_time) if progress.elapsed_time else None,
-                            'estimated_remaining': str(progress.estimated_remaining) if progress.estimated_remaining else None,
-                            'targets_completed': progress.targets_completed,
-                            'targets_failed': progress.targets_failed,
-                            'status': f"{progress.current_target_name or 'Processing'} - {progress.current_phase or 'Running'}"
-                        }
+                            "execution_id": execution_id,
+                            "state": progress.state.value,
+                            "current": progress.targets_completed,
+                            "total": progress.total_targets,
+                            "current_target": progress.current_target_name,
+                            "current_phase": progress.current_phase,
+                            "progress_percent": progress.progress_percent,
+                            "elapsed_time": str(progress.elapsed_time) if progress.elapsed_time else None,
+                            "estimated_remaining": (
+                                str(progress.estimated_remaining) if progress.estimated_remaining else None
+                            ),
+                            "targets_completed": progress.targets_completed,
+                            "targets_failed": progress.targets_failed,
+                            "status": f"{progress.current_target_name or 'Processing'} - {progress.current_phase or 'Running'}",
+                        },
                     )
 
-                    logger.debug(f"Progress update: {progress.state.value} - {progress.current_target_name} - {progress.progress_percent:.1f}%")
+                    logger.debug(
+                        f"Progress update: {progress.state.value} - {progress.current_target_name} - {progress.progress_percent:.1f}%"
+                    )
 
                 except Exception as e:
                     logger.error(f"Error in progress callback: {e}")
@@ -190,32 +189,31 @@ def execute_observation_plan_task(
             # Execute the plan (blocks until complete)
             final_progress = loop.run_until_complete(
                 self.telescope_service.execute_plan(
-                    execution_id=execution_id,
-                    targets=targets,
-                    configure_settings=True,
-                    park_when_done=park_when_done
+                    execution_id=execution_id, targets=targets, configure_settings=True, park_when_done=park_when_done
                 )
             )
 
             # Update final execution state
             execution.state = final_progress.state.value
             execution.completed_at = datetime.utcnow()
-            execution.progress_percent = 100.0 if final_progress.state.value == "completed" else final_progress.progress_percent
+            execution.progress_percent = (
+                100.0 if final_progress.state.value == "completed" else final_progress.progress_percent
+            )
             execution.execution_result = {
-                'state': final_progress.state.value,
-                'targets_completed': final_progress.targets_completed,
-                'targets_failed': final_progress.targets_failed,
-                'total_targets': final_progress.total_targets,
-                'final_time': str(final_progress.elapsed_time) if final_progress.elapsed_time else None
+                "state": final_progress.state.value,
+                "targets_completed": final_progress.targets_completed,
+                "targets_failed": final_progress.targets_failed,
+                "total_targets": final_progress.total_targets,
+                "final_time": str(final_progress.elapsed_time) if final_progress.elapsed_time else None,
             }
             if final_progress.errors:
                 execution.error_log = [
                     {
-                        'timestamp': err.timestamp.isoformat(),
-                        'target': err.target_name,
-                        'phase': err.phase,
-                        'message': err.error_message,
-                        'retries': err.retry_count
+                        "timestamp": err.timestamp.isoformat(),
+                        "target": err.target_name,
+                        "phase": err.phase,
+                        "message": err.error_message,
+                        "retries": err.retry_count,
                     }
                     for err in final_progress.errors
                 ]
@@ -224,11 +222,11 @@ def execute_observation_plan_task(
             logger.info(f"Execution {execution_id} completed: {final_progress.state.value}")
 
             return {
-                'execution_id': execution_id,
-                'state': final_progress.state.value,
-                'targets_completed': final_progress.targets_completed,
-                'targets_failed': final_progress.targets_failed,
-                'total_targets': final_progress.total_targets
+                "execution_id": execution_id,
+                "state": final_progress.state.value,
+                "targets_completed": final_progress.targets_completed,
+                "targets_failed": final_progress.targets_failed,
+                "total_targets": final_progress.total_targets,
             }
 
         finally:
@@ -248,19 +246,14 @@ def execute_observation_plan_task(
         try:
             execution.state = "error"
             execution.completed_at = datetime.utcnow()
-            execution.error_log = [{'error': str(e), 'timestamp': datetime.utcnow().isoformat()}]
+            execution.error_log = [{"error": str(e), "timestamp": datetime.utcnow().isoformat()}]
             db.commit()
         except:
             pass
 
         # Update Celery state
         self.update_state(
-            state='FAILURE',
-            meta={
-                'execution_id': execution_id,
-                'error': str(e),
-                'exc_type': type(e).__name__
-            }
+            state="FAILURE", meta={"execution_id": execution_id, "error": str(e), "exc_type": type(e).__name__}
         )
 
         raise
@@ -280,17 +273,15 @@ def abort_observation_plan_task(execution_id: str):
     db = SessionLocal()
 
     try:
-        execution = db.query(TelescopeExecution).filter(
-            TelescopeExecution.execution_id == execution_id
-        ).first()
+        execution = db.query(TelescopeExecution).filter(TelescopeExecution.execution_id == execution_id).first()
 
         if not execution:
             logger.warning(f"Execution {execution_id} not found")
-            return {'success': False, 'error': 'Execution not found'}
+            return {"success": False, "error": "Execution not found"}
 
-        if execution.state not in ['starting', 'running']:
+        if execution.state not in ["starting", "running"]:
             logger.warning(f"Execution {execution_id} is not running (state: {execution.state})")
-            return {'success': False, 'error': f'Execution is {execution.state}'}
+            return {"success": False, "error": f"Execution is {execution.state}"}
 
         # Revoke the Celery task
         celery_app.control.revoke(execution.celery_task_id, terminate=True)
@@ -302,11 +293,11 @@ def abort_observation_plan_task(execution_id: str):
 
         logger.info(f"Aborted execution {execution_id}")
 
-        return {'success': True, 'execution_id': execution_id}
+        return {"success": True, "execution_id": execution_id}
 
     except Exception as e:
         logger.error(f"Error aborting execution {execution_id}: {e}")
-        return {'success': False, 'error': str(e)}
+        return {"success": False, "error": str(e)}
 
     finally:
         db.close()

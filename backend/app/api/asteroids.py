@@ -1,18 +1,14 @@
 """API routes for asteroid catalog and visibility."""
 
-from fastapi import APIRouter, HTTPException, Query, Body, Depends
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.models import (
-    AsteroidTarget,
-    AsteroidEphemeris,
-    AsteroidVisibility,
-    Location,
-)
-from app.services.asteroid_service import AsteroidService
 from app.database import get_db
+from app.models import AsteroidEphemeris, AsteroidTarget, AsteroidVisibility, Location
+from app.services.asteroid_service import AsteroidService
 
 router = APIRouter(prefix="/asteroids", tags=["asteroids"])
 
@@ -22,7 +18,7 @@ async def list_asteroids(
     limit: Optional[int] = Query(50, description="Maximum number of results", le=500),
     offset: int = Query(0, description="Offset for pagination", ge=0),
     max_magnitude: Optional[float] = Query(None, description="Maximum (faintest) magnitude to include"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     List all asteroids in the catalog.
@@ -100,7 +96,7 @@ async def add_asteroid(asteroid: AsteroidTarget = Body(...), db: Session = Depen
         return {
             "asteroid_id": asteroid_id,
             "designation": asteroid.designation,
-            "message": "Asteroid added successfully"
+            "message": "Asteroid added successfully",
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error adding asteroid: {str(e)}")
@@ -110,7 +106,7 @@ async def add_asteroid(asteroid: AsteroidTarget = Body(...), db: Session = Depen
 async def compute_ephemeris(
     designation: str,
     time_utc: Optional[datetime] = Query(None, description="UTC time for ephemeris (ISO format). Defaults to now."),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Compute ephemeris (position) for an asteroid at a specific time.
@@ -150,7 +146,7 @@ async def check_visibility(
     designation: str,
     location: Location = Body(...),
     time_utc: Optional[datetime] = Query(None, description="UTC time (ISO format). Defaults to now."),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Check visibility of an asteroid from a specific location and time.
@@ -192,7 +188,7 @@ async def list_visible_asteroids(
     time_utc: Optional[datetime] = Query(None, description="UTC time (ISO format). Defaults to now."),
     min_altitude: float = Query(30.0, description="Minimum altitude in degrees", ge=0, le=90),
     max_magnitude: float = Query(12.0, description="Maximum (faintest) magnitude", ge=0, le=20),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get all visible asteroids for a location and time.
@@ -217,10 +213,7 @@ async def list_visible_asteroids(
 
         asteroid_service = AsteroidService(db)
         visible_asteroids = asteroid_service.get_visible_asteroids(
-            location=location,
-            time_utc=time_utc,
-            min_altitude=min_altitude,
-            max_magnitude=max_magnitude
+            location=location, time_utc=time_utc, min_altitude=min_altitude, max_magnitude=max_magnitude
         )
 
         return visible_asteroids

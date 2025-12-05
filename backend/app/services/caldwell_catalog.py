@@ -1,13 +1,13 @@
 """Caldwell catalog of deep-sky objects for amateur astronomers."""
 
 from typing import List, Optional
+
 from pydantic import BaseModel
-import math
 
 
 class CaldwellObject(BaseModel):
     """A Caldwell catalog deep-sky object."""
-    
+
     caldwell_id: str  # e.g., "C1"
     ngc_id: str  # NGC/IC identifier
     common_name: str  # Common name if any
@@ -21,11 +21,11 @@ class CaldwellObject(BaseModel):
 
 class CaldwellCatalog:
     """Service for accessing the Caldwell catalog."""
-    
+
     def __init__(self):
         """Initialize with Caldwell catalog data."""
         self.objects = self._load_catalog()
-    
+
     def _load_catalog(self) -> List[CaldwellObject]:
         """Load all 109 Caldwell objects."""
         # Caldwell catalog data (subset shown, full catalog would have all 109)
@@ -51,7 +51,6 @@ class CaldwellCatalog:
             ("C18", "NGC 185", "", "Galaxy", "Cassiopeia", 0.650, 48.333, 9.3, 12.0),
             ("C19", "IC 5146", "Cocoon Nebula", "Nebula", "Cygnus", 21.883, 47.267, 10.0, 12.0),
             ("C20", "NGC 7000", "North America Nebula", "Nebula", "Cygnus", 20.983, 44.333, 4.0, 120.0),
-            
             # More northern objects
             ("C21", "NGC 4449", "", "Galaxy", "Canes Venatici", 12.467, 44.100, 9.6, 5.1),
             ("C22", "NGC 7662", "Blue Snowball", "Planetary Nebula", "Andromeda", 23.433, 42.550, 8.3, 0.3),
@@ -63,7 +62,6 @@ class CaldwellCatalog:
             ("C28", "NGC 752", "", "Open Cluster", "Andromeda", 1.950, 37.683, 5.7, 50.0),
             ("C29", "NGC 5005", "", "Galaxy", "Canes Venatici", 13.183, 37.050, 10.8, 5.4),
             ("C30", "NGC 7331", "", "Galaxy", "Pegasus", 22.617, 34.417, 9.5, 10.7),
-            
             # More objects continuing to southern hemisphere
             ("C31", "IC 405", "Flaming Star Nebula", "Nebula", "Auriga", 5.267, 34.267, 6.0, 30.0),
             ("C32", "NGC 4631", "Whale Galaxy", "Galaxy", "Canes Venatici", 12.700, 32.533, 9.3, 15.2),
@@ -75,7 +73,6 @@ class CaldwellCatalog:
             ("C38", "NGC 4565", "Needle Galaxy", "Galaxy", "Coma Berenices", 12.600, 25.983, 9.6, 15.9),
             ("C39", "NGC 2392", "Eskimo Nebula", "Planetary Nebula", "Gemini", 7.483, 20.917, 9.2, 0.7),
             ("C40", "NGC 3626", "", "Galaxy", "Leo", 11.333, 18.350, 10.9, 2.7),
-            
             # Equatorial and southern objects
             ("C41", "Hyades", "", "Open Cluster", "Taurus", 4.450, 15.867, 0.5, 330.0),
             ("C42", "NGC 7006", "", "Globular Cluster", "Delphinus", 21.017, 16.183, 10.6, 2.8),
@@ -87,7 +84,6 @@ class CaldwellCatalog:
             ("C48", "NGC 2775", "", "Galaxy", "Cancer", 9.183, 7.033, 10.3, 4.3),
             ("C49", "NGC 2237-9", "Rosette Nebula", "Nebula", "Monoceros", 6.533, 5.033, 6.0, 80.0),
             ("C50", "NGC 2244", "", "Open Cluster", "Monoceros", 6.533, 4.900, 4.8, 24.0),
-            
             # Southern hemisphere objects
             ("C51", "IC 1613", "", "Galaxy", "Cetus", 1.083, 2.133, 9.3, 16.0),
             ("C52", "NGC 4697", "", "Galaxy", "Virgo", 12.800, -5.800, 9.3, 6.0),
@@ -99,7 +95,6 @@ class CaldwellCatalog:
             ("C58", "NGC 2360", "", "Open Cluster", "Canis Major", 7.300, -15.633, 7.2, 13.0),
             ("C59", "NGC 3242", "Ghost of Jupiter", "Planetary Nebula", "Hydra", 10.400, -18.633, 7.8, 0.3),
             ("C60", "NGC 4038/9", "Antennae Galaxies", "Galaxy", "Corvus", 12.033, -18.867, 10.9, 5.2),
-            
             ("C61", "NGC 4235", "", "Galaxy", "Corvus", 12.283, -19.950, 11.2, 4.3),
             ("C62", "NGC 247", "", "Galaxy", "Cetus", 0.783, -20.767, 9.1, 21.0),
             ("C63", "NGC 7293", "Helix Nebula", "Planetary Nebula", "Aquarius", 22.483, -20.817, 7.6, 13.0),
@@ -110,7 +105,6 @@ class CaldwellCatalog:
             ("C68", "NGC 6729", "", "Nebula", "Corona Australis", 19.033, -36.950, 9.7, 1.0),
             ("C69", "NGC 6302", "Bug Nebula", "Planetary Nebula", "Scorpius", 17.233, -37.100, 9.6, 0.8),
             ("C70", "NGC 300", "", "Galaxy", "Sculptor", 0.917, -37.683, 8.7, 21.9),
-            
             ("C71", "NGC 2477", "", "Open Cluster", "Puppis", 7.867, -38.533, 5.8, 27.0),
             ("C72", "NGC 55", "", "Galaxy", "Sculptor", 0.250, -39.183, 8.2, 32.0),
             ("C73", "NGC 1851", "", "Globular Cluster", "Columba", 5.233, -40.050, 7.3, 11.0),
@@ -121,7 +115,6 @@ class CaldwellCatalog:
             ("C78", "NGC 6541", "", "Globular Cluster", "Corona Australis", 18.133, -43.717, 6.6, 13.1),
             ("C79", "NGC 3201", "", "Globular Cluster", "Vela", 10.283, -46.417, 6.7, 18.2),
             ("C80", "NGC 5139", "Omega Centauri", "Globular Cluster", "Centaurus", 13.450, -47.483, 3.9, 36.3),
-            
             ("C81", "NGC 6352", "", "Globular Cluster", "Ara", 17.417, -48.417, 8.1, 7.1),
             ("C82", "NGC 6193", "", "Open Cluster", "Ara", 16.683, -48.767, 5.2, 15.0),
             ("C83", "NGC 4945", "", "Galaxy", "Centaurus", 13.083, -49.467, 9.5, 20.0),
@@ -132,7 +125,6 @@ class CaldwellCatalog:
             ("C88", "NGC 5823", "", "Open Cluster", "Circinus", 15.083, -55.600, 7.9, 10.0),
             ("C89", "NGC 6087", "", "Open Cluster", "Norma", 16.317, -57.933, 5.4, 12.0),
             ("C90", "NGC 2867", "", "Planetary Nebula", "Carina", 9.350, -58.317, 9.7, 0.2),
-            
             ("C91", "NGC 3532", "", "Open Cluster", "Carina", 11.100, -58.667, 3.0, 55.0),
             ("C92", "NGC 3372", "Eta Carinae Nebula", "Nebula", "Carina", 10.750, -59.867, 3.0, 120.0),
             ("C93", "NGC 6752", "", "Globular Cluster", "Pavo", 19.183, -59.983, 5.4, 20.4),
@@ -143,7 +135,6 @@ class CaldwellCatalog:
             ("C98", "NGC 4609", "", "Open Cluster", "Crux", 12.700, -62.967, 6.9, 5.0),
             ("C99", "Coalsack", "", "Dark Nebula", "Crux", 12.883, -63.000, 1.0, 400.0),
             ("C100", "IC 2944", "", "Nebula", "Centaurus", 11.600, -63.033, 4.5, 15.0),
-            
             ("C101", "NGC 6744", "", "Galaxy", "Pavo", 19.150, -63.867, 9.0, 20.0),
             ("C102", "IC 2602", "Southern Pleiades", "Open Cluster", "Carina", 10.717, -64.400, 1.9, 50.0),
             ("C103", "NGC 2070", "Tarantula Nebula", "Nebula", "Dorado", 5.650, -69.100, 5.0, 40.0),
@@ -154,7 +145,7 @@ class CaldwellCatalog:
             ("C108", "NGC 4372", "", "Globular Cluster", "Musca", 12.417, -72.667, 7.8, 18.6),
             ("C109", "NGC 3195", "", "Planetary Nebula", "Chamaeleon", 10.150, -80.850, 11.6, 0.6),
         ]
-        
+
         return [
             CaldwellObject(
                 caldwell_id=cid,
@@ -165,25 +156,25 @@ class CaldwellCatalog:
                 ra_hours=ra,
                 dec_degrees=dec,
                 magnitude=mag,
-                size_arcmin=size
+                size_arcmin=size,
             )
             for cid, ngc, name, obj_type, const, ra, dec, mag, size in data
         ]
-    
+
     def get_by_id(self, caldwell_id: str) -> Optional[CaldwellObject]:
         """Get object by Caldwell ID (e.g., 'C1')."""
         for obj in self.objects:
             if obj.caldwell_id == caldwell_id:
                 return obj
         return None
-    
+
     def get_by_ngc_id(self, ngc_id: str) -> Optional[CaldwellObject]:
         """Get object by NGC/IC ID."""
         for obj in self.objects:
             if ngc_id in obj.ngc_id:
                 return obj
         return None
-    
+
     def get_by_common_name(self, name: str) -> Optional[CaldwellObject]:
         """Get object by common name."""
         name_lower = name.lower()
@@ -191,19 +182,17 @@ class CaldwellCatalog:
             if obj.common_name.lower() == name_lower:
                 return obj
         return None
-    
+
     def search_by_constellation(self, constellation: str) -> List[CaldwellObject]:
         """Get all objects in a constellation."""
         return [obj for obj in self.objects if obj.constellation == constellation]
-    
+
     def search_by_type(self, object_type: str) -> List[CaldwellObject]:
         """Get all objects of a specific type."""
         return [obj for obj in self.objects if obj.object_type == object_type]
-    
+
     def search_by_magnitude(
-        self,
-        min_magnitude: Optional[float] = None,
-        max_magnitude: Optional[float] = None
+        self, min_magnitude: Optional[float] = None, max_magnitude: Optional[float] = None
     ) -> List[CaldwellObject]:
         """Get objects within magnitude range."""
         results = self.objects
@@ -212,15 +201,11 @@ class CaldwellCatalog:
         if max_magnitude is not None:
             results = [obj for obj in results if obj.magnitude <= max_magnitude]
         return results
-    
-    def get_observable(
-        self,
-        latitude: float,
-        min_altitude: float = 0.0
-    ) -> List[CaldwellObject]:
+
+    def get_observable(self, latitude: float, min_altitude: float = 0.0) -> List[CaldwellObject]:
         """
         Get objects observable from a given latitude.
-        
+
         Simple calculation: objects with dec > (latitude - 90 + min_altitude)
         are potentially observable.
         """

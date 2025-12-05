@@ -1,12 +1,10 @@
 """Processing service with direct FITS file processing."""
 
-import json
-import os
-import shutil
-from pathlib import Path
-from typing import Dict, Any, Optional
-from datetime import datetime
 import logging
+import shutil
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict
 
 from app.database import SessionLocal
 from app.models.processing_models import ProcessingFile, ProcessingJob, ProcessingPipeline
@@ -25,12 +23,7 @@ class ProcessingService:
         # Ensure processing directory exists
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
-    async def execute_pipeline(
-        self,
-        file_id: int,
-        pipeline_id: int,
-        job_id: int
-    ) -> Dict[str, Any]:
+    async def execute_pipeline(self, file_id: int, pipeline_id: int, job_id: int) -> Dict[str, Any]:
         """Execute a processing pipeline on a single file."""
 
         db = SessionLocal()
@@ -75,9 +68,7 @@ class ProcessingService:
             try:
                 log_messages.append(f"Loading FITS file: {input_file}")
                 output_files_paths = self.processor.process_fits(
-                    input_file=input_file,
-                    output_dir=output_dir,
-                    pipeline_steps=pipeline.pipeline_steps
+                    input_file=input_file, output_dir=output_dir, pipeline_steps=pipeline.pipeline_steps
                 )
                 log_messages.append(f"Processing complete, {len(output_files_paths)} files generated")
 
@@ -128,7 +119,7 @@ class ProcessingService:
                 "status": "complete",
                 "output_files": output_files,
                 "processing_log": job.processing_log,
-                "gpu_used": False
+                "gpu_used": False,
             }
 
         except Exception as e:
@@ -169,4 +160,5 @@ class ProcessingService:
             if job_dir.is_dir() and job_dir.stat().st_mtime < cutoff:
                 logger.info(f"Cleaning up old job directory: {job_dir}")
                 import shutil
+
                 shutil.rmtree(job_dir, ignore_errors=True)

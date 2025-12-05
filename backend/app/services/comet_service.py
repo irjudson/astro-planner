@@ -1,22 +1,15 @@
 """Comet catalog and ephemeris service."""
 
+from datetime import datetime
 from typing import List, Optional
-from datetime import datetime, timezone
+
 import numpy as np
-
-from sqlalchemy.orm import Session
-from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_body, solar_system_ephemeris
 from astropy import units as u
-from astropy.coordinates import get_sun
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord, get_sun
+from astropy.time import Time
+from sqlalchemy.orm import Session
 
-from app.models import (
-    CometTarget,
-    CometEphemeris,
-    CometVisibility,
-    OrbitalElements,
-    Location,
-)
+from app.models import CometEphemeris, CometTarget, CometVisibility, Location, OrbitalElements
 from app.models.catalog_models import CometCatalog
 
 
@@ -56,7 +49,7 @@ class CometService:
             activity_status=comet.activity_status,
             comet_type=comet.comet_type,
             data_source=comet.data_source,
-            notes=comet.notes
+            notes=comet.notes,
         )
 
         self.db.add(db_comet)
@@ -75,9 +68,7 @@ class CometService:
         Returns:
             CometTarget or None if not found
         """
-        db_comet = self.db.query(CometCatalog).filter(
-            CometCatalog.designation == designation
-        ).first()
+        db_comet = self.db.query(CometCatalog).filter(CometCatalog.designation == designation).first()
 
         if not db_comet:
             return None
@@ -112,7 +103,7 @@ class CometService:
             inclination_deg=db_comet.inclination_deg,
             arg_perihelion_deg=db_comet.arg_perihelion_deg,
             ascending_node_deg=db_comet.ascending_node_deg,
-            perihelion_time_jd=db_comet.perihelion_time_jd
+            perihelion_time_jd=db_comet.perihelion_time_jd,
         )
 
         return CometTarget(
@@ -126,14 +117,10 @@ class CometService:
             activity_status=db_comet.activity_status,
             discovery_date=db_comet.discovery_date,
             data_source=db_comet.data_source,
-            notes=db_comet.notes
+            notes=db_comet.notes,
         )
 
-    def compute_ephemeris(
-        self,
-        comet: CometTarget,
-        time_utc: datetime
-    ) -> CometEphemeris:
+    def compute_ephemeris(self, comet: CometTarget, time_utc: datetime) -> CometEphemeris:
         """
         Compute ephemeris for a comet at a specific time.
 
@@ -187,8 +174,7 @@ class CometService:
 
         # True anomaly
         true_anomaly = 2 * np.arctan2(
-            np.sqrt(1 + oe.eccentricity) * np.sin(E / 2),
-            np.sqrt(1 - oe.eccentricity) * np.cos(E / 2)
+            np.sqrt(1 + oe.eccentricity) * np.sin(E / 2), np.sqrt(1 - oe.eccentricity) * np.cos(E / 2)
         )
 
         # Heliocentric distance
@@ -209,8 +195,8 @@ class CometService:
         omega = np.radians(oe.ascending_node_deg)
 
         # Ecliptic coordinates
-        x_ecl = (np.cos(omega) * x_orb - np.sin(omega) * y_orb * np.cos(incl))
-        y_ecl = (np.sin(omega) * x_orb + np.cos(omega) * y_orb * np.cos(incl))
+        x_ecl = np.cos(omega) * x_orb - np.sin(omega) * y_orb * np.cos(incl)
+        y_ecl = np.sin(omega) * x_orb + np.cos(omega) * y_orb * np.cos(incl)
         z_ecl = y_orb * np.sin(incl)
 
         # Convert ecliptic to equatorial (J2000)
@@ -232,7 +218,7 @@ class CometService:
         dec_degrees = np.degrees(np.arcsin(np.clip(z_eq / r_eq, -1.0, 1.0)))
 
         # Get Sun position for elongation calculation
-        sun = get_sun(t)
+        get_sun(t)
 
         # Estimate geocentric distance (simplified - doesn't account for Earth's position properly)
         # For better accuracy, should compute Earth's position and vector difference
@@ -242,9 +228,9 @@ class CometService:
         # m = H + 5*log10(delta) + 2.5*n*log10(r)
         # where delta is Earth distance, r is Sun distance, n is slope parameter
         if comet.absolute_magnitude is not None:
-            magnitude = (comet.absolute_magnitude +
-                        5 * np.log10(geo_distance_au) +
-                        2.5 * comet.magnitude_slope * np.log10(r))
+            magnitude = (
+                comet.absolute_magnitude + 5 * np.log10(geo_distance_au) + 2.5 * comet.magnitude_slope * np.log10(r)
+            )
         else:
             magnitude = None
 
@@ -261,15 +247,10 @@ class CometService:
             helio_distance_au=r,
             magnitude=magnitude,
             elongation_deg=elongation_deg,
-            phase_angle_deg=None  # Would compute from geometry
+            phase_angle_deg=None,  # Would compute from geometry
         )
 
-    def compute_visibility(
-        self,
-        comet: CometTarget,
-        location: Location,
-        time_utc: datetime
-    ) -> CometVisibility:
+    def compute_visibility(self, comet: CometTarget, location: Location, time_utc: datetime) -> CometVisibility:
         """
         Compute visibility of comet from a specific location and time.
 
@@ -286,20 +267,14 @@ class CometService:
 
         # Create observer location
         obs_location = EarthLocation(
-            lat=location.latitude * u.deg,
-            lon=location.longitude * u.deg,
-            height=location.elevation * u.m
+            lat=location.latitude * u.deg, lon=location.longitude * u.deg, height=location.elevation * u.m
         )
 
         # Create astropy time
         t = Time(time_utc)
 
         # Create coordinate from RA/Dec
-        coord = SkyCoord(
-            ra=ephemeris.ra_hours * u.hourangle,
-            dec=ephemeris.dec_degrees * u.deg,
-            frame='icrs'
-        )
+        coord = SkyCoord(ra=ephemeris.ra_hours * u.hourangle, dec=ephemeris.dec_degrees * u.deg, frame="icrs")
 
         # Transform to AltAz frame
         altaz_frame = AltAz(obstime=t, location=obs_location)
@@ -330,15 +305,11 @@ class CometService:
             is_visible=is_visible,
             is_dark_enough=is_dark_enough,
             elongation_ok=elongation_ok,
-            recommended=recommended
+            recommended=recommended,
         )
 
     def get_visible_comets(
-        self,
-        location: Location,
-        time_utc: datetime,
-        min_altitude: float = 30.0,
-        max_magnitude: float = 12.0
+        self, location: Location, time_utc: datetime, min_altitude: float = 30.0, max_magnitude: float = 12.0
     ) -> List[CometVisibility]:
         """
         Get all visible comets for a location and time.
@@ -363,9 +334,7 @@ class CometService:
             try:
                 visibility = self.compute_visibility(comet, location, time_utc)
 
-                if (visibility.is_visible and
-                    visibility.altitude_deg >= min_altitude and
-                    visibility.is_dark_enough):
+                if visibility.is_visible and visibility.altitude_deg >= min_altitude and visibility.is_dark_enough:
                     visible.append(visibility)
             except Exception as e:
                 # Skip comets that fail computation

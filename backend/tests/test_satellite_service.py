@@ -1,13 +1,11 @@
 """Tests for ISS and satellite pass prediction service."""
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
-from app.services.satellite_service import (
-    SatelliteService,
-    SatellitePass,
-    PassVisibility,
-)
+
+import pytest
+
+from app.services.satellite_service import PassVisibility, SatellitePass, SatelliteService
 
 
 class TestPassVisibility:
@@ -36,7 +34,7 @@ class TestSatellitePass:
             start_azimuth_deg=270.0,
             end_azimuth_deg=90.0,
             visibility=PassVisibility.EXCELLENT,
-            magnitude=-3.5
+            magnitude=-3.5,
         )
         assert pass_obj.satellite_name == "ISS (ZARYA)"
         assert pass_obj.max_altitude_deg == 45.0
@@ -55,7 +53,7 @@ class TestSatellitePass:
             start_azimuth_deg=270.0,
             end_azimuth_deg=90.0,
             visibility=PassVisibility.GOOD,
-            magnitude=-2.0
+            magnitude=-2.0,
         )
         duration = pass_obj.duration_minutes()
         assert duration == 6.0
@@ -72,7 +70,7 @@ class TestSatellitePass:
             start_azimuth_deg=270.0,
             end_azimuth_deg=90.0,
             visibility=PassVisibility.EXCELLENT,
-            magnitude=-4.0  # Very bright
+            magnitude=-4.0,  # Very bright
         )
         quality = pass_obj.quality_score()
         assert quality >= 0.8  # Should be high quality
@@ -89,7 +87,7 @@ class TestSatellitePass:
             start_azimuth_deg=270.0,
             end_azimuth_deg=280.0,
             visibility=PassVisibility.POOR,
-            magnitude=1.0  # Dim
+            magnitude=1.0,  # Dim
         )
         quality = pass_obj.quality_score()
         assert quality <= 0.3  # Should be low quality
@@ -106,10 +104,10 @@ class TestSatelliteService:
     def test_service_initialization(self, service):
         """Test service initializes correctly."""
         assert service is not None
-        assert hasattr(service, 'get_iss_passes')
-        assert hasattr(service, 'get_satellite_passes')
+        assert hasattr(service, "get_iss_passes")
+        assert hasattr(service, "get_satellite_passes")
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_get_iss_passes_success(self, mock_get, service):
         """Test successfully fetching ISS passes."""
         # Mock API response
@@ -128,7 +126,7 @@ class TestSatelliteService:
                     "maxAzCompass": "N",
                     "endAz": 90,
                     "endAzCompass": "E",
-                    "maxEl": 45
+                    "maxEl": 45,
                 },
                 {
                     "startUTC": 1732140000,
@@ -140,33 +138,25 @@ class TestSatelliteService:
                     "maxAzCompass": "W",
                     "endAz": 0,
                     "endAzCompass": "N",
-                    "maxEl": 30
-                }
-            ]
+                    "maxEl": 30,
+                },
+            ],
         }
         mock_get.return_value = mock_response
 
-        passes = service.get_iss_passes(
-            latitude=40.7,
-            longitude=-74.0,
-            days=3
-        )
+        passes = service.get_iss_passes(latitude=40.7, longitude=-74.0, days=3)
 
         assert len(passes) == 2
         assert all(isinstance(p, SatellitePass) for p in passes)
         assert passes[0].satellite_name == "ISS (ZARYA)"
         assert passes[0].max_altitude_deg == 45
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_get_iss_passes_api_error(self, mock_get, service):
         """Test handling API errors gracefully."""
         mock_get.side_effect = Exception("Network error")
 
-        passes = service.get_iss_passes(
-            latitude=40.7,
-            longitude=-74.0,
-            days=3
-        )
+        passes = service.get_iss_passes(latitude=40.7, longitude=-74.0, days=3)
 
         assert passes == []  # Returns empty list on error
 
@@ -183,7 +173,7 @@ class TestSatelliteService:
             start_azimuth_deg=270.0,
             end_azimuth_deg=90.0,
             visibility=PassVisibility.GOOD,
-            magnitude=-3.0
+            magnitude=-3.0,
         )
 
         low_pass = SatellitePass(
@@ -195,7 +185,7 @@ class TestSatelliteService:
             start_azimuth_deg=180.0,
             end_azimuth_deg=200.0,
             visibility=PassVisibility.POOR,
-            magnitude=1.0
+            magnitude=1.0,
         )
 
         all_passes = [high_pass, low_pass]
@@ -206,18 +196,12 @@ class TestSatelliteService:
 
     def test_classify_visibility_excellent(self, service):
         """Test classifying excellent visibility."""
-        visibility = service._classify_visibility(
-            magnitude=-4.0,
-            max_altitude=70.0
-        )
+        visibility = service._classify_visibility(magnitude=-4.0, max_altitude=70.0)
         assert visibility == PassVisibility.EXCELLENT
 
     def test_classify_visibility_poor(self, service):
         """Test classifying poor visibility."""
-        visibility = service._classify_visibility(
-            magnitude=2.0,
-            max_altitude=15.0
-        )
+        visibility = service._classify_visibility(magnitude=2.0, max_altitude=15.0)
         assert visibility == PassVisibility.POOR
 
     def test_get_best_passes(self, service):
@@ -233,7 +217,7 @@ class TestSatelliteService:
             start_azimuth_deg=270.0,
             end_azimuth_deg=90.0,
             visibility=PassVisibility.EXCELLENT,
-            magnitude=-4.0
+            magnitude=-4.0,
         )
 
         fair_pass = SatellitePass(
@@ -245,7 +229,7 @@ class TestSatelliteService:
             start_azimuth_deg=180.0,
             end_azimuth_deg=270.0,
             visibility=PassVisibility.FAIR,
-            magnitude=-1.5
+            magnitude=-1.5,
         )
 
         all_passes = [fair_pass, excellent_pass]  # Intentionally out of order

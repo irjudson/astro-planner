@@ -1,10 +1,12 @@
 """Tests for comet service."""
 
-import pytest
 from datetime import datetime
-from app.services.comet_service import CometService
-from app.models import CometTarget, OrbitalElements, Location
+
+import pytest
+
+from app.models import CometTarget, Location, OrbitalElements
 from app.models.catalog_models import CometCatalog
+from app.services.comet_service import CometService
 
 
 @pytest.fixture
@@ -26,7 +28,7 @@ def test_comet():
             inclination_deg=128.9,
             arg_perihelion_deg=37.3,
             ascending_node_deg=61.0,
-            perihelion_time_jd=2459034.0
+            perihelion_time_jd=2459034.0,
         ),
         absolute_magnitude=3.0,
         magnitude_slope=4.0,
@@ -35,7 +37,7 @@ def test_comet():
         activity_status="active",
         discovery_date=None,
         data_source="Test",
-        notes="Test comet"
+        notes="Test comet",
     )
 
 
@@ -43,11 +45,7 @@ def test_comet():
 def test_location():
     """Create a test location."""
     return Location(
-        latitude=45.9183,
-        longitude=-111.5433,
-        elevation_meters=1234,
-        timezone="America/Denver",
-        name="Three Forks, MT"
+        latitude=45.9183, longitude=-111.5433, elevation_meters=1234, timezone="America/Denver", name="Three Forks, MT"
     )
 
 
@@ -116,10 +114,7 @@ def test_get_visible_comets(comet_service, test_comet, test_location, override_g
 
     time_utc = datetime(2020, 7, 15, 3, 0, 0)
     visible = comet_service.get_visible_comets(
-        location=test_location,
-        time_utc=time_utc,
-        min_altitude=0.0,
-        max_magnitude=15.0
+        location=test_location, time_utc=time_utc, min_altitude=0.0, max_magnitude=15.0
     )
 
     assert isinstance(visible, list)
@@ -140,7 +135,7 @@ def test_orbital_elements_validation():
         inclination_deg=10.0,
         arg_perihelion_deg=45.0,
         ascending_node_deg=90.0,
-        perihelion_time_jd=2459000.0
+        perihelion_time_jd=2459000.0,
     )
     assert oe.eccentricity < 1.0
 
@@ -152,7 +147,7 @@ def test_orbital_elements_validation():
         inclination_deg=10.0,
         arg_perihelion_deg=45.0,
         ascending_node_deg=90.0,
-        perihelion_time_jd=2459000.0
+        perihelion_time_jd=2459000.0,
     )
     assert oe_hyp.eccentricity > 1.0
 
@@ -170,14 +165,14 @@ def test_comet_magnitude_calculation(comet_service):
             inclination_deg=10.0,
             arg_perihelion_deg=45.0,
             ascending_node_deg=90.0,
-            perihelion_time_jd=2459000.0
+            perihelion_time_jd=2459000.0,
         ),
         absolute_magnitude=5.0,
         magnitude_slope=4.0,
         current_magnitude=None,
         comet_type="short-period",
         activity_status="active",
-        data_source="Test"
+        data_source="Test",
     )
 
     # Compute ephemeris

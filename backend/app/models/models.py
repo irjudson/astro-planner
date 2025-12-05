@@ -1,12 +1,14 @@
 """Data models for the Astro Planner application."""
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
 class Location(BaseModel):
     """Observatory location information."""
+
     name: str = Field(default="Three Forks, MT", description="Location name")
     latitude: float = Field(description="Latitude in degrees (-90 to 90)")
     longitude: float = Field(description="Longitude in degrees (-180 to 180)")
@@ -16,17 +18,22 @@ class Location(BaseModel):
 
 class ObservingConstraints(BaseModel):
     """Constraints for observing session."""
+
     min_altitude: float = Field(default=30.0, ge=0, le=90, description="Minimum altitude in degrees")
     max_altitude: float = Field(default=90.0, ge=0, le=90, description="Maximum altitude in degrees")
     setup_time_minutes: int = Field(default=30, ge=0, description="Setup time in minutes")
-    object_types: List[str] = Field(default=["galaxy", "nebula", "cluster", "planetary_nebula"],
-                                    description="Object types to include")
+    object_types: List[str] = Field(
+        default=["galaxy", "nebula", "cluster", "planetary_nebula"], description="Object types to include"
+    )
     planning_mode: str = Field(default="balanced", description="Planning mode: balanced, quality, or quantity")
-    daytime_planning: bool = Field(default=False, description="Enable daytime planning mode (for Sun, Moon, Venus observations)")
+    daytime_planning: bool = Field(
+        default=False, description="Enable daytime planning mode (for Sun, Moon, Venus observations)"
+    )
 
 
 class PlanRequest(BaseModel):
     """Request to generate an observing plan."""
+
     location: Location
     observing_date: str = Field(description="ISO date for observing session (YYYY-MM-DD)")
     constraints: ObservingConstraints = Field(default_factory=ObservingConstraints)
@@ -34,6 +41,7 @@ class PlanRequest(BaseModel):
 
 class DSOTarget(BaseModel):
     """Deep sky object target information."""
+
     name: str = Field(description="Object name")
     catalog_id: str = Field(description="Catalog identifier (M, NGC, IC)")
     object_type: str = Field(description="Object type (galaxy, nebula, etc.)")
@@ -46,6 +54,7 @@ class DSOTarget(BaseModel):
 
 class OrbitalElements(BaseModel):
     """Keplerian orbital elements for a comet."""
+
     epoch_jd: float = Field(description="Epoch of elements (Julian Date)")
     perihelion_distance_au: float = Field(description="Perihelion distance in AU")
     eccentricity: float = Field(description="Orbital eccentricity")
@@ -57,6 +66,7 @@ class OrbitalElements(BaseModel):
 
 class CometTarget(BaseModel):
     """Comet target information."""
+
     designation: str = Field(description="Official designation (e.g., C/2020 F3)")
     name: Optional[str] = Field(default=None, description="Common name (e.g., NEOWISE)")
     orbital_elements: OrbitalElements = Field(description="Orbital elements")
@@ -72,6 +82,7 @@ class CometTarget(BaseModel):
 
 class CometEphemeris(BaseModel):
     """Ephemeris (computed position) for a comet at a specific time."""
+
     designation: str = Field(description="Comet designation")
     date_utc: datetime = Field(description="UTC date/time of ephemeris")
     date_jd: float = Field(description="Julian Date")
@@ -86,6 +97,7 @@ class CometEphemeris(BaseModel):
 
 class CometVisibility(BaseModel):
     """Visibility information for a comet at a specific location and time."""
+
     comet: CometTarget
     ephemeris: CometEphemeris
     altitude_deg: float = Field(description="Altitude in degrees")
@@ -98,6 +110,7 @@ class CometVisibility(BaseModel):
 
 class AsteroidOrbitalElements(BaseModel):
     """Keplerian orbital elements for an asteroid."""
+
     epoch_jd: float = Field(description="Epoch of elements (Julian Date)")
     semi_major_axis_au: float = Field(description="Semi-major axis in AU")
     eccentricity: float = Field(description="Orbital eccentricity")
@@ -109,6 +122,7 @@ class AsteroidOrbitalElements(BaseModel):
 
 class AsteroidTarget(BaseModel):
     """Asteroid target information."""
+
     designation: str = Field(description="Official designation (e.g., 2000 SG344)")
     name: Optional[str] = Field(default=None, description="Name (e.g., Ceres, Vesta)")
     number: Optional[int] = Field(default=None, description="Numbered asteroid ID (e.g., 1 for Ceres)")
@@ -128,6 +142,7 @@ class AsteroidTarget(BaseModel):
 
 class AsteroidEphemeris(BaseModel):
     """Ephemeris (computed position) for an asteroid at a specific time."""
+
     designation: str = Field(description="Asteroid designation")
     date_utc: datetime = Field(description="UTC date/time of ephemeris")
     date_jd: float = Field(description="Julian Date")
@@ -142,6 +157,7 @@ class AsteroidEphemeris(BaseModel):
 
 class AsteroidVisibility(BaseModel):
     """Visibility information for an asteroid at a specific location and time."""
+
     asteroid: AsteroidTarget
     ephemeris: AsteroidEphemeris
     altitude_deg: float = Field(description="Altitude in degrees")
@@ -154,6 +170,7 @@ class AsteroidVisibility(BaseModel):
 
 class PlanetTarget(BaseModel):
     """Planet target information."""
+
     name: str = Field(description="Planet name (e.g., Mars, Jupiter)")
     planet_type: str = Field(description="Type: terrestrial, gas_giant, ice_giant")
     diameter_km: float = Field(description="Diameter in kilometers")
@@ -166,6 +183,7 @@ class PlanetTarget(BaseModel):
 
 class PlanetEphemeris(BaseModel):
     """Ephemeris (computed position) for a planet at a specific time."""
+
     name: str = Field(description="Planet name")
     date_utc: datetime = Field(description="UTC date/time of ephemeris")
     date_jd: float = Field(description="Julian Date")
@@ -181,6 +199,7 @@ class PlanetEphemeris(BaseModel):
 
 class PlanetVisibility(BaseModel):
     """Visibility information for a planet at a specific location and time."""
+
     planet: PlanetTarget
     ephemeris: PlanetEphemeris
     altitude_deg: float = Field(description="Altitude in degrees")
@@ -195,6 +214,7 @@ class PlanetVisibility(BaseModel):
 
 class TargetScore(BaseModel):
     """Scoring components for a target."""
+
     visibility_score: float = Field(ge=0, le=1, description="Visibility score (0-1)")
     weather_score: float = Field(ge=0, le=1, description="Weather score (0-1)")
     object_score: float = Field(ge=0, le=1, description="Object suitability score (0-1)")
@@ -203,6 +223,7 @@ class TargetScore(BaseModel):
 
 class ScheduledTarget(BaseModel):
     """A target scheduled in the observing plan."""
+
     target: DSOTarget
     start_time: datetime = Field(description="Start time (local timezone)")
     end_time: datetime = Field(description="End time (local timezone)")
@@ -219,19 +240,25 @@ class ScheduledTarget(BaseModel):
 
 class WeatherForecast(BaseModel):
     """Weather forecast information."""
+
     timestamp: datetime
     cloud_cover: float = Field(ge=0, le=100, description="Cloud cover percentage")
     humidity: float = Field(ge=0, le=100, description="Humidity percentage")
     temperature: float = Field(description="Temperature in Celsius")
     wind_speed: float = Field(ge=0, description="Wind speed in m/s")
     conditions: str = Field(description="Weather conditions description")
-    seeing_arcseconds: Optional[float] = Field(default=None, description="Atmospheric seeing in arcseconds (lower is better)")
-    transparency_magnitude: Optional[float] = Field(default=None, description="Sky transparency as limiting magnitude (higher is better)")
+    seeing_arcseconds: Optional[float] = Field(
+        default=None, description="Atmospheric seeing in arcseconds (lower is better)"
+    )
+    transparency_magnitude: Optional[float] = Field(
+        default=None, description="Sky transparency as limiting magnitude (higher is better)"
+    )
     source: str = Field(default="openweathermap", description="Data source: openweathermap, 7timer, or composite")
 
 
 class SessionInfo(BaseModel):
     """Information about the observing session."""
+
     observing_date: str = Field(description="Date of observing session")
     sunset: datetime = Field(description="Sunset time")
     civil_twilight_end: datetime = Field(description="Civil twilight end")
@@ -248,6 +275,7 @@ class SessionInfo(BaseModel):
 
 class ObservingPlan(BaseModel):
     """Complete observing plan for a session."""
+
     session: SessionInfo
     location: Location
     scheduled_targets: List[ScheduledTarget]
@@ -260,5 +288,6 @@ class ObservingPlan(BaseModel):
 
 class ExportFormat(BaseModel):
     """Export format configuration."""
+
     format_type: str = Field(description="Export format: json, seestar_alp, text, csv")
     data: str = Field(description="Exported data as string")

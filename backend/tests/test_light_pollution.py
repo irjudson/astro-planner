@@ -1,14 +1,11 @@
 """Tests for light pollution and Bortle scale calculation service."""
 
-import pytest
 from unittest.mock import Mock, patch
-from app.services.light_pollution_service import (
-    LightPollutionService,
-    BortleScale,
-    LightPollutionData,
-    SkyQuality,
-)
+
+import pytest
+
 from app.models import Location
+from app.services.light_pollution_service import BortleScale, LightPollutionData, LightPollutionService, SkyQuality
 
 
 class TestBortleScale:
@@ -88,12 +85,7 @@ class TestLightPollutionData:
     def test_light_pollution_data_creation(self):
         """Test creating light pollution data."""
         data = LightPollutionData(
-            latitude=40.0,
-            longitude=-74.0,
-            sqm=21.5,
-            bortle_class=3,
-            description="Rural sky",
-            source="estimated"
+            latitude=40.0, longitude=-74.0, sqm=21.5, bortle_class=3, description="Rural sky", source="estimated"
         )
         assert data.latitude == 40.0
         assert data.longitude == -74.0
@@ -111,7 +103,7 @@ class TestLightPollutionData:
                 sqm=21.5,
                 bortle_class=3,
                 description="Test",
-                source="test"
+                source="test",
             )
 
         with pytest.raises(ValueError):
@@ -121,7 +113,7 @@ class TestLightPollutionData:
                 sqm=21.5,
                 bortle_class=3,
                 description="Test",
-                source="test"
+                source="test",
             )
 
 
@@ -151,15 +143,12 @@ class TestLightPollutionService:
         assert data.bortle_class >= 7  # Urban area
         assert data.source == "estimated"
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_get_light_pollution_from_api(self, mock_get, service):
         """Test getting data from API."""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'sqm': 20.5,
-            'bortle': 4
-        }
+        mock_response.json.return_value = {"sqm": 20.5, "bortle": 4}
         mock_get.return_value = mock_response
 
         data = service.get_light_pollution(40.0, -74.0)
@@ -167,7 +156,7 @@ class TestLightPollutionService:
         assert data.bortle_class == 4
         assert data.source == "lightpollutionmap.info"
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_get_light_pollution_api_timeout(self, mock_get, service):
         """Test handling API timeout."""
         mock_get.side_effect = Exception("Timeout")
@@ -210,11 +199,7 @@ class TestSkyQualityMethods:
     def test_location(self):
         """Create test location."""
         return Location(
-            name="Test Location",
-            latitude=45.0,
-            longitude=-110.0,
-            elevation=1500.0,
-            timezone="America/Denver"
+            name="Test Location", latitude=45.0, longitude=-110.0, elevation=1500.0, timezone="America/Denver"
         )
 
     def test_get_sky_quality_dark_sky(self, service, test_location):
@@ -237,11 +222,7 @@ class TestSkyQualityMethods:
         """Test getting sky quality for urban location."""
         # New York City
         location = Location(
-            name="NYC",
-            latitude=40.7128,
-            longitude=-74.0060,
-            elevation=10.0,
-            timezone="America/New_York"
+            name="NYC", latitude=40.7128, longitude=-74.0060, elevation=10.0, timezone="America/New_York"
         )
 
         sky_quality = service.get_sky_quality(location)
@@ -349,7 +330,7 @@ class TestObservingRecommendations:
             suitable_for=["galaxies", "nebulae", "clusters", "planets", "moon"],
             limiting_magnitude=7.1,
             milky_way_visibility="spectacular",
-            light_pollution_source="estimated"
+            light_pollution_source="estimated",
         )
 
     @pytest.fixture
@@ -364,7 +345,7 @@ class TestObservingRecommendations:
             suitable_for=["planets", "moon", "bright stars"],
             limiting_magnitude=4.1,
             milky_way_visibility="not visible",
-            light_pollution_source="estimated"
+            light_pollution_source="estimated",
         )
 
     def test_get_observing_recommendations_dark_sky(self, service, dark_sky_quality):

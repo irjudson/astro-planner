@@ -1,26 +1,15 @@
 """Tests for astronomy-specific API endpoints."""
 
+from datetime import datetime
+from unittest.mock import Mock, patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
-from datetime import datetime
 
 from app.main import app
-from app.services.cleardarksky_service import (
-    ClearDarkSkyForecast,
-    CloudCover,
-    Transparency,
-    Seeing
-)
-from app.services.satellite_service import (
-    SatellitePass,
-    PassVisibility
-)
-from app.services.viewing_months_service import (
-    ViewingMonth,
-    MonthRating
-)
-
+from app.services.cleardarksky_service import ClearDarkSkyForecast, CloudCover, Seeing, Transparency
+from app.services.satellite_service import PassVisibility, SatellitePass
+from app.services.viewing_months_service import MonthRating, ViewingMonth
 
 client = TestClient(app)
 
@@ -28,7 +17,7 @@ client = TestClient(app)
 class TestClearDarkSkyEndpoint:
     """Test ClearDarkSky weather endpoint."""
 
-    @patch('app.services.cleardarksky_service.ClearDarkSkyService.get_forecast')
+    @patch("app.services.cleardarksky_service.ClearDarkSkyService.get_forecast")
     def test_get_astronomy_weather(self, mock_get_forecast):
         """Test getting astronomy weather forecast."""
         # Mock forecast data
@@ -39,7 +28,7 @@ class TestClearDarkSkyEndpoint:
                 transparency=Transparency.ABOVE_AVERAGE,
                 seeing=Seeing.GOOD,
                 temperature_c=15.0,
-                wind_speed_kmh=10.0
+                wind_speed_kmh=10.0,
             )
         ]
         mock_get_forecast.return_value = mock_forecast
@@ -71,7 +60,7 @@ class TestClearDarkSkyEndpoint:
 class TestSatellitePassesEndpoint:
     """Test ISS and satellite pass endpoints."""
 
-    @patch('app.services.satellite_service.SatelliteService.get_iss_passes')
+    @patch("app.services.satellite_service.SatelliteService.get_iss_passes")
     def test_get_iss_passes(self, mock_get_passes):
         """Test getting ISS pass predictions."""
         start_time = datetime(2025, 11, 20, 19, 30)
@@ -85,7 +74,7 @@ class TestSatellitePassesEndpoint:
                 start_azimuth_deg=270.0,
                 end_azimuth_deg=90.0,
                 visibility=PassVisibility.EXCELLENT,
-                magnitude=-3.5
+                magnitude=-3.5,
             )
         ]
         mock_get_passes.return_value = mock_passes
@@ -99,7 +88,7 @@ class TestSatellitePassesEndpoint:
         assert data["passes"][0]["satellite_name"] == "ISS (ZARYA)"
         assert data["passes"][0]["max_altitude_deg"] == 45.0
 
-    @patch('app.services.satellite_service.SatelliteService.get_satellite_passes')
+    @patch("app.services.satellite_service.SatelliteService.get_satellite_passes")
     def test_get_satellite_passes_by_norad_id(self, mock_get_passes):
         """Test getting satellite passes by NORAD ID."""
         start_time = datetime(2025, 11, 20, 19, 30)
@@ -113,14 +102,12 @@ class TestSatellitePassesEndpoint:
                 start_azimuth_deg=180.0,
                 end_azimuth_deg=270.0,
                 visibility=PassVisibility.GOOD,
-                magnitude=-2.0
+                magnitude=-2.0,
             )
         ]
         mock_get_passes.return_value = mock_passes
 
-        response = client.get(
-            "/api/satellites/passes?norad_id=20580&lat=40.7&lon=-74.0&days=5"
-        )
+        response = client.get("/api/satellites/passes?norad_id=20580&lat=40.7&lon=-74.0&days=5")
 
         assert response.status_code == 200
         data = response.json()
@@ -143,25 +130,23 @@ class TestSatellitePassesEndpoint:
 class TestViewingMonthsEndpoint:
     """Test best viewing months endpoint."""
 
-    @patch('app.services.viewing_months_service.ViewingMonthsService.calculate_viewing_months')
+    @patch("app.services.viewing_months_service.ViewingMonthsService.calculate_viewing_months")
     def test_get_viewing_months_for_object(self, mock_calculate):
         """Test getting best viewing months for an object."""
         mock_months = [
             ViewingMonth(
                 month=i,
-                month_name=["Jan", "Feb", "Mar"][i-1],
+                month_name=["Jan", "Feb", "Mar"][i - 1],
                 rating=MonthRating.EXCELLENT if i == 2 else MonthRating.FAIR,
                 visibility_hours=8.0 if i == 2 else 4.0,
                 best_time="22:00",
-                notes="Good conditions"
+                notes="Good conditions",
             )
             for i in range(1, 4)
         ]
         mock_calculate.return_value = mock_months
 
-        response = client.get(
-            "/api/viewing-months?ra_hours=0.712&dec_degrees=41.27&latitude=40.0"
-        )
+        response = client.get("/api/viewing-months?ra_hours=0.712&dec_degrees=41.27&latitude=40.0")
 
         assert response.status_code == 200
         data = response.json()
@@ -170,7 +155,7 @@ class TestViewingMonthsEndpoint:
         assert "month_name" in data["months"][0]
         assert "rating" in data["months"][0]
 
-    @patch('app.services.viewing_months_service.ViewingMonthsService.calculate_viewing_months')
+    @patch("app.services.viewing_months_service.ViewingMonthsService.calculate_viewing_months")
     def test_get_viewing_months_with_object_name(self, mock_calculate):
         """Test viewing months with object name."""
         mock_months = [
@@ -180,14 +165,12 @@ class TestViewingMonthsEndpoint:
                 rating=MonthRating.GOOD,
                 visibility_hours=6.0,
                 best_time="21:00",
-                notes="Winter viewing"
+                notes="Winter viewing",
             )
         ]
         mock_calculate.return_value = mock_months
 
-        response = client.get(
-            "/api/viewing-months?ra_hours=5.919&dec_degrees=-5.39&latitude=40.0&object_name=M42"
-        )
+        response = client.get("/api/viewing-months?ra_hours=5.919&dec_degrees=-5.39&latitude=40.0&object_name=M42")
 
         assert response.status_code == 200
         data = response.json()
@@ -203,9 +186,7 @@ class TestViewingMonthsEndpoint:
 
     def test_viewing_months_invalid_coords(self):
         """Test viewing months with invalid astronomical coordinates."""
-        response = client.get(
-            "/api/viewing-months?ra_hours=25&dec_degrees=41.27&latitude=40.0"
-        )
+        response = client.get("/api/viewing-months?ra_hours=25&dec_degrees=41.27&latitude=40.0")
 
         # FastAPI validates query params, so this returns 422
         assert response.status_code == 422
@@ -214,17 +195,13 @@ class TestViewingMonthsEndpoint:
 class TestViewingMonthsSummary:
     """Test viewing months summary endpoint."""
 
-    @patch('app.services.viewing_months_service.ViewingMonthsService.calculate_viewing_months')
-    @patch('app.services.viewing_months_service.ViewingMonthsService.get_viewing_summary')
+    @patch("app.services.viewing_months_service.ViewingMonthsService.calculate_viewing_months")
+    @patch("app.services.viewing_months_service.ViewingMonthsService.get_viewing_summary")
     def test_get_viewing_summary(self, mock_summary, mock_calculate):
         """Test getting viewing months summary."""
         mock_months = [
             ViewingMonth(
-                month=i,
-                month_name=f"Month{i}",
-                rating=MonthRating.EXCELLENT,
-                visibility_hours=8.0,
-                best_time="22:00"
+                month=i, month_name=f"Month{i}", rating=MonthRating.EXCELLENT, visibility_hours=8.0, best_time="22:00"
             )
             for i in range(1, 13)
         ]
@@ -234,12 +211,10 @@ class TestViewingMonthsSummary:
             "best_months": ["February", "March", "April"],
             "good_months_count": 6,
             "visibility_range": [["January", "February", "March"]],
-            "peak_month": "February"
+            "peak_month": "February",
         }
 
-        response = client.get(
-            "/api/viewing-months/summary?ra_hours=0.712&dec_degrees=41.27&latitude=40.0"
-        )
+        response = client.get("/api/viewing-months/summary?ra_hours=0.712&dec_degrees=41.27&latitude=40.0")
 
         assert response.status_code == 200
         data = response.json()

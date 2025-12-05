@@ -1,21 +1,15 @@
 """Asteroid catalog and ephemeris service."""
 
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
 import numpy as np
-
-from sqlalchemy.orm import Session
-from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz, get_sun
 from astropy import units as u
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord, get_sun
+from astropy.time import Time
+from sqlalchemy.orm import Session
 
-from app.models import (
-    AsteroidTarget,
-    AsteroidEphemeris,
-    AsteroidVisibility,
-    AsteroidOrbitalElements,
-    Location,
-)
+from app.models import AsteroidEphemeris, AsteroidOrbitalElements, AsteroidTarget, AsteroidVisibility, Location
 from app.models.catalog_models import AsteroidCatalog
 
 
@@ -60,7 +54,7 @@ class AsteroidService:
             rotation_period_hours=asteroid.rotation_period_hours,
             asteroid_type=asteroid.asteroid_type,
             data_source=asteroid.data_source,
-            notes=asteroid.notes
+            notes=asteroid.notes,
         )
 
         self.db.add(db_asteroid)
@@ -83,9 +77,7 @@ class AsteroidService:
         Returns:
             AsteroidTarget or None if not found
         """
-        db_asteroid = self.db.query(AsteroidCatalog).filter(
-            AsteroidCatalog.designation == designation
-        ).first()
+        db_asteroid = self.db.query(AsteroidCatalog).filter(AsteroidCatalog.designation == designation).first()
 
         if not db_asteroid:
             return None
@@ -103,9 +95,7 @@ class AsteroidService:
         Returns:
             List of AsteroidTarget objects
         """
-        query = self.db.query(AsteroidCatalog).order_by(
-            AsteroidCatalog.current_magnitude.asc().nullslast()
-        )
+        query = self.db.query(AsteroidCatalog).order_by(AsteroidCatalog.current_magnitude.asc().nullslast())
 
         if limit:
             query = query.limit(limit).offset(offset)
@@ -122,7 +112,7 @@ class AsteroidService:
             inclination_deg=db_asteroid.inclination_deg,
             arg_perihelion_deg=db_asteroid.arg_perihelion_deg,
             ascending_node_deg=db_asteroid.ascending_node_deg,
-            mean_anomaly_deg=db_asteroid.mean_anomaly_deg
+            mean_anomaly_deg=db_asteroid.mean_anomaly_deg,
         )
 
         return AsteroidTarget(
@@ -140,14 +130,10 @@ class AsteroidService:
             asteroid_type=db_asteroid.asteroid_type,
             discovery_date=db_asteroid.discovery_date,
             data_source=db_asteroid.data_source,
-            notes=db_asteroid.notes
+            notes=db_asteroid.notes,
         )
 
-    def compute_ephemeris(
-        self,
-        asteroid: AsteroidTarget,
-        time_utc: datetime
-    ) -> AsteroidEphemeris:
+    def compute_ephemeris(self, asteroid: AsteroidTarget, time_utc: datetime) -> AsteroidEphemeris:
         """
         Compute ephemeris for an asteroid at a specific time.
 
@@ -169,7 +155,7 @@ class AsteroidService:
         # Compute mean motion in radians per day
         # n = sqrt(GM_sun / a^3) where k = Gaussian gravitational constant
         k = 0.01720209895  # Gaussian gravitational constant
-        mean_motion = k / np.sqrt(oe.semi_major_axis_au ** 3)
+        mean_motion = k / np.sqrt(oe.semi_major_axis_au**3)
 
         # Time since epoch in days
         dt = jd - oe.epoch_jd
@@ -184,8 +170,7 @@ class AsteroidService:
 
         # True anomaly
         true_anomaly = 2 * np.arctan2(
-            np.sqrt(1 + oe.eccentricity) * np.sin(E / 2),
-            np.sqrt(1 - oe.eccentricity) * np.cos(E / 2)
+            np.sqrt(1 + oe.eccentricity) * np.sin(E / 2), np.sqrt(1 - oe.eccentricity) * np.cos(E / 2)
         )
 
         # Heliocentric distance
@@ -204,8 +189,8 @@ class AsteroidService:
         omega = np.radians(oe.ascending_node_deg)
 
         # Ecliptic coordinates
-        x_ecl = (np.cos(omega) * x_orb - np.sin(omega) * y_orb * np.cos(incl))
-        y_ecl = (np.sin(omega) * x_orb + np.cos(omega) * y_orb * np.cos(incl))
+        x_ecl = np.cos(omega) * x_orb - np.sin(omega) * y_orb * np.cos(incl)
+        y_ecl = np.sin(omega) * x_orb + np.cos(omega) * y_orb * np.cos(incl)
         z_ecl = y_orb * np.sin(incl)
 
         # Convert ecliptic to equatorial (J2000)
@@ -227,7 +212,7 @@ class AsteroidService:
         dec_degrees = np.degrees(np.arcsin(np.clip(z_eq / r_eq, -1.0, 1.0)))
 
         # Get Sun position for elongation calculation
-        sun = get_sun(t)
+        get_sun(t)
 
         # Estimate geocentric distance (simplified - doesn't account for Earth's position properly)
         # For better accuracy, should compute Earth's position and vector difference
@@ -237,8 +222,7 @@ class AsteroidService:
         # m = H + 5*log10(r*delta) - 2.5*log10((1-G)*phi_1 + G*phi_2)
         # Simplified: m ≈ H + 5*log10(r*delta)
         if asteroid.absolute_magnitude is not None:
-            magnitude = (asteroid.absolute_magnitude +
-                        5 * np.log10(r * geo_distance_au))
+            magnitude = asteroid.absolute_magnitude + 5 * np.log10(r * geo_distance_au)
         else:
             magnitude = None
 
@@ -255,14 +239,11 @@ class AsteroidService:
             helio_distance_au=r,
             magnitude=magnitude,
             elongation_deg=elongation_deg,
-            phase_angle_deg=None  # Would compute from geometry
+            phase_angle_deg=None,  # Would compute from geometry
         )
 
     def compute_visibility(
-        self,
-        asteroid: AsteroidTarget,
-        location: Location,
-        time_utc: datetime
+        self, asteroid: AsteroidTarget, location: Location, time_utc: datetime
     ) -> AsteroidVisibility:
         """
         Compute visibility of asteroid from a specific location and time.
@@ -280,20 +261,14 @@ class AsteroidService:
 
         # Create observer location
         obs_location = EarthLocation(
-            lat=location.latitude * u.deg,
-            lon=location.longitude * u.deg,
-            height=location.elevation * u.m
+            lat=location.latitude * u.deg, lon=location.longitude * u.deg, height=location.elevation * u.m
         )
 
         # Create astropy time
         t = Time(time_utc)
 
         # Create coordinate from RA/Dec
-        coord = SkyCoord(
-            ra=ephemeris.ra_hours * u.hourangle,
-            dec=ephemeris.dec_degrees * u.deg,
-            frame='icrs'
-        )
+        coord = SkyCoord(ra=ephemeris.ra_hours * u.hourangle, dec=ephemeris.dec_degrees * u.deg, frame="icrs")
 
         # Transform to AltAz frame
         altaz_frame = AltAz(obstime=t, location=obs_location)
@@ -324,15 +299,11 @@ class AsteroidService:
             is_visible=is_visible,
             is_dark_enough=is_dark_enough,
             elongation_ok=elongation_ok,
-            recommended=recommended
+            recommended=recommended,
         )
 
     def get_visible_asteroids(
-        self,
-        location: Location,
-        time_utc: datetime,
-        min_altitude: float = 30.0,
-        max_magnitude: float = 12.0
+        self, location: Location, time_utc: datetime, min_altitude: float = 30.0, max_magnitude: float = 12.0
     ) -> List[AsteroidVisibility]:
         """
         Get all visible asteroids for a location and time.
@@ -357,9 +328,7 @@ class AsteroidService:
             try:
                 visibility = self.compute_visibility(asteroid, location, time_utc)
 
-                if (visibility.is_visible and
-                    visibility.altitude_deg >= min_altitude and
-                    visibility.is_dark_enough):
+                if visibility.is_visible and visibility.altitude_deg >= min_altitude and visibility.is_dark_enough:
                     visible.append(visibility)
             except Exception as e:
                 # Skip asteroids that fail computation
