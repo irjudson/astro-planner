@@ -200,28 +200,16 @@ class AutoStretchService:
         image.save(output_path, optimize=True)
 
     def _save_tiff(self, data: np.ndarray, output_path: Path) -> None:
-        """Save as TIFF (16-bit, uncompressed)."""
-        img_data = (data * 65535).astype(np.uint16)
-        image = Image.fromarray(img_data, mode="I;16")
+        """Save as TIFF (8-bit RGB, uncompressed).
 
-        # For RGB 16-bit TIFF, we need to save each channel
-        # PIL doesn't handle 16-bit RGB well, so we use a workaround
-        if data.ndim == 3 and data.shape[2] == 3:
-            # Save as 16-bit per channel using mode='I;16' per channel
-            # Actually, let's just save full quality 16-bit grayscale from luminance
-            # or use alternative approach
-            try:
-                # For now, save as high-quality 8-bit RGB
-                # TODO: Implement true 16-bit RGB TIFF
-                img_data_8bit = (data * 255).astype(np.uint8)
-                image = Image.fromarray(img_data_8bit, mode="RGB")
-                image.save(output_path, compression=None)
-                logger.warning("TIFF saved as 8-bit RGB; 16-bit RGB requires additional library")
-            except Exception as e:
-                logger.error(f"Error saving TIFF: {e}")
-                raise
-        else:
-            image.save(output_path, compression=None)
+        Note: True 16-bit RGB TIFF would require additional libraries like tifffile.
+        For maximum compatibility, we save as high-quality 8-bit RGB.
+        """
+        # PIL has inconsistent support for 16-bit RGB across versions,
+        # so we save as 8-bit RGB for cross-platform compatibility
+        img_data = (data * 255).astype(np.uint8)
+        image = Image.fromarray(img_data)
+        image.save(output_path, compression=None)
 
     def auto_process(
         self, fits_path: Path, formats: Optional[List[str]] = None, params: Optional[StretchParams] = None
