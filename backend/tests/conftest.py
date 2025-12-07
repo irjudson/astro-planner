@@ -1,32 +1,49 @@
-"""Pytest configuration and shared fixtures for PostgreSQL."""
+"""Pytest configuration and shared fixtures for PostgreSQL.
+
+Database fixtures are lazy-loaded to avoid connection failures when running
+non-integration tests (e.g., on macOS CI without database services).
+"""
 
 import sys
 from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
 # Add app directory to Python path
 app_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(app_dir))
 
-from app.core.config import get_settings
-from app.database import Base, get_db  # Import Base from app.database
-from app.main import app
-
-settings = get_settings()
-
-# Use a separate test database URL
-TEST_DATABASE_URL = settings.test_database_url
-
-test_engine = create_engine(TEST_DATABASE_URL)
-print(f"TEST_DATABASE_URL in conftest.py: {TEST_DATABASE_URL}")
-TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+# Lazy-loaded database components (only initialized when needed)
+_test_engine = None
+_TestSessionLocal = None
 
 
-@pytest.fixture(scope="session", autouse=True)
+def _get_test_engine():
+    """Lazily create the test database engine."""
+    global _test_engine
+    if _test_engine is None:
+        from sqlalchemy import create_engine
+
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        TEST_DATABASE_URL = settings.test_database_url
+        print(f"TEST_DATABASE_URL in conftest.py: {TEST_DATABASE_URL}")
+        _test_engine = create_engine(TEST_DATABASE_URL)
+    return _test_engine
+
+
+def _get_test_session_local():
+    """Lazily create the test session factory."""
+    global _TestSessionLocal
+    if _TestSessionLocal is None:
+        from sqlalchemy.orm import sessionmaker
+
+        _TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_get_test_engine())
+    return _TestSessionLocal
+
+
+@pytest.fixture(scope="session")
 def setup_test_db_schema():
     """Run Alembic migrations on test database before tests.
 
@@ -43,9 +60,17 @@ def setup_test_db_schema():
     same test database. We run migrations once and let all workers use the
     same schema. Cleanup is NOT done in teardown because it would interfere
     with other workers still running tests.
+
+    This fixture is NOT autouse - it only runs for tests that need database access
+    (via the client or override_get_db fixtures).
     """
     from alembic import command
     from alembic.config import Config
+
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    TEST_DATABASE_URL = settings.test_database_url
 
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
@@ -72,13 +97,15 @@ def _load_test_catalog_data():
     Creates a minimal set of realistic DSO, constellation, and comet data
     that enables all tests to run without needing a production database.
     """
-    from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
+    from app.core.config import get_settings
     from app.models.catalog_models import CometCatalog, ConstellationName, DSOCatalog
 
+    settings = get_settings()
+
     try:
-        test_engine = create_engine(settings.test_database_url)
+        test_engine = _get_test_engine()
 
         with test_engine.connect() as conn:
             session = Session(bind=conn)
@@ -299,8 +326,17 @@ def _load_test_catalog_data():
 
 
 @pytest.fixture(scope="function")
-def override_get_db():
-    """Override the get_db dependency to use a transactional test session."""
+def override_get_db(setup_test_db_schema):
+    """Override the get_db dependency to use a transactional test session.
+
+    Depends on setup_test_db_schema to ensure migrations are run first.
+    """
+    from app.database import get_db
+    from app.main import app
+
+    test_engine = _get_test_engine()
+    TestSessionLocal = _get_test_session_local()
+
     connection = test_engine.connect()
     transaction = connection.begin()
     db = TestSessionLocal(bind=connection)
@@ -320,6 +356,8 @@ def override_get_db():
 def client(override_get_db):
     """Test client that uses the overridden database dependency."""
     from fastapi.testclient import TestClient
+
+    from app.main import app
 
     with TestClient(app) as c:
         yield c

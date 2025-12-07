@@ -1,4 +1,8 @@
-"""Tests for saved plans API endpoints."""
+"""Tests for saved plans API endpoints.
+
+These tests require database services (PostgreSQL) to run.
+They are marked as integration tests and skipped on macOS CI.
+"""
 
 from datetime import datetime
 
@@ -7,6 +11,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.plan_models import SavedPlan
+
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
 
 
 class TestPlanEndpoints:
