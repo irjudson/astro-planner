@@ -202,15 +202,15 @@ class TestSaveOutputs:
             extensions = {f.suffix for f in output_files}
             assert extensions == {".jpg", ".png", ".tiff"}
 
-    def test_save_creates_processed_suffix(self):
-        """Output filename should have _processed suffix."""
+    def test_save_creates_astroplanner_suffix(self):
+        """Output filename should have _astroplanner suffix."""
         data = np.random.rand(100, 100, 3)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             base_path = Path(tmpdir) / "Stacked_M81"
             output_files = self.service.save_outputs(data, base_path, formats=["jpg"])
 
-            assert "_processed" in output_files[0].stem
+            assert "_astroplanner" in output_files[0].stem
 
 
 class TestLoadFits:
