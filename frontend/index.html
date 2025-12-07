@@ -384,6 +384,123 @@
             font-size: 0.95em;
         }
 
+        .pre-plan-forecast {
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 12px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #475569;
+        }
+
+        .pre-plan-forecast .forecast-loading {
+            color: #94a3b8;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .pre-plan-forecast .forecast-summary {
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .pre-plan-forecast .forecast-action {
+            margin-top: 10px;
+        }
+
+        .pre-plan-forecast .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        .pre-plan-forecast.excellent {
+            border-color: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        .pre-plan-forecast.good {
+            border-color: #00d9ff;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
+        }
+
+        .pre-plan-forecast.fair {
+            border-color: #f97316;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.2);
+        }
+
+        .pre-plan-forecast.poor {
+            border-color: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+        }
+
+        .plan-success-banner {
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .plan-success-banner.active {
+            display: block;
+        }
+
+        .plan-success-banner.excellent {
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .plan-success-banner.good {
+            background: rgba(0, 217, 255, 0.15);
+            border: 2px solid #00d9ff;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+        }
+
+        .plan-success-banner.fair {
+            background: rgba(249, 115, 22, 0.15);
+            border: 2px solid #f97316;
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+        }
+
+        .plan-success-banner.poor {
+            background: rgba(239, 68, 68, 0.15);
+            border: 2px solid #ef4444;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .plan-success-banner h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .plan-success-banner.excellent h2 { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+        .plan-success-banner.good h2 { color: #00d9ff; text-shadow: 0 0 10px rgba(0, 217, 255, 0.5); }
+        .plan-success-banner.fair h2 { color: #f97316; text-shadow: 0 0 10px rgba(249, 115, 22, 0.5); }
+        .plan-success-banner.poor h2 { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+
+        .plan-success-banner .success-score {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .plan-success-banner.excellent .success-score { color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.6); }
+        .plan-success-banner.good .success-score { color: #00d9ff; text-shadow: 0 0 15px rgba(0, 217, 255, 0.6); }
+        .plan-success-banner.fair .success-score { color: #f97316; text-shadow: 0 0 15px rgba(249, 115, 22, 0.6); }
+        .plan-success-banner.poor .success-score { color: #ef4444; text-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+
+        .plan-success-banner .success-details {
+            font-size: 0.95em;
+            margin-top: 10px;
+            color: #cbd5e1;
+        }
+
         .collapsible-section {
             border: 2px solid #e0e0e0;
             border-radius: 8px;
@@ -1275,6 +1392,11 @@
                 // Stop polling when leaving liveview tab
                 liveviewStopPolling();
             }
+
+            // Check weather when switching to planner tab
+            if (tabName === 'planner' && typeof checkPrePlanWeather === 'function') {
+                checkPrePlanWeather();
+            }
         }
     </script>
 </head>
@@ -1365,8 +1487,13 @@
                     <div class="form-group">
                         <label for="observing-date">Observing Date (Tonight's Session)</label>
                         <input type="date" id="observing-date">
-                        <div class="date-notice">
-                            This date represents which night to plan for. The planner will calculate the astronomical night containing this date.
+                        <!-- Pre-plan forecast box -->
+                        <div class="pre-plan-forecast" id="pre-plan-forecast">
+                            <div class="forecast-loading" id="forecast-loading">Checking conditions...</div>
+                            <div class="forecast-content" id="forecast-content" style="display: none;">
+                                <div class="forecast-summary" id="forecast-summary"></div>
+                                <div class="forecast-action" id="forecast-action"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -1408,7 +1535,7 @@
                                 <label for="type-nebula">Nebulae</label>
                             </div>
                             <div class="checkbox-item">
-                                <input type="checkbox" id="type-cluster" value="cluster" checked>
+                                <input type="checkbox" id="type-cluster" value="cluster">
                                 <label for="type-cluster">Star Clusters</label>
                             </div>
                             <div class="checkbox-item">
@@ -1441,7 +1568,7 @@
                     <div class="form-group">
                         <div class="checkbox-with-hint">
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <input type="checkbox" id="park-when-done" value="park" checked style="margin: 0;">
+                                <input type="checkbox" id="park-when-done" value="park" style="margin: 0;">
                                 <label for="park-when-done" style="margin: 0;">Park telescope when done</label>
                             </div>
                             <div class="input-hint">
@@ -1467,6 +1594,13 @@
 
             <!-- Results -->
             <div class="results" id="results">
+                <!-- Plan Success Banner -->
+                <div class="plan-success-banner" id="plan-success-banner">
+                    <h2 id="success-banner-title"></h2>
+                    <div class="success-score" id="success-banner-score"></div>
+                    <div class="success-details" id="success-banner-details"></div>
+                </div>
+
                 <!-- Weather Warning -->
                 <div class="weather-warning" id="weather-warning">
                     <h3>⚠️ Poor Observing Conditions</h3>
@@ -2086,6 +2220,12 @@
             const dateInput = document.getElementById('observing-date');
             if (dateInput) {
                 dateInput.valueAsDate = new Date();
+                // Check weather when date changes
+                dateInput.addEventListener('change', function() {
+                    if (typeof checkPrePlanWeather === 'function') {
+                        checkPrePlanWeather();
+                    }
+                });
             }
 
             // Load catalog stats on initial page load since catalog tab is active by default
@@ -2153,6 +2293,187 @@
 
             // Regenerate the plan
             generatePlan();
+        }
+
+        // Check conditions and show forecast before generating a plan
+        async function checkPrePlanWeather() {
+            const forecastEl = document.getElementById('pre-plan-forecast');
+            const loadingEl = document.getElementById('forecast-loading');
+            const contentEl = document.getElementById('forecast-content');
+            const summaryEl = document.getElementById('forecast-summary');
+            const actionEl = document.getElementById('forecast-action');
+
+            // Get location and date
+            const latitude = parseFloat(document.getElementById('latitude').value);
+            const longitude = parseFloat(document.getElementById('longitude').value);
+            const observingDate = document.getElementById('observing-date').value;
+            const timezone = document.getElementById('timezone').value;
+
+            // Remove previous state classes
+            forecastEl.classList.remove('excellent', 'good', 'fair', 'poor');
+
+            // Validate we have location
+            if (isNaN(latitude) || isNaN(longitude) || !observingDate) {
+                loadingEl.style.display = 'block';
+                loadingEl.textContent = 'Enter location to see forecast';
+                contentEl.style.display = 'none';
+                return;
+            }
+
+            loadingEl.style.display = 'block';
+            loadingEl.textContent = 'Checking conditions...';
+            contentEl.style.display = 'none';
+
+            try {
+                // Fetch twilight data to get night duration
+                const twilightResponse = await fetch(`/api/twilight?date=${observingDate}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Location',
+                        latitude: latitude,
+                        longitude: longitude,
+                        elevation: 0,
+                        timezone: timezone
+                    })
+                });
+
+                let nightMinutes = 480; // Default 8 hours
+                if (twilightResponse.ok) {
+                    const twilight = await twilightResponse.json();
+                    const astroEnd = new Date(twilight.astronomical_twilight_end);
+                    const astroStart = new Date(twilight.astronomical_twilight_start);
+                    nightMinutes = Math.round((astroStart - astroEnd) / 60000);
+                }
+
+                // Fetch astronomy weather forecast
+                const weatherResponse = await fetch(`/api/weather/astronomy?lat=${latitude}&lon=${longitude}&hours=12&date=${observingDate}`);
+
+                let avgScore = 70; // Default to decent if no weather data
+                let avgCloudCover = 30;
+                let weatherAvailable = false;
+
+                if (weatherResponse.ok) {
+                    const data = await weatherResponse.json();
+                    if (data.forecast && data.forecast.length > 0) {
+                        weatherAvailable = true;
+                        avgScore = data.forecast.reduce((sum, f) => sum + f.astronomy_score, 0) / data.forecast.length * 100;
+                        avgCloudCover = data.forecast.reduce((sum, f) => sum + (f.cloud_cover || 0), 0) / data.forecast.length;
+                    }
+                }
+
+                // Calculate estimates based on conditions
+                const setupTime = parseInt(document.getElementById('setup-time').value) || 30;
+                const usableMinutes = Math.max(0, nightMinutes - setupTime);
+
+                // Estimate successful observing time based on weather
+                const weatherFactor = avgScore / 100;
+                const successfulMinutes = Math.round(usableMinutes * weatherFactor);
+
+                // Estimate targets (roughly 45-90 min per target depending on mode)
+                const planningMode = document.getElementById('planning-mode').value;
+                const avgTargetTime = planningMode === 'quality' ? 90 : planningMode === 'quantity' ? 45 : 60;
+                const estimatedTargets = Math.max(1, Math.floor(successfulMinutes / avgTargetTime));
+
+                // Determine condition category
+                let category, statusIcon, statusText, statusColor;
+                if (avgScore >= 70) {
+                    category = 'excellent';
+                    statusIcon = '✨';
+                    statusText = 'Excellent conditions';
+                    statusColor = '#10b981';
+                } else if (avgScore >= 50) {
+                    category = 'good';
+                    statusIcon = '👍';
+                    statusText = 'Good conditions';
+                    statusColor = '#00d9ff';
+                } else if (avgScore >= 30) {
+                    category = 'fair';
+                    statusIcon = '⚠️';
+                    statusText = 'Fair conditions';
+                    statusColor = '#f97316';
+                } else {
+                    category = 'poor';
+                    statusIcon = '❌';
+                    statusText = 'Poor conditions';
+                    statusColor = '#ef4444';
+                }
+
+                forecastEl.classList.add(category);
+
+                // Build summary HTML
+                const hoursStr = Math.floor(successfulMinutes / 60);
+                const minsStr = successfulMinutes % 60;
+                const timeStr = hoursStr > 0 ? `${hoursStr}h ${minsStr}m` : `${minsStr}m`;
+
+                summaryEl.innerHTML = `
+                    <span style="color: ${statusColor}; font-weight: bold;">${statusIcon} ${statusText}</span>
+                    ${weatherAvailable ? `<span style="color: #94a3b8;"> · ${avgCloudCover.toFixed(0)}% clouds</span>` : ''}
+                    <br>
+                    <span style="color: #cbd5e1;">Est. <strong style="color: ${statusColor};">${estimatedTargets}</strong> targets across <strong style="color: ${statusColor};">${timeStr}</strong> of successful imaging</span>
+                `;
+
+                // Build action HTML
+                if (avgScore < 40) {
+                    actionEl.innerHTML = `<button class="btn btn-small" style="background: ${statusColor}; color: white;" onclick="skipToNextGoodNight()">Find Better Night →</button>`;
+                } else {
+                    actionEl.innerHTML = '';
+                }
+
+                loadingEl.style.display = 'none';
+                contentEl.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error checking pre-plan conditions:', error);
+                loadingEl.textContent = 'Could not load forecast';
+                contentEl.style.display = 'none';
+            }
+        }
+
+        // Skip to next night with good weather
+        async function skipToNextGoodNight() {
+            const dateInput = document.getElementById('observing-date');
+            const latitude = parseFloat(document.getElementById('latitude').value);
+            const longitude = parseFloat(document.getElementById('longitude').value);
+            let currentDate = new Date(dateInput.value);
+
+            // Show searching state
+            const loadingEl = document.getElementById('forecast-loading');
+            const contentEl = document.getElementById('forecast-content');
+            loadingEl.style.display = 'block';
+            loadingEl.textContent = 'Searching for clear skies...';
+            contentEl.style.display = 'none';
+
+            // Try up to 7 days ahead
+            for (let i = 0; i < 7; i++) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                const dateStr = currentDate.toISOString().split('T')[0];
+
+                try {
+                    const response = await fetch(`/api/weather/astronomy?lat=${latitude}&lon=${longitude}&hours=12&date=${dateStr}`);
+                    if (!response.ok) continue;
+
+                    const data = await response.json();
+                    if (!data.forecast || data.forecast.length === 0) continue;
+
+                    const avgScore = data.forecast.reduce((sum, f) => sum + f.astronomy_score, 0) / data.forecast.length * 100;
+
+                    if (avgScore >= 45) {
+                        // Found a good night
+                        dateInput.value = dateStr;
+                        checkPrePlanWeather();
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error checking future weather:', error);
+                }
+            }
+
+            // No good night found in next 7 days, just advance by one day
+            const nextDate = new Date(document.getElementById('observing-date').value);
+            nextDate.setDate(nextDate.getDate() + 1);
+            dateInput.value = nextDate.toISOString().split('T')[0];
+            checkPrePlanWeather();
         }
 
         async function generatePlan() {
@@ -2265,6 +2586,64 @@
             } else {
                 weatherWarning.classList.remove('active');
             }
+
+            // Calculate and display Plan Success Banner
+            const successBanner = document.getElementById('plan-success-banner');
+            const successTitle = document.getElementById('success-banner-title');
+            const successScore = document.getElementById('success-banner-score');
+            const successDetails = document.getElementById('success-banner-details');
+
+            // Remove all previous state classes
+            successBanner.classList.remove('excellent', 'good', 'fair', 'poor', 'active');
+
+            // Calculate overall success chance based on multiple factors
+            const avgCloudCoverForBanner = plan.weather_forecast.length > 0
+                ? plan.weather_forecast.reduce((a,b) => a + b.cloud_cover, 0) / plan.weather_forecast.length
+                : 50;
+            const avgHumidity = plan.weather_forecast.length > 0
+                ? plan.weather_forecast.reduce((a,b) => a + b.humidity, 0) / plan.weather_forecast.length
+                : 50;
+
+            // Weather score (0-100): lower cloud cover and humidity = better
+            const cloudScore = Math.max(0, 100 - avgCloudCoverForBanner);
+            const humidityScore = Math.max(0, 100 - (avgHumidity * 0.5)); // Humidity less impactful
+            const weatherScorePercent = avgWeatherScore * 100;
+
+            // Target availability score (based on coverage)
+            const coverageScore = plan.coverage_percent;
+
+            // Combined success score (weighted average)
+            const successChance = Math.round(
+                (weatherScorePercent * 0.5) +  // Weather is most important
+                (cloudScore * 0.25) +           // Cloud cover
+                (coverageScore * 0.15) +        // How well the night is used
+                (humidityScore * 0.10)          // Humidity
+            );
+
+            // Determine category and messaging
+            let category, title, details;
+            if (successChance >= 75) {
+                category = 'excellent';
+                title = 'Excellent Observing Night!';
+                details = `Clear skies and great conditions predicted. ${plan.total_targets} targets scheduled with ${plan.coverage_percent.toFixed(0)}% night coverage.`;
+            } else if (successChance >= 55) {
+                category = 'good';
+                title = 'Good Observing Conditions';
+                details = `Favorable conditions expected. ${plan.total_targets} targets can be imaged with ${avgCloudCoverForBanner.toFixed(0)}% average cloud cover.`;
+            } else if (successChance >= 35) {
+                category = 'fair';
+                title = 'Fair Conditions - Some Risk';
+                details = `Mixed conditions expected. Consider monitoring weather closely. ${avgCloudCoverForBanner.toFixed(0)}% cloud cover, ${avgHumidity.toFixed(0)}% humidity.`;
+            } else {
+                category = 'poor';
+                title = 'Challenging Conditions';
+                details = `Weather may impact imaging quality. High cloud cover (${avgCloudCoverForBanner.toFixed(0)}%) or humidity (${avgHumidity.toFixed(0)}%). Consider rescheduling.`;
+            }
+
+            successTitle.textContent = title;
+            successScore.textContent = `${successChance}% Success Chance`;
+            successDetails.textContent = details;
+            successBanner.classList.add(category, 'active');
 
             // Fetch astronomy data (sky quality and detailed weather)
             let skyQualityHtml = '';
