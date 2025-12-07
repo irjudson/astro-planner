@@ -49,7 +49,7 @@ class DirectProcessor:
         # Default: export as JPEG
         return self.export_image(data, output_dir, input_file.stem, format="jpeg", quality=95)
 
-    def load_fits(self, fits_path: Path) -> np.ndarray:
+    def _load_fits(self, fits_path: Path) -> np.ndarray:
         """Load FITS file and return image data."""
         logger.info(f"Loading FITS file: {fits_path}")
 
@@ -59,7 +59,7 @@ class DirectProcessor:
                 if isinstance(hdu, (fits.PrimaryHDU, fits.ImageHDU)) and hdu.data is not None:
                     data = hdu.data
                     logger.info(f"Loaded FITS data: shape={data.shape}, dtype={data.dtype}")
-                    return data.astype(np.float32), hdu.header
+                    return data.astype(np.float32)
 
         raise ValueError(f"No image data found in FITS file: {fits_path}")
 

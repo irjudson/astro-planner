@@ -205,7 +205,12 @@ async def process_file_direct(request: DirectProcessRequest, db: Session = Depen
     - export_editing: 16-bit TIFF for PixInsight/Photoshop
     """
     # Validate file exists
-    file_path = Path(request.file_path)
+    # Support both absolute paths (starting with /fits/) and relative paths from browse API
+    if request.file_path.startswith("/fits/"):
+        file_path = Path(request.file_path)
+    else:
+        file_path = Path("/fits") / request.file_path
+
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 

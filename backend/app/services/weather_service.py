@@ -240,19 +240,26 @@ class WeatherService:
         """
         has_astronomy = forecast.seeing_arcseconds is not None and forecast.transparency_magnitude is not None
 
+        # Cloud cover score is always factored in - no astronomy is possible through clouds
+        cloud_score = max(0.0, 1.0 - (forecast.cloud_cover / 100.0))
+
         if has_astronomy and forecast.source == "composite":
-            # Composite scoring: 60% astronomy + 40% general weather
+            # Composite scoring: 40% cloud + 35% astronomy + 25% general
             astronomy_score = self._calculate_astronomy_score(
                 forecast.seeing_arcseconds, forecast.transparency_magnitude
             )
             general_score = self._calculate_general_weather_score(
                 forecast.cloud_cover, forecast.humidity, forecast.wind_speed
             )
-            total_score = (astronomy_score * 0.6) + (general_score * 0.4)
+            total_score = (cloud_score * 0.4) + (astronomy_score * 0.35) + (general_score * 0.25)
 
         elif has_astronomy:
-            # 7Timer only - pure astronomy metrics
-            total_score = self._calculate_astronomy_score(forecast.seeing_arcseconds, forecast.transparency_magnitude)
+            # 7Timer data - cloud cover + astronomy metrics
+            # Cloud cover is most important (50%), then astronomy conditions (50%)
+            astronomy_score = self._calculate_astronomy_score(
+                forecast.seeing_arcseconds, forecast.transparency_magnitude
+            )
+            total_score = (cloud_score * 0.5) + (astronomy_score * 0.5)
 
         else:
             # OpenWeatherMap only - general weather metrics

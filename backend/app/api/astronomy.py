@@ -1,13 +1,16 @@
 """Astronomy-specific API endpoints."""
 
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from app.services.cleardarksky_service import ClearDarkSkyService
+from app.models import Location
 from app.services.satellite_service import SatelliteService
+from app.services.seven_timer_service import SevenTimerService
 from app.services.viewing_months_service import ViewingMonthsService
+from app.services.weather_service import WeatherService
 
 router = APIRouter(tags=["astronomy"])
 
@@ -58,8 +61,7 @@ async def get_astronomy_weather(
     - Temperature and wind speed
     - Overall astronomy quality score (0-1)
 
-    Data is sourced from ClearDarkSky when available, with fallback
-    to general weather services.
+    Data is sourced from 7Timer API which provides astronomy-specific forecasts.
 
     Args:
         lat: Latitude in decimal degrees (-90 to +90)
@@ -76,24 +78,38 @@ async def get_astronomy_weather(
         if not (-180 <= lon <= 180):
             raise HTTPException(status_code=400, detail=f"Invalid longitude: {lon}. Must be between -180 and +180.")
 
-        service = ClearDarkSkyService()
-        forecast = service.get_forecast(latitude=lat, longitude=lon, hours=hours)
+        # Use 7Timer service for astronomy-specific forecasts
+        location = Location(
+            name="Forecast Location",
+            latitude=lat,
+            longitude=lon,
+            elevation=0.0,
+            timezone="UTC",
+        )
 
-        # Convert forecast objects to dicts
+        service = SevenTimerService()
+        now = datetime.now(timezone.utc)
+        end_time = now + timedelta(hours=hours)
+
+        forecasts = service.get_astronomy_forecast(location, now, end_time)
+
+        # Convert forecast objects to dicts with astronomy scores
+        weather_service = WeatherService()
         forecast_data = []
-        for entry in forecast:
+        for entry in forecasts:
+            # Calculate astronomy score (0-1 scale, multiply by 100 for frontend)
+            score = weather_service.calculate_weather_score(entry)
+
             forecast_data.append(
                 {
-                    "time": entry.time.isoformat(),
-                    "cloud_cover": {
-                        "range": entry.cloud_cover.value,
-                        "description": entry.cloud_cover.name.replace("_", " ").title(),
-                    },
-                    "transparency": entry.transparency.value,
-                    "seeing": entry.seeing.value,
-                    "temperature_c": entry.temperature_c,
-                    "wind_speed_kmh": entry.wind_speed_kmh,
-                    "astronomy_score": entry.astronomy_score(),
+                    "time": entry.timestamp.isoformat(),
+                    "cloud_cover": entry.cloud_cover,  # Direct percentage from 7Timer
+                    "transparency": entry.transparency_magnitude,
+                    "seeing": entry.seeing_arcseconds,
+                    "temperature_c": entry.temperature,
+                    "wind_speed_kmh": entry.wind_speed * 3.6,  # Convert m/s to km/h
+                    "conditions": entry.conditions,
+                    "astronomy_score": score,  # 0-1 scale
                 }
             )
 
@@ -102,6 +118,7 @@ async def get_astronomy_weather(
             "location": {"latitude": lat, "longitude": lon},
             "hours": hours,
             "count": len(forecast_data),
+            "source": "7timer",
         }
 
     except HTTPException:
