@@ -23,6 +23,7 @@ services:
       - FITS_DIR=/fits
     volumes:
       - /mnt/seestar-s50:/fits:ro
+      - ./data:/app/data
     networks:
       - shared-infra
 
