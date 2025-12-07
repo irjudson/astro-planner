@@ -129,9 +129,7 @@ class AutoStretchService:
 
         logger.info(f"Detected stretch params: CV={cv:.3f}, a={a}, black={bp:.1f}, white={wp:.1f}")
 
-        return StretchParams(
-            black_point=bp, white_point=wp, stretch_factor=a, black_pct=black_pct, white_pct=white_pct
-        )
+        return StretchParams(black_point=bp, white_point=wp, stretch_factor=a, black_pct=black_pct, white_pct=white_pct)
 
     def apply_stretch(self, data: np.ndarray, params: StretchParams) -> np.ndarray:
         """
@@ -152,9 +150,7 @@ class AutoStretchService:
 
         return stretched
 
-    def save_outputs(
-        self, data: np.ndarray, base_path: Path, formats: Optional[List[str]] = None
-    ) -> List[Path]:
+    def save_outputs(self, data: np.ndarray, base_path: Path, formats: Optional[List[str]] = None) -> List[Path]:
         """
         Save stretched data to output files.
 
@@ -177,7 +173,7 @@ class AutoStretchService:
                 logger.warning(f"Unsupported format: {fmt}")
                 continue
 
-            output_path = base_path.parent / f"{base_path.stem}_processed.{fmt}"
+            output_path = base_path.parent / f"{base_path.stem}_astroplanner.{fmt}"
 
             if fmt == "jpg":
                 self._save_jpg(data, output_path)
@@ -270,7 +266,11 @@ class AutoStretchService:
         )
 
     def batch_process(
-        self, folder_path: Path, pattern: str = "Stacked_*.fit", recursive: bool = True, formats: Optional[List[str]] = None
+        self,
+        folder_path: Path,
+        pattern: str = "Stacked_*.fit",
+        recursive: bool = True,
+        formats: Optional[List[str]] = None,
     ) -> Dict[str, AutoProcessResult]:
         """
         Process all matching FITS files in a folder.
