@@ -67,7 +67,8 @@ jobs:
       fail-fast: false  # Continue testing other versions even if one fails
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ['3.12', '3.13']
+        # Note: Python 3.13 excluded until psycopg2-binary releases compatible wheels
+        python-version: ['3.12']
 
     steps:
     - uses: actions/checkout@v4
