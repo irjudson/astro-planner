@@ -1,8 +1,15 @@
-"""Tests for comet service."""
+"""Tests for comet service.
+
+These tests require database services (PostgreSQL) to run.
+They are marked as integration tests and skipped on macOS CI.
+"""
 
 from datetime import datetime
 
 import pytest
+
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
 
 from app.models import CometTarget, Location, OrbitalElements
 from app.models.catalog_models import CometCatalog

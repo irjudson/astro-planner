@@ -1,4 +1,8 @@
-"""Comprehensive tests for planner service."""
+"""Comprehensive tests for planner service.
+
+These tests require database services (PostgreSQL) to run.
+They are marked as integration tests and skipped on macOS CI.
+"""
 
 from datetime import datetime, timedelta
 
@@ -8,8 +12,10 @@ import pytz
 from app.models import Location, ObservingConstraints, PlanRequest
 from app.services.planner_service import PlannerService
 
+# Mark all tests in this file as integration tests
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
 
-@pytest.mark.slow
+
 class TestPlannerServiceComprehensive:
     """Comprehensive test coverage for PlannerService."""
 

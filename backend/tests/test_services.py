@@ -1,9 +1,16 @@
-"""Service layer tests."""
+"""Service layer tests.
+
+These tests require database services (PostgreSQL) to run.
+They are marked as integration tests and skipped on macOS CI.
+"""
 
 from datetime import datetime, timedelta
 
 import pytest
 import pytz
+
+# Mark all tests in this file as integration tests
+pytestmark = pytest.mark.integration
 
 from app.models import DSOTarget, Location, ObservingConstraints, WeatherForecast
 from app.services.catalog_service import CatalogService
