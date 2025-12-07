@@ -211,10 +211,6 @@ class AutoStretchService:
             # Actually, let's just save full quality 16-bit grayscale from luminance
             # or use alternative approach
             try:
-                # Try saving as RGB with available bit depth
-                # TIFF format with photometric interpretation
-                import struct
-
                 # For now, save as high-quality 8-bit RGB
                 # TODO: Implement true 16-bit RGB TIFF
                 img_data_8bit = (data * 255).astype(np.uint8)
