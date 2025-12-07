@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.processing_models import ProcessingFile, ProcessingJob, ProcessingPipeline
-from app.tasks.processing_tasks import process_file_task
+from app.tasks.processing_tasks import auto_process_task, process_file_task
 
 router = APIRouter(prefix="/process", tags=["processing"])
 
@@ -240,3 +240,146 @@ async def process_file_direct(request: DirectProcessRequest, db: Session = Depen
     process_file_task.delay(processing_file.id, pipeline.id, job.id)
 
     return job
+
+
+# ============================================================================
+# AUTO-PROCESSING API (Seestar-matching stretch algorithm)
+# ============================================================================
+
+
+class AutoProcessRequest(BaseModel):
+    """Request model for auto-processing a single FITS file."""
+
+    file_path: str
+    formats: Optional[List[str]] = ["jpg", "png", "tiff"]
+
+
+class AutoProcessResponse(BaseModel):
+    """Response model for auto-processing."""
+
+    job_id: int
+    status: str
+    file_path: str
+
+
+class BatchProcessRequest(BaseModel):
+    """Request model for batch processing."""
+
+    folder_path: str
+    recursive: bool = True
+    pattern: str = "Stacked_*.fit"
+    formats: Optional[List[str]] = ["jpg", "png", "tiff"]
+
+
+class BatchProcessResponse(BaseModel):
+    """Response model for batch processing."""
+
+    job_ids: List[int]
+    files_found: int
+
+
+@router.post("/auto", response_model=AutoProcessResponse)
+async def auto_process_single(request: AutoProcessRequest, db: Session = Depends(get_db)):
+    """
+    Auto-process a single FITS file using Seestar-matching arcsinh stretch.
+
+    This uses the reverse-engineered Seestar algorithm with auto-detected parameters
+    to produce output that visually matches Seestar's own processing.
+
+    Output files are saved alongside the input file with '_processed' suffix.
+    """
+    # Validate file exists
+    file_path = Path(request.file_path)
+
+    # Handle paths relative to /fits mount
+    if not file_path.is_absolute():
+        file_path = Path("/fits") / request.file_path
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+
+    if file_path.suffix.lower() not in [".fit", ".fits"]:
+        raise HTTPException(status_code=400, detail="File must be a FITS file")
+
+    # Validate formats
+    valid_formats = ["jpg", "png", "tiff"]
+    for fmt in request.formats:
+        if fmt.lower() not in valid_formats:
+            raise HTTPException(status_code=400, detail=f"Invalid format: {fmt}. Valid: {valid_formats}")
+
+    # Create file record
+    processing_file = ProcessingFile(
+        filename=file_path.name, file_type="stacked", file_path=str(file_path), file_size_bytes=file_path.stat().st_size
+    )
+    db.add(processing_file)
+    db.commit()
+    db.refresh(processing_file)
+
+    # Create job with auto_stretch pipeline
+    job = ProcessingJob(file_id=processing_file.id, pipeline_id=None, status="queued")
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    # Queue the auto-process task
+    auto_process_task.delay(str(file_path), request.formats, job.id)
+
+    return AutoProcessResponse(job_id=job.id, status="queued", file_path=str(file_path))
+
+
+@router.post("/batch", response_model=BatchProcessResponse)
+async def batch_process(request: BatchProcessRequest, db: Session = Depends(get_db)):
+    """
+    Batch process all matching FITS files in a folder.
+
+    Finds all files matching the pattern and queues them for auto-processing.
+    Default pattern matches Seestar stacked files: 'Stacked_*.fit'
+    """
+    # Validate folder exists
+    folder_path = Path(request.folder_path)
+
+    # Handle paths relative to /fits mount
+    if not folder_path.is_absolute():
+        folder_path = Path("/fits") / request.folder_path
+
+    if not folder_path.exists():
+        raise HTTPException(status_code=404, detail=f"Folder not found: {folder_path}")
+
+    if not folder_path.is_dir():
+        raise HTTPException(status_code=400, detail="Path must be a directory")
+
+    # Find matching files
+    if request.recursive:
+        fits_files = list(folder_path.rglob(request.pattern))
+    else:
+        fits_files = list(folder_path.glob(request.pattern))
+
+    if not fits_files:
+        raise HTTPException(status_code=404, detail=f"No files matching '{request.pattern}' found in {folder_path}")
+
+    job_ids = []
+
+    for fits_file in fits_files:
+        # Create file record
+        processing_file = ProcessingFile(
+            filename=fits_file.name,
+            file_type="stacked",
+            file_path=str(fits_file),
+            file_size_bytes=fits_file.stat().st_size,
+        )
+        db.add(processing_file)
+        db.commit()
+        db.refresh(processing_file)
+
+        # Create job
+        job = ProcessingJob(file_id=processing_file.id, pipeline_id=None, status="queued")
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+
+        # Queue the auto-process task
+        auto_process_task.delay(str(fits_file), request.formats, job.id)
+
+        job_ids.append(job.id)
+
+    return BatchProcessResponse(job_ids=job_ids, files_found=len(fits_files))

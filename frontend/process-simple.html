@@ -225,7 +225,17 @@
         <div class="section">
             <h2>2. Choose Processing Type</h2>
             <div class="processing-options">
-                <div class="option-card selected" data-type="quick_preview" onclick="selectOption(this)">
+                <div class="option-card selected" data-type="auto_process" onclick="selectOption(this)">
+                    <div class="option-content">
+                        <h3>🌌 Auto Process (Seestar Match)</h3>
+                        <p>Arcsinh stretch matching Seestar output quality</p>
+                        <small><strong>Best for:</strong> Stacked FITS from Seestar, quick sharing-ready output</small>
+                        <small><strong>Output:</strong> JPG + PNG + TIFF (all three formats)</small>
+                        <small><strong>Processing:</strong> Auto-detect stretch parameters → Multiple formats</small>
+                    </div>
+                </div>
+
+                <div class="option-card" data-type="quick_preview" onclick="selectOption(this)">
                     <div class="option-content">
                         <h3>📸 Quick Preview</h3>
                         <p>Auto-stretch and export to JPEG</p>
@@ -285,7 +295,7 @@
     </div>
 
     <script>
-        let selectedType = 'quick_preview';
+        let selectedType = 'auto_process';
         let currentJobId = null;
 
         function selectOption(element) {
@@ -308,7 +318,7 @@
 
                 // Simple file list for now
                 // In a real implementation, this would be a modal with directory navigation
-                const path = prompt('Enter FITS file path:', '/fits/');
+                const path = prompt('Enter FITS file path:', '/fits/MyWorks/');
                 if (path) {
                     document.getElementById('file-path').value = path;
                     showSelectedFile(path);
@@ -316,7 +326,7 @@
             } catch (error) {
                 console.error('Browse error:', error);
                 alert('Error browsing files. Using manual entry.');
-                const path = prompt('Enter FITS file path:', '/fits/');
+                const path = prompt('Enter FITS file path:', '/fits/MyWorks/');
                 if (path) {
                     document.getElementById('file-path').value = path;
                     showSelectedFile(path);
@@ -328,7 +338,7 @@
             const fileName = path.split('/').pop();
             document.getElementById('selected-file').innerHTML = `
                 <div class="selected-file">
-                    ✓ Selected: <strong>${fileName}</strong>
+                    Selected: <strong>${fileName}</strong>
                     <br>
                     <small style="color: #6a7280;">${path}</small>
                 </div>
@@ -349,15 +359,29 @@
             document.getElementById('process-btn').disabled = true;
 
             try {
-                // Start processing
-                const response = await fetch('/api/process/file', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        file_path: filePath,
-                        processing_type: selectedType
-                    })
-                });
+                let response;
+
+                if (selectedType === 'auto_process') {
+                    // Use new auto-process API
+                    response = await fetch('/api/process/auto', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            file_path: filePath,
+                            formats: ['jpg', 'png', 'tiff']
+                        })
+                    });
+                } else {
+                    // Use original processing API
+                    response = await fetch('/api/process/file', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            file_path: filePath,
+                            processing_type: selectedType
+                        })
+                    });
+                }
 
                 if (!response.ok) {
                     const error = await response.json();
@@ -365,10 +389,10 @@
                 }
 
                 const job = await response.json();
-                currentJobId = job.id;
+                currentJobId = job.job_id || job.id;
 
                 // Poll for status
-                pollJobStatus(job.id);
+                pollJobStatus(currentJobId);
 
             } catch (error) {
                 console.error('Processing error:', error);
