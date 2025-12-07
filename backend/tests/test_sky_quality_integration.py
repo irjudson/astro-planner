@@ -1,8 +1,13 @@
-"""Integration tests for sky quality filtering in plan generation."""
+"""Integration tests for sky quality filtering in plan generation.
 
-from datetime import datetime
+These tests require database services (PostgreSQL) to run.
+They are marked as integration tests and skipped on macOS CI.
+"""
 
 import pytest
+
+# Mark all tests in this file as integration tests
+pytestmark = [pytest.mark.integration, pytest.mark.slow]
 
 from app.models import Location, ObservingConstraints, PlanRequest
 from app.services.planner_service import PlannerService
@@ -14,7 +19,6 @@ def test_db(override_get_db):
     return override_get_db
 
 
-@pytest.mark.slow
 class TestSkyQualityIntegration:
     """Test sky quality integration in the full planning workflow."""
 
