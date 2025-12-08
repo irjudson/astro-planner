@@ -11,11 +11,12 @@ from sqlalchemy.orm import Session
 from app.api.asteroids import router as asteroid_router
 from app.api.astronomy import router as astronomy_router
 
-# Import comet, asteroid, planet, processing, plans, and astronomy routers
+# Import comet, asteroid, planet, processing, plans, astronomy, and settings routers
 from app.api.comets import router as comet_router
 from app.api.planets import router as planet_router
 from app.api.plans import router as plans_router
 from app.api.processing import router as processing_router
+from app.api.settings import router as settings_router
 from app.clients.seestar_client import SeestarClient
 from app.database import get_db
 from app.models import DSOTarget, ExportFormat, Location, ObservingPlan, PlanRequest, ScheduledTarget
@@ -26,13 +27,14 @@ from app.services.telescope_service import TelescopeService
 
 router = APIRouter()
 
-# Include comet, asteroid, planet, processing, plans, and astronomy endpoints
+# Include comet, asteroid, planet, processing, plans, astronomy, and settings endpoints
 router.include_router(comet_router)
 router.include_router(asteroid_router)
 router.include_router(planet_router)
 router.include_router(processing_router)
 router.include_router(plans_router)
 router.include_router(astronomy_router)
+router.include_router(settings_router)
 
 # Telescope control (singleton instances)
 seestar_client = SeestarClient()

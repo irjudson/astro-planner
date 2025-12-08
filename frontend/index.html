@@ -719,6 +719,137 @@
             display: block;
         }
 
+        /* Settings subtabs - dark theme compatible */
+        .settings-subtab {
+            background: rgba(0, 100, 100, 0.3);
+            color: #ccc;
+            border: 1px solid #00ffff;
+            padding: 8px 16px;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .settings-subtab:hover {
+            background: rgba(0, 150, 150, 0.4);
+        }
+
+        .settings-subtab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .settings-subtab-content {
+            display: none;
+        }
+
+        .settings-subtab-content.active {
+            display: block;
+        }
+
+        .settings-card {
+            background: rgba(0, 20, 40, 0.8);
+            border: 1px solid #00ffff;
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+
+        .settings-card h4 {
+            margin: 0 0 10px 0;
+            color: #00ffff;
+        }
+
+        .settings-card .card-details {
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .settings-card .card-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd6;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .settings-input-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .settings-input-row label {
+            min-width: 200px;
+            font-weight: normal;
+            color: #ccc;
+        }
+
+        .settings-input-row input {
+            flex: 1;
+            max-width: 300px;
+            background: rgba(0, 20, 40, 0.8);
+            border: 1px solid #00ffff;
+            color: #fff;
+            border-radius: 4px;
+        }
+
+        .settings-input-row .setting-description {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .badge-info {
+            background: #17a2b8;
+            color: white;
+        }
+
         /* Catalog Browser Styles */
         .catalog-header {
             background: #f8f9fa;
@@ -1382,6 +1513,11 @@
                 updatePlanSelectionUI();
             }
 
+            // Load settings data when switching to settings tab
+            if (tabName === 'settings' && typeof loadSettingsData === 'function') {
+                loadSettingsData();
+            }
+
             // Start live view polling when switching to liveview tab
             if (tabName === 'liveview' && typeof liveviewLoadPreview === 'function') {
                 liveviewLoadPreview(); // Load immediately
@@ -1410,6 +1546,7 @@
                 <button class="nav-btn" onclick="showTab('planner')" id="planner-tab-btn">📅 Plan</button>
                 <button class="nav-btn" onclick="showTab('observe')" id="observe-tab-btn">🔭 Observe</button>
                 <button class="nav-btn" onclick="showTab('process')" id="process-tab-btn">🎨 Process</button>
+                <button class="nav-btn" onclick="showTab('settings')" id="settings-tab-btn">Settings</button>
             </div>
         </header>
 
@@ -2079,6 +2216,165 @@
             <!-- End Live View Tab -->
 
             <!-- Astronomy Tab -->
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content">
+                <h2 style="color: #667eea; margin-bottom: 20px;">Settings</h2>
+
+                <!-- Settings Sub-tabs -->
+                <div style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">
+                    <button class="settings-subtab active" onclick="showSettingsSubtab('devices')" id="devices-subtab-btn">Seestar Devices</button>
+                    <button class="settings-subtab" onclick="showSettingsSubtab('locations')" id="locations-subtab-btn">Observing Locations</button>
+                    <button class="settings-subtab" onclick="showSettingsSubtab('app')" id="app-subtab-btn">Application Settings</button>
+                </div>
+
+                <!-- Devices Sub-tab -->
+                <div id="devices-subtab" class="settings-subtab-content active">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3>Seestar Devices</h3>
+                        <button class="btn btn-primary" onclick="showDeviceModal()">+ Add Device</button>
+                    </div>
+                    <div id="devices-list" style="display: grid; gap: 15px;">
+                        <!-- Devices loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Locations Sub-tab -->
+                <div id="locations-subtab" class="settings-subtab-content" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3>Observing Locations</h3>
+                        <button class="btn btn-primary" onclick="showLocationModal()">+ Add Location</button>
+                    </div>
+                    <div id="locations-list" style="display: grid; gap: 15px;">
+                        <!-- Locations loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- App Settings Sub-tab -->
+                <div id="app-subtab" class="settings-subtab-content" style="display: none;">
+                    <h3>Application Settings</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Configure telescope paths, processing directories, and UI preferences.</p>
+
+                    <div id="telescope-settings-section" style="margin-bottom: 30px;">
+                        <h4 style="color: #667eea; margin-bottom: 10px;">Telescope Settings</h4>
+                        <div id="telescope-settings-list"></div>
+                    </div>
+
+                    <div id="processing-settings-section" style="margin-bottom: 30px;">
+                        <h4 style="color: #667eea; margin-bottom: 10px;">Processing Settings</h4>
+                        <div id="processing-settings-list"></div>
+                    </div>
+
+                    <div id="storage-settings-section" style="margin-bottom: 30px;">
+                        <h4 style="color: #667eea; margin-bottom: 10px;">Storage Settings</h4>
+                        <div id="storage-settings-list"></div>
+                    </div>
+
+                    <div id="ui-settings-section" style="margin-bottom: 30px;">
+                        <h4 style="color: #667eea; margin-bottom: 10px;">UI Settings</h4>
+                        <div id="ui-settings-list"></div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="saveAllAppSettings()">Save All Settings</button>
+                </div>
+            </div>
+            <!-- End Settings Tab -->
+        </div>
+    </div>
+
+    <!-- Device Modal -->
+    <div id="device-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="device-modal-title">Add Seestar Device</h2>
+                <button class="close-btn" onclick="closeDeviceModal()">&times;</button>
+            </div>
+            <form id="device-form" onsubmit="saveDevice(event)">
+                <input type="hidden" id="device-id">
+                <div class="form-group">
+                    <label for="device-name">Device Name *</label>
+                    <input type="text" id="device-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="device-description">Description</label>
+                    <input type="text" id="device-description">
+                </div>
+                <h4 style="margin: 20px 0 15px; color: #667eea;">Control Settings (API)</h4>
+                <div class="form-group">
+                    <label for="device-control-host">Control Host (IP Address)</label>
+                    <input type="text" id="device-control-host" placeholder="e.g., 192.168.1.100">
+                </div>
+                <div class="form-group">
+                    <label for="device-control-port">Control Port</label>
+                    <input type="number" id="device-control-port" value="4700">
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="device-control-enabled"> Enable Control</label>
+                </div>
+                <h4 style="margin: 20px 0 15px; color: #667eea;">Mount Settings (Storage)</h4>
+                <div class="form-group">
+                    <label for="device-mount-path">Mount Path</label>
+                    <input type="text" id="device-mount-path" placeholder="e.g., /mnt/seestar">
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="device-mount-enabled"> Enable Mount</label>
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="device-is-default"> Set as Default Device</label>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Save Device</button>
+                    <button type="button" class="btn" onclick="closeDeviceModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Location Modal -->
+    <div id="location-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="location-modal-title">Add Observing Location</h2>
+                <button class="close-btn" onclick="closeLocationModal()">&times;</button>
+            </div>
+            <form id="location-form" onsubmit="saveLocation(event)">
+                <input type="hidden" id="location-id">
+                <div class="form-group">
+                    <label for="location-name">Location Name *</label>
+                    <input type="text" id="location-name-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="location-description">Description</label>
+                    <input type="text" id="location-description">
+                </div>
+                <div class="form-group">
+                    <label for="location-latitude">Latitude *</label>
+                    <input type="number" id="location-latitude" step="0.0001" min="-90" max="90" required>
+                </div>
+                <div class="form-group">
+                    <label for="location-longitude">Longitude *</label>
+                    <input type="number" id="location-longitude" step="0.0001" min="-180" max="180" required>
+                </div>
+                <div class="form-group">
+                    <label for="location-elevation">Elevation (meters)</label>
+                    <input type="number" id="location-elevation" value="0">
+                </div>
+                <div class="form-group">
+                    <label for="location-timezone">Timezone</label>
+                    <input type="text" id="location-timezone" value="UTC" placeholder="e.g., America/Denver">
+                </div>
+                <div class="form-group">
+                    <label for="location-bortle">Bortle Class (1-9)</label>
+                    <input type="number" id="location-bortle" min="1" max="9">
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="location-is-default"> Set as Default Location</label>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Save Location</button>
+                    <button type="button" class="btn" onclick="closeLocationModal()">Cancel</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -5074,6 +5370,367 @@
             } catch (error) {
                 console.error('Error loading sky quality:', error);
                 resultsDiv.innerHTML = '<p style="color: #ff0000;">Error: ' + error.message + '</p>';
+            }
+        }
+
+        // ========================================
+        // Settings Tab Functions
+        // ========================================
+
+        let settingsDevices = [];
+        let settingsLocations = [];
+        let settingsAppSettings = [];
+
+        function showSettingsSubtab(subtabName) {
+            // Hide all subtabs
+            document.querySelectorAll('.settings-subtab-content').forEach(tab => {
+                tab.style.display = 'none';
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all subtab buttons
+            document.querySelectorAll('.settings-subtab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected subtab
+            const targetTab = document.getElementById(subtabName + '-subtab');
+            const targetBtn = document.getElementById(subtabName + '-subtab-btn');
+
+            if (targetTab) {
+                targetTab.style.display = 'block';
+                targetTab.classList.add('active');
+            }
+            if (targetBtn) targetBtn.classList.add('active');
+        }
+
+        async function loadSettingsData() {
+            await Promise.all([loadDevices(), loadLocations(), loadAppSettings()]);
+        }
+
+        // ======== Devices ========
+        async function loadDevices() {
+            try {
+                const response = await fetch('/api/settings/devices?active_only=false');
+                settingsDevices = await response.json();
+                renderDevices();
+            } catch (error) {
+                console.error('Error loading devices:', error);
+            }
+        }
+
+        function renderDevices() {
+            const container = document.getElementById('devices-list');
+            if (!container) return;
+            if (settingsDevices.length === 0) {
+                container.innerHTML = '<p style="color: #ccc;">No devices configured. Click "Add Device" to create one.</p>';
+                return;
+            }
+
+            container.innerHTML = settingsDevices.map(device => `
+                <div class="settings-card">
+                    <h4>${device.name} ${device.is_default ? '<span class="badge badge-success">Default</span>' : ''}</h4>
+                    <div class="card-details">
+                        ${device.description ? `<p>${device.description}</p>` : ''}
+                        <p><strong>Control:</strong> ${device.is_control_enabled ? `${device.control_host}:${device.control_port}` : 'Disabled'}</p>
+                        <p><strong>Mount:</strong> ${device.is_mount_enabled ? device.mount_path : 'Disabled'}</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" onclick="editDevice(${device.id})">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteDevice(${device.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showDeviceModal(deviceId = null) {
+            const modal = document.getElementById('device-modal');
+            const title = document.getElementById('device-modal-title');
+            const form = document.getElementById('device-form');
+
+            if (deviceId) {
+                const device = settingsDevices.find(d => d.id === deviceId);
+                title.textContent = 'Edit Seestar Device';
+                document.getElementById('device-id').value = device.id;
+                document.getElementById('device-name').value = device.name;
+                document.getElementById('device-description').value = device.description || '';
+                document.getElementById('device-control-host').value = device.control_host || '';
+                document.getElementById('device-control-port').value = device.control_port;
+                document.getElementById('device-control-enabled').checked = device.is_control_enabled;
+                document.getElementById('device-mount-path').value = device.mount_path || '';
+                document.getElementById('device-mount-enabled').checked = device.is_mount_enabled;
+                document.getElementById('device-is-default').checked = device.is_default;
+            } else {
+                title.textContent = 'Add Seestar Device';
+                form.reset();
+                document.getElementById('device-id').value = '';
+                document.getElementById('device-control-port').value = '4700';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeDeviceModal() {
+            document.getElementById('device-modal').style.display = 'none';
+        }
+
+        function editDevice(deviceId) {
+            showDeviceModal(deviceId);
+        }
+
+        async function saveDevice(event) {
+            event.preventDefault();
+
+            const deviceId = document.getElementById('device-id').value;
+            const deviceData = {
+                name: document.getElementById('device-name').value,
+                description: document.getElementById('device-description').value || null,
+                control_host: document.getElementById('device-control-host').value || null,
+                control_port: parseInt(document.getElementById('device-control-port').value),
+                is_control_enabled: document.getElementById('device-control-enabled').checked,
+                mount_path: document.getElementById('device-mount-path').value || null,
+                is_mount_enabled: document.getElementById('device-mount-enabled').checked,
+                is_default: document.getElementById('device-is-default').checked
+            };
+
+            try {
+                const url = deviceId ? `/api/settings/devices/${deviceId}` : '/api/settings/devices';
+                const method = deviceId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(deviceData)
+                });
+
+                if (response.ok) {
+                    closeDeviceModal();
+                    loadDevices();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to save device'));
+                }
+            } catch (error) {
+                alert('Error saving device: ' + error.message);
+            }
+        }
+
+        async function deleteDevice(deviceId) {
+            if (!confirm('Are you sure you want to delete this device?')) return;
+
+            try {
+                const response = await fetch(`/api/settings/devices/${deviceId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadDevices();
+                } else {
+                    alert('Failed to delete device');
+                }
+            } catch (error) {
+                alert('Error deleting device: ' + error.message);
+            }
+        }
+
+        // ======== Locations ========
+        async function loadLocations() {
+            try {
+                const response = await fetch('/api/settings/locations?active_only=false');
+                settingsLocations = await response.json();
+                renderLocations();
+            } catch (error) {
+                console.error('Error loading locations:', error);
+            }
+        }
+
+        function renderLocations() {
+            const container = document.getElementById('locations-list');
+            if (!container) return;
+            if (settingsLocations.length === 0) {
+                container.innerHTML = '<p style="color: #ccc;">No locations configured. Click "Add Location" to create one.</p>';
+                return;
+            }
+
+            container.innerHTML = settingsLocations.map(location => `
+                <div class="settings-card">
+                    <h4>${location.name} ${location.is_default ? '<span class="badge badge-success">Default</span>' : ''}</h4>
+                    <div class="card-details">
+                        ${location.description ? `<p>${location.description}</p>` : ''}
+                        <p><strong>Coordinates:</strong> ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}</p>
+                        <p><strong>Elevation:</strong> ${location.elevation}m | <strong>Timezone:</strong> ${location.timezone}</p>
+                        ${location.bortle_class ? `<p><strong>Bortle Class:</strong> ${location.bortle_class}</p>` : ''}
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" onclick="editLocation(${location.id})">Edit</button>
+                        <button class="btn btn-danger" onclick="deleteLocation(${location.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showLocationModal(locationId = null) {
+            const modal = document.getElementById('location-modal');
+            const title = document.getElementById('location-modal-title');
+            const form = document.getElementById('location-form');
+
+            if (locationId) {
+                const location = settingsLocations.find(l => l.id === locationId);
+                title.textContent = 'Edit Observing Location';
+                document.getElementById('location-id').value = location.id;
+                document.getElementById('location-name-input').value = location.name;
+                document.getElementById('location-description').value = location.description || '';
+                document.getElementById('location-latitude').value = location.latitude;
+                document.getElementById('location-longitude').value = location.longitude;
+                document.getElementById('location-elevation').value = location.elevation;
+                document.getElementById('location-timezone').value = location.timezone;
+                document.getElementById('location-bortle').value = location.bortle_class || '';
+                document.getElementById('location-is-default').checked = location.is_default;
+            } else {
+                title.textContent = 'Add Observing Location';
+                form.reset();
+                document.getElementById('location-id').value = '';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeLocationModal() {
+            document.getElementById('location-modal').style.display = 'none';
+        }
+
+        function editLocation(locationId) {
+            showLocationModal(locationId);
+        }
+
+        async function saveLocation(event) {
+            event.preventDefault();
+
+            const locationId = document.getElementById('location-id').value;
+            const locationData = {
+                name: document.getElementById('location-name-input').value,
+                description: document.getElementById('location-description').value || null,
+                latitude: parseFloat(document.getElementById('location-latitude').value),
+                longitude: parseFloat(document.getElementById('location-longitude').value),
+                elevation: parseFloat(document.getElementById('location-elevation').value) || 0,
+                timezone: document.getElementById('location-timezone').value || 'UTC',
+                bortle_class: document.getElementById('location-bortle').value ? parseInt(document.getElementById('location-bortle').value) : null,
+                is_default: document.getElementById('location-is-default').checked
+            };
+
+            try {
+                const url = locationId ? `/api/settings/locations/${locationId}` : '/api/settings/locations';
+                const method = locationId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(locationData)
+                });
+
+                if (response.ok) {
+                    closeLocationModal();
+                    loadLocations();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to save location'));
+                }
+            } catch (error) {
+                alert('Error saving location: ' + error.message);
+            }
+        }
+
+        async function deleteLocation(locationId) {
+            if (!confirm('Are you sure you want to delete this location?')) return;
+
+            try {
+                const response = await fetch(`/api/settings/locations/${locationId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadLocations();
+                } else {
+                    alert('Failed to delete location');
+                }
+            } catch (error) {
+                alert('Error deleting location: ' + error.message);
+            }
+        }
+
+        // ======== App Settings ========
+        async function loadAppSettings() {
+            try {
+                // First try to initialize default settings
+                await fetch('/api/settings/app/init', { method: 'POST' });
+
+                const response = await fetch('/api/settings/app');
+                settingsAppSettings = await response.json();
+                renderAppSettings();
+            } catch (error) {
+                console.error('Error loading app settings:', error);
+            }
+        }
+
+        function renderAppSettings() {
+            const categories = {
+                'telescope': document.getElementById('telescope-settings-list'),
+                'processing': document.getElementById('processing-settings-list'),
+                'storage': document.getElementById('storage-settings-list'),
+                'ui': document.getElementById('ui-settings-list')
+            };
+
+            // Clear all containers
+            Object.values(categories).forEach(container => {
+                if (container) container.innerHTML = '';
+            });
+
+            settingsAppSettings.forEach(setting => {
+                const container = categories[setting.category];
+                if (!container) return;
+
+                const inputType = setting.value_type === 'bool' ? 'checkbox' :
+                                  setting.value_type === 'int' ? 'number' : 'text';
+
+                const inputHtml = setting.value_type === 'bool'
+                    ? `<input type="checkbox" id="setting-${setting.key}" ${setting.value === 'true' ? 'checked' : ''} data-key="${setting.key}">`
+                    : `<input type="${inputType}" id="setting-${setting.key}" value="${setting.value}" data-key="${setting.key}" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">`;
+
+                container.innerHTML += `
+                    <div class="settings-input-row">
+                        <label for="setting-${setting.key}">${setting.key.split('.')[1].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                        ${inputHtml}
+                        <span class="setting-description">${setting.description || ''}</span>
+                    </div>
+                `;
+            });
+        }
+
+        async function saveAllAppSettings() {
+            const updates = [];
+
+            settingsAppSettings.forEach(setting => {
+                const input = document.getElementById(`setting-${setting.key}`);
+                if (!input) return;
+
+                let newValue;
+                if (setting.value_type === 'bool') {
+                    newValue = input.checked ? 'true' : 'false';
+                } else {
+                    newValue = input.value;
+                }
+
+                if (newValue !== setting.value) {
+                    updates.push({ key: setting.key, value: newValue });
+                }
+            });
+
+            try {
+                for (const update of updates) {
+                    await fetch(`/api/settings/app/${update.key}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ value: update.value })
+                    });
+                }
+                alert('Settings saved successfully!');
+                loadAppSettings();
+            } catch (error) {
+                alert('Error saving settings: ' + error.message);
             }
         }
     </script>
