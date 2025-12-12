@@ -5,7 +5,7 @@ import os
 from celery import Celery
 
 # Get Redis URL from environment
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/1")
 
 # Create Celery app
 celery_app = Celery("astro_planner", broker=REDIS_URL, backend=REDIS_URL, include=["app.tasks.processing_tasks"])
