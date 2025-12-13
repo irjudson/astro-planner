@@ -53,7 +53,12 @@ class ImagePreviewService:
 
     def _fetch_from_skyview(self, target: DSOTarget) -> Optional[bytes]:
         """
-        Fetch image from SkyView Virtual Astronomer API.
+        Fetch color image from multiple sources (SDSS, Pan-STARRS, then SkyView).
+
+        Tries sources in order:
+        1. SDSS - best color images for northern sky
+        2. Pan-STARRS - good color images for most of sky
+        3. SkyView DSS - grayscale fallback
 
         Args:
             target: DSO target
@@ -65,33 +70,99 @@ class ImagePreviewService:
         ra_deg = target.ra_hours * 15.0
         dec_deg = target.dec_degrees
 
-        # Calculate field of view (FOV) based on object size
-        # Add padding around object (2x size, minimum 0.2 degrees)
-        fov_deg = max(target.size_arcmin / 30.0, 0.2)  # arcmin to degrees with padding
+        # Calculate field of view in arcminutes (with padding)
+        fov_arcmin = max(target.size_arcmin * 2.0, 12.0)  # At least 12 arcmin
 
-        # SkyView query parameters
+        # Try SDSS first (best color images, but limited coverage)
+        image_data = self._fetch_from_sdss(ra_deg, dec_deg, fov_arcmin)
+        if image_data:
+            print(f"Fetched {target.catalog_id} from SDSS")
+            return image_data
+
+        # Try Pan-STARRS second (wider coverage, good quality)
+        image_data = self._fetch_from_panstarrs(ra_deg, dec_deg, fov_arcmin)
+        if image_data:
+            print(f"Fetched {target.catalog_id} from Pan-STARRS")
+            return image_data
+
+        # Fallback to SkyView DSS2 (grayscale but always available)
+        print(f"Using SkyView DSS fallback for {target.catalog_id}")
+        return self._fetch_from_skyview_dss(ra_deg, dec_deg, fov_arcmin)
+
+    def _fetch_from_sdss(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
+        """Fetch color image from SDSS DR17."""
+        # SDSS Image Cutout Service
+        # Scale: 0.396 arcsec/pixel (Native SDSS resolution)
+        # Convert FOV to pixels
+        pixels = int(fov_arcmin * 60 / 0.396)
+        pixels = min(pixels, 2048)  # Max size
+
+        url = "http://skyserver.sdss.org/dr17/SkyServerWS/ImgCutout/getjpeg"
+        params = {
+            "ra": ra_deg,
+            "dec": dec_deg,
+            "width": pixels,
+            "height": pixels,
+            "scale": 0.4,  # arcsec/pixel
+        }
+
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(url, params=params)
+                if response.status_code == 200 and len(response.content) > 1000:
+                    # SDSS returns a small image even for out-of-bounds, check size
+                    return response.content
+        except Exception:
+            pass
+        return None
+
+    def _fetch_from_panstarrs(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
+        """Fetch color image from Pan-STARRS via PS1 image service."""
+        # PS1 Image Cutout Service
+        # Size in pixels (0.25 arcsec/pixel)
+        pixels = int(fov_arcmin * 60 / 0.25)
+        pixels = min(pixels, 2400)  # Max size
+
+        # Use PS1 color image service (gri composite)
+        url = "https://ps1images.stsci.edu/cgi-bin/fitscut.cgi"
+        params = {
+            "ra": ra_deg,
+            "dec": dec_deg,
+            "size": pixels,
+            "format": "jpg",
+            "color": True,  # RGB composite
+        }
+
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(url, params=params)
+                if response.status_code == 200 and "image" in response.headers.get("content-type", ""):
+                    return response.content
+        except Exception:
+            pass
+        return None
+
+    def _fetch_from_skyview_dss(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
+        """Fetch grayscale image from SkyView DSS2 (fallback)."""
+        fov_deg = fov_arcmin / 60.0
+
         params = {
             "Position": f"{ra_deg},{dec_deg}",
-            "Survey": "DSS2 Red",  # Digital Sky Survey 2
-            "Pixels": "300,300",  # Image size
-            "Size": str(fov_deg),  # Field of view in degrees
+            "Survey": "DSS2 Red",
+            "Pixels": "300,300",
+            "Size": str(fov_deg),
             "Return": "JPEG",
-            "Scaling": "Log",  # Better for faint objects
+            "Scaling": "Log",
         }
 
         try:
             with httpx.Client(timeout=30.0) as client:
                 response = client.get(self.skyview_url, params=params)
                 response.raise_for_status()
-
-                # Check if response is actually an image
-                content_type = response.headers.get("content-type", "")
-                if "image" in content_type:
+                if "image" in response.headers.get("content-type", ""):
                     return response.content
-
-        except Exception as e:
-            print(f"SkyView fetch error for {target.catalog_id}: {e}")
-
+        except Exception:
+            pass
         return None
 
     def _sanitize_catalog_id(self, catalog_id: str) -> str:
