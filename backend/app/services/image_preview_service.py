@@ -97,7 +97,7 @@ class ImagePreviewService:
         pixels = int(fov_arcmin * 60 / 0.396)
         pixels = min(pixels, 2048)  # Max size
 
-        url = "http://skyserver.sdss.org/dr17/SkyServerWS/ImgCutout/getjpeg"
+        url = "https://skyserver.sdss.org/dr17/SkyServerWS/ImgCutout/getjpeg"
         params = {
             "ra": ra_deg,
             "dec": dec_deg,
@@ -107,13 +107,13 @@ class ImagePreviewService:
         }
 
         try:
-            with httpx.Client(timeout=30.0) as client:
+            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
                 response = client.get(url, params=params)
                 if response.status_code == 200 and len(response.content) > 1000:
                     # SDSS returns a small image even for out-of-bounds, check size
                     return response.content
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"SDSS fetch error: {e}")
         return None
 
     def _fetch_from_panstarrs(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
@@ -134,12 +134,12 @@ class ImagePreviewService:
         }
 
         try:
-            with httpx.Client(timeout=30.0) as client:
+            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
                 response = client.get(url, params=params)
                 if response.status_code == 200 and "image" in response.headers.get("content-type", ""):
                     return response.content
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Pan-STARRS fetch error: {e}")
         return None
 
     def _fetch_from_skyview_dss(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
@@ -156,13 +156,13 @@ class ImagePreviewService:
         }
 
         try:
-            with httpx.Client(timeout=30.0) as client:
+            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
                 response = client.get(self.skyview_url, params=params)
                 response.raise_for_status()
                 if "image" in response.headers.get("content-type", ""):
                     return response.content
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"SkyView DSS fetch error: {e}")
         return None
 
     def _sanitize_catalog_id(self, catalog_id: str) -> str:
