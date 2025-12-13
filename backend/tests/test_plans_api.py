@@ -319,11 +319,17 @@ class TestPlanEndpoints:
         assert response.status_code == 200
         data = response.json()
 
-        # Should return the full ObservingPlan, not the SavedPlan wrapper
-        assert data["total_targets"] == 1
-        assert data["session"]["observing_date"] == "2025-11-20"
-        assert data["location"]["name"] == "Observatory"
-        assert len(data["scheduled_targets"]) == 1
+        # Should return SavedPlanDetail with metadata and nested plan
+        assert data["id"] == saved_plan.id
+        assert data["name"] == "Retrieve Test Plan"
+        assert data["description"] == "Test retrieval"
+        assert data["observing_date"] == "2025-11-20"
+        assert data["location_name"] == "Observatory"
+        assert "plan" in data
+        assert data["plan"]["total_targets"] == 1
+        assert data["plan"]["session"]["observing_date"] == "2025-11-20"
+        assert data["plan"]["location"]["name"] == "Observatory"
+        assert len(data["plan"]["scheduled_targets"]) == 1
 
     def test_get_plan_not_found(self, client: TestClient):
         """Test retrieving a plan that doesn't exist."""
@@ -1507,7 +1513,7 @@ class TestBusinessLogic:
         plan_id = response.json()["id"]
         get_response = client.get(f"/api/plans/{plan_id}")
         assert get_response.status_code == 200
-        assert len(get_response.json()["weather_forecast"]) == 24
+        assert len(get_response.json()["plan"]["weather_forecast"]) == 24
 
     def test_update_plan_changes_timestamps(self, client: TestClient, override_get_db: Session):
         """Test that updating a plan updates the updated_at timestamp."""
@@ -1749,9 +1755,15 @@ class TestEndToEndPlanWorkflow:
         # Step 3: Load the specific plan (like frontend selectSavedPlan())
         load_response = client.get(f"/api/plans/{plan_id}")
         assert load_response.status_code == 200
-        loaded_plan = load_response.json()
+        loaded_data = load_response.json()
 
         # Step 4: Verify the loaded plan matches what was saved
+        # Response should be SavedPlanDetail with metadata and nested plan
+        assert loaded_data["id"] == plan_id
+        assert loaded_data["name"] == "Workflow Test Plan"
+        assert loaded_data["description"] == "Testing the complete workflow"
+        assert "plan" in loaded_data
+        loaded_plan = loaded_data["plan"]
         assert loaded_plan["total_targets"] == 2
         assert loaded_plan["coverage_percent"] == 75.0
         assert loaded_plan["session"]["observing_date"] == "2025-12-01"
@@ -1842,8 +1854,12 @@ class TestEndToEndPlanWorkflow:
         # Step 3: Load it back and verify
         load_response = client.get(f"/api/plans/{saved['id']}")
         assert load_response.status_code == 200
-        loaded = load_response.json()
+        loaded_data = load_response.json()
 
-        # The loaded plan should match the generated plan
-        assert loaded["total_targets"] == generated_plan["total_targets"]
-        assert loaded["session"]["observing_date"] == generated_plan["session"]["observing_date"]
+        # The loaded data should be SavedPlanDetail with nested plan
+        assert loaded_data["name"] == "My Portland Session"
+        assert loaded_data["description"] == "Generated plan for testing"
+        assert "plan" in loaded_data
+        loaded_plan = loaded_data["plan"]
+        assert loaded_plan["total_targets"] == generated_plan["total_targets"]
+        assert loaded_plan["session"]["observing_date"] == generated_plan["session"]["observing_date"]

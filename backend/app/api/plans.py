@@ -136,7 +136,7 @@ async def list_plans(
         raise HTTPException(status_code=500, detail=f"Error listing plans: {str(e)}")
 
 
-@router.get("/{plan_id}", response_model=ObservingPlan)
+@router.get("/{plan_id}", response_model=SavedPlanDetail)
 async def get_plan(plan_id: int, db: Session = Depends(get_db)):
     """
     Get a specific saved plan by ID.
@@ -145,7 +145,7 @@ async def get_plan(plan_id: int, db: Session = Depends(get_db)):
         plan_id: The ID of the plan to retrieve
 
     Returns:
-        The full observing plan
+        The full saved plan details including metadata
     """
     try:
         plan = db.query(SavedPlan).filter(SavedPlan.id == plan_id).first()
@@ -153,8 +153,17 @@ async def get_plan(plan_id: int, db: Session = Depends(get_db)):
         if not plan:
             raise HTTPException(status_code=404, detail=f"Plan {plan_id} not found")
 
-        # Convert the stored JSON back to ObservingPlan model
-        return ObservingPlan(**plan.plan_data)
+        # Return full plan details with metadata
+        return SavedPlanDetail(
+            id=plan.id,
+            name=plan.name,
+            description=plan.description,
+            observing_date=plan.observing_date,
+            location_name=plan.location_name,
+            plan=ObservingPlan(**plan.plan_data),
+            created_at=plan.created_at,
+            updated_at=plan.updated_at,
+        )
     except HTTPException:
         raise
     except Exception as e:
