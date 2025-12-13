@@ -2509,7 +2509,35 @@
         </div>
     </div>
 
+    <!-- Target Altitude Chart Modal -->
+    <div id="altitude-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--tron-border);">
+                <h2 id="altitude-modal-title" style="color: var(--tron-cyan); margin: 0;">Target Details</h2>
+                <button onclick="closeAltitudeModal()" style="background: none; border: none; color: var(--tron-cyan); font-size: 1.5em; cursor: pointer; padding: 0 10px;">&times;</button>
+            </div>
+
+            <!-- Target Metadata -->
+            <div id="altitude-modal-metadata" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: var(--tron-panel); border: 1px solid var(--tron-border); border-radius: 8px;">
+            </div>
+
+            <!-- Chart Container -->
+            <div style="margin-bottom: 20px;">
+                <canvas id="altitude-chart" style="max-height: 400px;"></canvas>
+            </div>
+
+            <!-- Imaging Window Info -->
+            <div id="altitude-modal-info" style="padding: 10px; background: var(--tron-panel); border-left: 3px solid var(--tron-cyan); border-radius: 4px; font-size: 0.9em; opacity: 0.9;">
+            </div>
+        </div>
+    </div>
+
     <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+
+    <!-- Chart.js for altitude graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
     <script>
         // Set today's date as default (after DOM loads)
         document.addEventListener('DOMContentLoaded', function() {
@@ -3098,20 +3126,54 @@
             `;
             document.getElementById('session-summary').innerHTML = summaryHtml;
 
+            // Add plan overview chart section
+            const planChartHtml = plan.scheduled_targets.length > 0 ? `
+                <div style="margin: 30px 0; padding: 20px; background: var(--tron-panel); border: 1px solid var(--tron-border); border-radius: 8px;">
+                    <h3 style="color: var(--tron-cyan); margin-bottom: 15px;">📈 Complete Plan Altitude Graph</h3>
+                    <div style="margin-top: 15px;">
+                        <canvas id="plan-altitude-chart" style="max-height: 400px;"></canvas>
+                    </div>
+                </div>
+            ` : '';
+
+            // Insert plan chart before targets
+            const resultsDiv = document.getElementById('results');
+            const sessionSummary = document.getElementById('session-summary');
+            if (sessionSummary && !document.getElementById('plan-altitude-chart-container')) {
+                const chartContainer = document.createElement('div');
+                chartContainer.id = 'plan-altitude-chart-container';
+                chartContainer.innerHTML = planChartHtml;
+                sessionSummary.insertAdjacentElement('afterend', chartContainer);
+            }
+
             // Display targets
             const targetsHtml = plan.scheduled_targets.map((st, i) => {
                 // Convert RA hours to degrees for preview
                 const raDeg = st.target.ra_hours ? (st.target.ra_hours * 15).toFixed(4) : null;
                 const sizeArcmin = st.target.size_arcmin || 60;
 
+                // Image preview section
+                const imageHtml = st.target.image_url ? `
+                    <div style="margin-bottom: 12px;">
+                        <img src="${st.target.image_url}"
+                             alt="${st.target.name} preview"
+                             style="width: 100%; max-width: 300px; height: auto; border-radius: 6px; border: 2px solid var(--tron-border); cursor: pointer;"
+                             onclick="showObjectPreview('${st.target.name}', '${st.target.catalog_id}', ${raDeg}, ${st.target.dec_degrees}, ${sizeArcmin})"
+                             onerror="this.style.display='none'">
+                    </div>
+                ` : '';
+
                 return `
-                <div class="target-card">
+                <div class="target-card" id="target-card-${i}">
                     <div class="target-header">
                         <div>
                             <div class="target-name">${i+1}. ${st.target.name} (${st.target.catalog_id}) <span class="target-score">- Score: ${st.score.total_score.toFixed(2)}</span></div>
                         </div>
                         <div class="target-type">${st.target.object_type}</div>
                     </div>
+
+                    ${imageHtml}
+
                     <div class="target-details">
                         <div class="detail-item">
                             <strong>Time:</strong> ${formatTime(st.start_time)} - ${formatTime(st.end_time)} (${st.duration_minutes} min)
@@ -3130,13 +3192,18 @@
                         </div>
                     </div>
                     ${st.target.description ? `<p style="margin-top:10px; font-style:italic;">${st.target.description}</p>` : ''}
-                    ${raDeg && st.target.dec_degrees ? `
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--tron-border);">
-                            <button class="preview-btn" onclick="showObjectPreview('${st.target.name}', '${st.target.catalog_id}', ${raDeg}, ${st.target.dec_degrees}, ${sizeArcmin})">
+
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--tron-border); display: flex; gap: 10px;">
+                        <button class="preview-btn" onclick="showAltitudeChart(${i})" style="flex: 1;">
+                            📊 Altitude Graph
+                        </button>
+                        ${raDeg && st.target.dec_degrees ? `
+                            <button class="preview-btn" onclick="showObjectPreview('${st.target.name}', '${st.target.catalog_id}', ${raDeg}, ${st.target.dec_degrees}, ${sizeArcmin})" style="flex: 1;">
                                 🔭 Preview Object
                             </button>
-                        </div>
-                    ` : ''}
+                        ` : ''}
+                    </div>
                 </div>
                 `;
             }).join('');
@@ -3162,6 +3229,11 @@
                 document.getElementById('target-list').innerHTML = noTargetsMessage;
             } else {
                 document.getElementById('target-list').innerHTML = targetsHtml;
+            }
+
+            // Render plan overview chart if we have targets
+            if (plan.scheduled_targets.length > 0) {
+                setTimeout(() => renderPlanAltitudeChart(plan), 200);
             }
         }
 
@@ -3334,6 +3406,333 @@
         function closePreviewModal() {
             document.getElementById('preview-modal').style.display = 'none';
         }
+
+        // Target altitude chart modal functions
+        let altitudeChartInstance = null;
+        let planChartInstance = null;
+
+        function showAltitudeChart(targetIndex) {
+            if (!currentPlan || !currentPlan.scheduled_targets[targetIndex]) {
+                console.error('Target not found');
+                return;
+            }
+
+            const st = currentPlan.scheduled_targets[targetIndex];
+            const modal = document.getElementById('altitude-modal');
+            const title = document.getElementById('altitude-modal-title');
+
+            // Update title
+            title.textContent = `${st.target.name} (${st.target.catalog_id}) - Altitude Graph`;
+
+            // Update metadata section
+            const metadata = document.getElementById('altitude-modal-metadata');
+            metadata.innerHTML = `
+                <div><strong>Object Type:</strong> ${st.target.object_type}</div>
+                <div><strong>RA:</strong> ${st.target.ra_hours.toFixed(4)}h</div>
+                <div><strong>Dec:</strong> ${st.target.dec_degrees.toFixed(2)}°</div>
+                <div><strong>Magnitude:</strong> ${st.target.magnitude.toFixed(1)}</div>
+                <div><strong>Size:</strong> ${st.target.size_arcmin.toFixed(1)}'</div>
+                <div><strong>Duration:</strong> ${st.duration_minutes} min</div>
+                <div><strong>Visibility Score:</strong> ${(st.score.visibility_score * 100).toFixed(0)}%</div>
+                <div><strong>Weather Score:</strong> ${(st.score.weather_score * 100).toFixed(0)}%</div>
+                <div><strong>Total Score:</strong> ${(st.score.total_score * 100).toFixed(0)}%</div>
+            `;
+
+            // Update info section
+            const info = document.getElementById('altitude-modal-info');
+            info.innerHTML = `
+                <strong>Imaging Window:</strong> ${formatTime(st.start_time)} - ${formatTime(st.end_time)}<br>
+                <strong>Altitude Range:</strong> ${st.start_altitude.toFixed(1)}° → ${st.end_altitude.toFixed(1)}°<br>
+                <strong>Field Rotation Rate:</strong> ${st.field_rotation_rate.toFixed(2)}°/min
+            `;
+
+            // Show modal
+            modal.style.display = 'block';
+
+            // Render chart
+            setTimeout(() => renderAltitudeChart(st), 100);
+        }
+
+        function renderAltitudeChart(scheduledTarget) {
+            const ctx = document.getElementById('altitude-chart');
+
+            // Destroy previous chart if exists
+            if (altitudeChartInstance) {
+                altitudeChartInstance.destroy();
+            }
+
+            // Prepare data from altitude_points
+            const labels = scheduledTarget.altitude_points.map(point => new Date(point[0]));
+            const altitudes = scheduledTarget.altitude_points.map(point => point[1]);
+
+            // Create chart
+            altitudeChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Altitude (°)',
+                        data: altitudes,
+                        borderColor: '#00d9ff',
+                        backgroundColor: 'rgba(0, 217, 255, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#00d9ff',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#cbd5e1',
+                                font: { size: 14 }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Target Altitude During Imaging Session',
+                            color: '#00d9ff',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Altitude: ${context.parsed.y.toFixed(1)}°`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time (Local)',
+                                color: '#cbd5e1'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Altitude (degrees)',
+                                color: '#cbd5e1'
+                            },
+                            min: 0,
+                            max: 90,
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return value + '°';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function closeAltitudeModal() {
+            document.getElementById('altitude-modal').style.display = 'none';
+            if (altitudeChartInstance) {
+                altitudeChartInstance.destroy();
+                altitudeChartInstance = null;
+            }
+        }
+
+        // Plan overview altitude chart
+        function renderPlanAltitudeChart(plan) {
+            const ctx = document.getElementById('plan-altitude-chart');
+
+            if (!ctx) {
+                console.error('Plan chart canvas not found');
+                return;
+            }
+
+            // Destroy previous chart if exists
+            if (planChartInstance) {
+                planChartInstance.destroy();
+            }
+
+            // Prepare datasets for each target
+            const datasets = plan.scheduled_targets.map((st, index) => {
+                // Generate color from index
+                const hue = (index * 360 / plan.scheduled_targets.length) % 360;
+                const color = `hsl(${hue}, 70%, 60%)`;
+
+                const labels = st.altitude_points.map(point => new Date(point[0]));
+                const altitudes = st.altitude_points.map(point => point[1]);
+
+                return {
+                    label: `${st.target.name} (${st.target.catalog_id})`,
+                    data: labels.map((time, i) => ({ x: time, y: altitudes[i] })),
+                    borderColor: color,
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    tension: 0.4,
+                    targetIndex: index  // Store index for click handling
+                };
+            });
+
+            // Create chart
+            planChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#cbd5e1',
+                                font: { size: 11 },
+                                padding: 10,
+                                usePointStyle: true
+                            },
+                            onClick: function(e, legendItem, legend) {
+                                // Highlight corresponding target card when clicking legend
+                                const targetIndex = datasets[legendItem.datasetIndex].targetIndex;
+                                highlightTargetCard(targetIndex);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'All Targets Altitude Timeline',
+                            color: '#00d9ff',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const date = new Date(context[0].parsed.x);
+                                    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                },
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}°`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time (Local)',
+                                color: '#cbd5e1'
+                            },
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Altitude (degrees)',
+                                color: '#cbd5e1'
+                            },
+                            min: 0,
+                            max: 90,
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    return value + '°';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    onClick: function(evt, elements) {
+                        // Click on line to highlight target card
+                        if (elements.length > 0) {
+                            const datasetIndex = elements[0].datasetIndex;
+                            const targetIndex = datasets[datasetIndex].targetIndex;
+                            highlightTargetCard(targetIndex);
+                        }
+                    }
+                }
+            });
+        }
+
+        function highlightTargetCard(targetIndex) {
+            // Remove previous highlights
+            document.querySelectorAll('.target-card').forEach(card => {
+                card.style.border = '';
+                card.style.boxShadow = '';
+            });
+
+            // Highlight selected card
+            const card = document.getElementById(`target-card-${targetIndex}`);
+            if (card) {
+                card.style.border = '3px solid #00d9ff';
+                card.style.boxShadow = '0 0 20px rgba(0, 217, 255, 0.5)';
+
+                // Scroll to card
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    card.style.border = '';
+                    card.style.boxShadow = '';
+                }, 3000);
+            }
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const altModal = document.getElementById('altitude-modal');
+                if (altModal && altModal.style.display === 'block') {
+                    closeAltitudeModal();
+                }
+            }
+        });
 
         // Save Plan Modal Functions
         function showSavePlanModal() {

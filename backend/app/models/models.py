@@ -1,7 +1,7 @@
 """Data models for the Astro Planner application."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -50,6 +50,7 @@ class DSOTarget(BaseModel):
     magnitude: float = Field(description="Visual magnitude")
     size_arcmin: float = Field(description="Approximate size in arcminutes")
     description: Optional[str] = Field(default=None, description="Object description")
+    image_url: Optional[str] = Field(default=None, description="Preview image URL (relative path)")
 
 
 class OrbitalElements(BaseModel):
@@ -232,6 +233,9 @@ class ScheduledTarget(BaseModel):
     end_altitude: float = Field(description="Altitude at end in degrees")
     start_azimuth: float = Field(description="Azimuth at start in degrees")
     end_azimuth: float = Field(description="Azimuth at end in degrees")
+    altitude_points: List[Tuple[datetime, float]] = Field(
+        default_factory=list, description="Altitude samples at 15-minute intervals (time, altitude)"
+    )
     field_rotation_rate: float = Field(description="Field rotation rate in deg/min")
     recommended_exposure: int = Field(description="Recommended exposure time in seconds")
     recommended_frames: int = Field(description="Recommended number of frames")

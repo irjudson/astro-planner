@@ -1,5 +1,6 @@
 """Main planner service that orchestrates the entire planning process."""
 
+import time
 from datetime import datetime, timedelta
 from typing import Dict
 
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models import Location, ObservingPlan, PlanRequest, SessionInfo
 from app.services import CatalogService, EphemerisService, ExportService, SchedulerService, WeatherService
 from app.services.comet_service import CometService
+from app.services.image_preview_service import ImagePreviewService
 from app.services.light_pollution_service import LightPollutionService
 
 
@@ -24,6 +26,7 @@ class PlannerService:
         self.scheduler = SchedulerService()
         self.exporter = ExportService()
         self.light_pollution = LightPollutionService()
+        self.image_preview = ImagePreviewService()
 
     def generate_plan(self, request: PlanRequest) -> ObservingPlan:
         """
@@ -101,11 +104,13 @@ class PlannerService:
         # Filter targets by object type
         # Limit to brighter objects (mag < 12) and top 200 candidates for performance
         # Seestar S50 works best with magnitude 8-11 targets anyway
+        t0 = time.time()
         targets = self.catalog.filter_targets(
             object_types=request.constraints.object_types,
             max_magnitude=12.0,  # Practical limit for Seestar S50
             limit=200,  # Enough variety while keeping performance fast
         )
+        print(f"[TIMING] Target filtering: {time.time() - t0:.2f}s ({len(targets)} targets)")
 
         # Apply sky quality filtering if available
         if sky_quality and sky_quality.suitable_for:
@@ -119,6 +124,17 @@ class PlannerService:
                 print(
                     f"Sky quality filtering: removed {filtered_count} targets unsuitable for Bortle {sky_quality.bortle_class} conditions"
                 )
+
+        # Populate image URLs for targets
+        # NOTE: Images are now fetched lazily by frontend to avoid blocking plan generation
+        # The image_preview service is still used via /api/images/targets/{catalog_id} endpoint
+        t1 = time.time()
+        for target in targets:
+            if not target.image_url:
+                # Set URL pattern that frontend can use to fetch image on-demand
+                sanitized_id = target.catalog_id.replace(" ", "_").replace("/", "_").replace(":", "_")
+                target.image_url = f"/api/images/targets/{sanitized_id}"
+        print(f"[TIMING] Image URL assignment: {time.time() - t1:.2f}s ({len(targets)} targets)")
 
         # Add visible comets if "comet" is in object types
         if request.constraints.object_types and "comet" in request.constraints.object_types:
@@ -159,9 +175,12 @@ class PlannerService:
                 print(f"Warning: Failed to add comets to plan: {e}")
 
         # Get weather forecast
+        t2 = time.time()
         weather_forecast = self.weather.get_forecast(request.location, session.imaging_start, session.imaging_end)
+        print(f"[TIMING] Weather forecast: {time.time() - t2:.2f}s")
 
         # Schedule targets
+        t3 = time.time()
         scheduled_targets = self.scheduler.schedule_session(
             targets=targets,
             location=request.location,
@@ -169,6 +188,7 @@ class PlannerService:
             constraints=request.constraints,
             weather_forecasts=weather_forecast,
         )
+        print(f"[TIMING] Scheduler: {time.time() - t3:.2f}s ({len(scheduled_targets)} scheduled)")
 
         # Calculate coverage
         if scheduled_targets:

@@ -1,10 +1,13 @@
 """API routes for the Astro Planner."""
 
+import os
 import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -796,3 +799,109 @@ async def health_check():
         "version": "1.0.0",
         "telescope_connected": seestar_client.connected,
     }
+
+
+@router.get("/images/previews/{filename}")
+async def get_preview_image(filename: str):
+    """
+    Serve cached preview image.
+
+    Args:
+        filename: Image filename
+
+    Returns:
+        Image file
+    """
+    try:
+        cache_dir = Path(os.getenv("IMAGE_CACHE_DIR", "/app/data/previews"))
+        image_path = cache_dir / filename
+
+        # Sanitize path to prevent directory traversal
+        image_path = image_path.resolve()
+        if not str(image_path).startswith(str(cache_dir.resolve())):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        if not image_path.exists():
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        return FileResponse(
+            path=str(image_path),
+            media_type="image/jpeg",
+            headers={"Cache-Control": "public, max-age=2592000"},  # Cache for 30 days
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving image: {str(e)}")
+
+
+@router.get("/images/targets/{sanitized_catalog_id}")
+async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(get_db)):
+    """
+    Fetch or serve preview image for a target by catalog ID.
+    This endpoint fetches images on-demand to avoid blocking plan generation.
+
+    Args:
+        sanitized_catalog_id: Sanitized catalog ID (spaces/slashes replaced with underscores)
+        db: Database session
+
+    Returns:
+        Image file (JPEG)
+    """
+    try:
+        from app.services.catalog_service import CatalogService
+        from app.services.image_preview_service import ImagePreviewService
+
+        # Reconstruct original catalog_id (reverse sanitization)
+        # Note: This is lossy - we can't distinguish between underscore and space/slash
+        # So we'll query the database to find matching target
+        catalog_service = CatalogService(db)
+
+        # Get all targets and find one matching sanitized ID
+        # This is not optimal but works for the MVP
+        all_targets = catalog_service.filter_targets(object_types=None, limit=5000)
+
+        target = None
+        for t in all_targets:
+            sanitized = t.catalog_id.replace(" ", "_").replace("/", "_").replace(":", "_")
+            if sanitized == sanitized_catalog_id:
+                target = t
+                break
+
+        if not target:
+            raise HTTPException(status_code=404, detail=f"Target not found: {sanitized_catalog_id}")
+
+        # Use image preview service to get or fetch image
+        image_service = ImagePreviewService()
+        cache_filename = f"{sanitized_catalog_id}.jpg"
+        cache_dir = Path(os.getenv("IMAGE_CACHE_DIR", "/app/data/previews"))
+        cache_path = cache_dir / cache_filename
+
+        # Check cache first
+        if cache_path.exists():
+            return FileResponse(
+                path=str(cache_path),
+                media_type="image/jpeg",
+                headers={"Cache-Control": "public, max-age=2592000"},
+            )
+
+        # Fetch from SkyView (this will cache it)
+        image_data = image_service._fetch_from_skyview(target)
+        if image_data:
+            cache_path.write_bytes(image_data)
+            return FileResponse(
+                path=str(cache_path),
+                media_type="image/jpeg",
+                headers={"Cache-Control": "public, max-age=2592000"},
+            )
+
+        # If fetch failed, return 404
+        raise HTTPException(status_code=404, detail="Image not available")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching target image: {str(e)}")

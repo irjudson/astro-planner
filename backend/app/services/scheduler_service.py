@@ -105,6 +105,21 @@ class SchedulerService:
             mid_time = current_time + (duration / 2)
             rotation_rate = self.ephemeris.calculate_field_rotation_rate(best_target, location, mid_time)
 
+            # Calculate altitude points at 15-minute intervals
+            altitude_points = []
+            sample_time = current_time
+            sample_interval = timedelta(minutes=15)
+
+            while sample_time <= end_time:
+                alt, _ = self.ephemeris.calculate_position(best_target, location, sample_time)
+                altitude_points.append((sample_time, alt))
+                sample_time += sample_interval
+
+            # Ensure end point is included
+            if altitude_points and altitude_points[-1][0] != end_time:
+                alt, _ = self.ephemeris.calculate_position(best_target, location, end_time)
+                altitude_points.append((end_time, alt))
+
             # Calculate recommended exposure settings
             recommended_exposure, recommended_frames = self._calculate_exposure_settings(best_target, duration)
 
@@ -124,6 +139,7 @@ class SchedulerService:
                 end_altitude=end_alt,
                 start_azimuth=start_az,
                 end_azimuth=end_az,
+                altitude_points=altitude_points,
                 field_rotation_rate=rotation_rate,
                 recommended_exposure=recommended_exposure,
                 recommended_frames=recommended_frames,
