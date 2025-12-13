@@ -3462,17 +3462,21 @@
             }
 
             // Prepare data from altitude_points
-            const labels = scheduledTarget.altitude_points.map(point => new Date(point[0]));
-            const altitudes = scheduledTarget.altitude_points.map(point => point[1]);
+            const dataPoints = scheduledTarget.altitude_points.map(point => ({
+                x: new Date(point[0]),
+                y: point[1]
+            }));
+
+            console.log(`Rendering altitude chart for ${scheduledTarget.target.name}:`,
+                        `${dataPoints.length} points, altitude range ${Math.min(...dataPoints.map(p => p.y)).toFixed(1)}° - ${Math.max(...dataPoints.map(p => p.y)).toFixed(1)}°`);
 
             // Create chart
             altitudeChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
                     datasets: [{
                         label: 'Altitude (°)',
-                        data: altitudes,
+                        data: dataPoints,
                         borderColor: '#00d9ff',
                         backgroundColor: 'rgba(0, 217, 255, 0.1)',
                         borderWidth: 3,
@@ -3583,12 +3587,14 @@
                 const hue = (index * 360 / plan.scheduled_targets.length) % 360;
                 const color = `hsl(${hue}, 70%, 60%)`;
 
-                const labels = st.altitude_points.map(point => new Date(point[0]));
-                const altitudes = st.altitude_points.map(point => point[1]);
+                const dataPoints = st.altitude_points.map(point => ({
+                    x: new Date(point[0]),
+                    y: point[1]
+                }));
 
                 return {
                     label: `${st.target.name} (${st.target.catalog_id})`,
-                    data: labels.map((time, i) => ({ x: time, y: altitudes[i] })),
+                    data: dataPoints,
                     borderColor: color,
                     backgroundColor: 'transparent',
                     borderWidth: 2,
@@ -3598,6 +3604,8 @@
                     targetIndex: index  // Store index for click handling
                 };
             });
+
+            console.log(`Rendering plan altitude chart with ${datasets.length} targets`);
 
             // Create chart
             planChartInstance = new Chart(ctx, {

@@ -120,6 +120,11 @@ class SchedulerService:
                 alt, _ = self.ephemeris.calculate_position(best_target, location, end_time)
                 altitude_points.append((end_time, alt))
 
+            # Debug: Print altitude range
+            if altitude_points:
+                alts = [alt for _, alt in altitude_points]
+                print(f"DEBUG: {best_target.catalog_id} altitude range: {min(alts):.1f}° - {max(alts):.1f}° ({len(altitude_points)} points)")
+
             # Calculate recommended exposure settings
             recommended_exposure, recommended_frames = self._calculate_exposure_settings(best_target, duration)
 
