@@ -232,3 +232,4 @@ dev-*.sh
 *.db
 *.sqlite
 *.sqlite3
+processed_images/
