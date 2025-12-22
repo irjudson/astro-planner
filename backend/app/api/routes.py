@@ -903,5 +903,6 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
         raise
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching target image: {str(e)}")
