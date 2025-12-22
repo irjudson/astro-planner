@@ -11,7 +11,7 @@ if [ ! -f /app/data/astro_planner.db ]; then
     echo "Database migrations applied successfully."
 
     echo "Importing catalog data..."
-    python -m scripts.import_catalog --database /app/data/astro_planner.db
+    python3.11 -m scripts.import_catalog --database /app/data/astro_planner.db
     echo "Catalog data imported successfully."
 else
     echo "Database already exists at /app/data/astro_planner.db"
