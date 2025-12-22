@@ -17,18 +17,22 @@ client = TestClient(app)
 class TestClearDarkSkyEndpoint:
     """Test ClearDarkSky weather endpoint."""
 
-    @patch("app.services.cleardarksky_service.ClearDarkSkyService.get_forecast")
+    @patch("app.services.seven_timer_service.SevenTimerService.get_astronomy_forecast")
     def test_get_astronomy_weather(self, mock_get_forecast):
         """Test getting astronomy weather forecast."""
-        # Mock forecast data
+        # Mock forecast data from 7Timer using WeatherForecast model
+        from app.models import WeatherForecast
+
         mock_forecast = [
-            ClearDarkSkyForecast(
-                time=datetime(2025, 11, 20, 20, 0),
-                cloud_cover=CloudCover.MOSTLY_CLEAR,
-                transparency=Transparency.ABOVE_AVERAGE,
-                seeing=Seeing.GOOD,
-                temperature_c=15.0,
-                wind_speed_kmh=10.0,
+            WeatherForecast(
+                timestamp=datetime(2025, 11, 20, 20, 0),
+                cloud_cover=10,  # Percentage
+                transparency_magnitude=1,  # Magnitude units
+                seeing_arcseconds=1.5,  # Arc seconds
+                temperature=15.0,  # Celsius
+                wind_speed=2.8,  # m/s
+                humidity=50,
+                conditions="Clear",
             )
         ]
         mock_get_forecast.return_value = mock_forecast
