@@ -16,7 +16,14 @@ class ImagePreviewService:
         """Initialize with cache directory."""
         # Cache directory is mounted from host via Docker volume
         self.cache_dir = Path(os.getenv("IMAGE_CACHE_DIR", "/app/data/previews"))
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_available = False
+
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            self.cache_available = True
+        except (PermissionError, OSError) as e:
+            # Cache directory unavailable (e.g., in test environments)
+            print(f"Warning: Image cache unavailable at {self.cache_dir}: {e}")
 
         # SkyView base URL (Virtual Astronomer service)
         self.skyview_url = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
@@ -31,6 +38,10 @@ class ImagePreviewService:
         Returns:
             Relative URL path to image, or None if unavailable
         """
+        # Skip caching if cache directory is unavailable
+        if not self.cache_available:
+            return None
+
         # Generate cache filename from catalog_id
         cache_filename = f"{self._sanitize_catalog_id(target.catalog_id)}.jpg"
         cache_path = self.cache_dir / cache_filename
