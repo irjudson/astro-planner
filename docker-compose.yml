@@ -44,10 +44,12 @@ services:
       - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
       - FITS_DIR=${FITS_DIR:-/fits}
       - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_MPS_PIPE_DIRECTORY=/tmp/nvidia-mps
     volumes:
       - ./data:/app/data
       - /mnt/seestar-s50:/fits:rw
       - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/nvidia-mps:/tmp/nvidia-mps
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping"]
