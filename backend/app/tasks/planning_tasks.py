@@ -154,7 +154,7 @@ def generate_daily_plan_task(self) -> Dict[str, Any]:
             description=f"Automatic daily plan generated at noon on {datetime.now().isoformat()}",
             observing_date=observing_date,
             location_name=location_name,
-            plan_data=observing_plan.model_dump(mode='json'),  # Convert Pydantic model with JSON-safe serialization
+            plan_data=observing_plan.model_dump(mode="json"),  # Convert Pydantic model with JSON-safe serialization
         )
 
         db.add(saved_plan)

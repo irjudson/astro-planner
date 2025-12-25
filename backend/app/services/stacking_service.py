@@ -128,9 +128,9 @@ class StackingService:
         kernel_g = np.array([[0, 1, 0], [1, 4, 1], [0, 1, 0]], dtype=np.float32) / 4
 
         # Interpolate each channel
-        r_interp = convolve(r_full, kernel_rb, mode='nearest')
-        g_interp = convolve(g_full, kernel_g, mode='nearest')
-        b_interp = convolve(b_full, kernel_rb, mode='nearest')
+        r_interp = convolve(r_full, kernel_rb, mode="nearest")
+        g_interp = convolve(g_full, kernel_g, mode="nearest")
+        b_interp = convolve(b_full, kernel_rb, mode="nearest")
 
         # Stack into RGB (CHW format to match Seestar)
         rgb = np.stack([r_interp, g_interp, b_interp], axis=0)
