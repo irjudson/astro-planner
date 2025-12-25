@@ -5,7 +5,56 @@ This document outlines the planned features and improvements for the Astro Plann
 **📋 NEW: Detailed technical integration plan now available!**
 See [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) for comprehensive research on weather APIs, comet/asteroid data sources, and catalog expansion with code examples and implementation steps.
 
-**Last Updated**: 2025-10-30
+**Last Updated**: 2025-12-25
+
+## ✅ Recently Completed (December 2025)
+
+### Daily Planning Automation ✅ COMPLETED
+**Completed**: 2025-12-25
+**Features**:
+- Automatic plan generation at noon (configurable time)
+- Celery Beat scheduler for periodic tasks
+- Database-backed settings with UI controls
+- Configurable target count (default 5)
+- Webhook notifications for plan creation
+- Quality mode planning with top-scored targets
+- Plans named `YYYY-MM-DD-plan` with auto-suffixing
+
+### Seestar S50 Post-Processing Pipeline ✅ COMPLETED
+**Completed**: 2025-12-25
+**Features**:
+- GPU-accelerated stacking with CuPy
+- RGGB Bayer pattern debayering
+- Sigma-clipped mean stacking for outlier rejection
+- Auto-stretch matching Seestar native output
+- CLI tool (`process_seestar.py`) for one-button processing
+- < 2% difference from Seestar's native processing
+
+### GPU/MPS Configuration ✅ COMPLETED
+**Completed**: 2025-12-25
+**Features**:
+- NVIDIA MPS (Multi-Process Service) for GPU sharing
+- CUDA 12.8.0 support with RTX 5060 Ti
+- Proper environment variables and volume mounts
+- Worker container GPU acceleration enabled
+
+### 7Timer Weather Integration ✅ COMPLETED
+**Completed**: 2025-12-05 (prior to December updates)
+**Features**:
+- Astronomy-specific weather forecasts (seeing, transparency)
+- Integrated into composite weather scoring
+- API endpoint: `/api/astronomy/weather/7timer`
+- FREE data source (NOAA GFS-based)
+
+### API Input Validation ✅ COMPLETED
+**Completed**: 2025-12-25
+**Features**:
+- Latitude validation (-90 to 90 degrees)
+- Longitude validation (-180 to 180 degrees)
+- Date format validation (YYYY-MM-DD ISO format)
+- Prevents invalid API requests
+
+---
 
 ## 🎯 Priority 1: Seamless Telescope Integration (Seestar S50)
 
@@ -269,19 +318,19 @@ Notes: _________________
 
 ### Current State
 - ✅ OpenWeatherMap integration (optional)
-- ✅ Basic metrics: cloud cover, humidity, wind
+- ✅ 7Timer astronomy-specific forecasts (seeing, transparency)
+- ✅ Composite weather scoring (multi-source)
 - ✅ Weather score with <0.4 warning threshold
-- ❌ Limited to 5-day forecast
-- ❌ No seeing/transparency predictions
+- ✅ Astronomy-specific metrics (seeing in arcseconds, transparency as magnitude limit)
 - ❌ No satellite imagery
-- ❌ Single weather source
+- ❌ No long-term forecasting (7-14 days)
 
-### Planned Features
+### Completed Features
 
-#### 3.1 Multiple Weather Sources ✅ RESEARCHED
-**Status**: Research Complete, Ready for Implementation
+#### 3.1 Multiple Weather Sources ✅ COMPLETED
+**Status**: Implemented
+**Completed**: 2025-12-05
 **Priority**: High
-**Effort**: Medium (4-6 weeks)
 
 **Primary Source (FREE)**:
 - **7Timer** ✅: Astronomy-specific, includes seeing (arcseconds) and transparency (magnitude limit), 3-layer cloud cover, completely free NOAA GFS-based forecasts
@@ -593,14 +642,15 @@ Frontend (Upload) → FastAPI → Redis Queue → Celery Workers → Siril/Astro
 - 🎯 Mobile-optimized browsing
 **Estimated**: 2-3 weeks | **Depends on**: Catalog expansion (done!)
 
-### Q1 2026: Weather Enhancement
+### ✅ COMPLETED: Weather Enhancement (December 2025)
 **Priority**: HIGH
 - ✅ Research complete (2025-10-30)
-- 🎯 7Timer API integration (seeing & transparency)
-- 🎯 Composite weather scoring (multi-source)
-- 🎯 Moon phase/illumination from OpenWeatherMap
-- 🎯 UI updates with astronomy-specific metrics
-**Estimated**: 4-6 weeks | **All sources FREE**
+- ✅ 7Timer API integration (seeing & transparency) - **COMPLETED 2025-12-05**
+- ✅ Composite weather scoring (multi-source) - **COMPLETED 2025-12-05**
+- ✅ Astronomy-specific metrics (seeing, transparency, cloud cover) - **COMPLETED 2025-12-05**
+- ⏳ Moon phase/illumination from OpenWeatherMap (future enhancement)
+- ⏳ UI updates with astronomy-specific metrics (future enhancement)
+**Completed**: December 2025 | **All sources FREE**
 
 ### Q2 2026: Post-Capture Processing (Phase 1 - MVP)
 **Priority**: MEDIUM-HIGH
