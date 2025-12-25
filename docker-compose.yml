@@ -44,16 +44,52 @@ services:
       - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
       - FITS_DIR=${FITS_DIR:-/fits}
       - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_MPS_PIPE_DIRECTORY=/tmp/nvidia-mps
+      - CUDA_MPS_LOG_DIRECTORY=/tmp/nvidia-mps
+      - DEFAULT_LAT=${DEFAULT_LAT:-45.9183}
+      - DEFAULT_LON=${DEFAULT_LON:--111.5433}
+      - DEFAULT_ELEVATION=${DEFAULT_ELEVATION:-1234}
+      - DEFAULT_TIMEZONE=${DEFAULT_TIMEZONE:-America/Denver}
+      - CELERY_TIMEZONE=${CELERY_TIMEZONE:-America/Denver}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
     volumes:
       - ./data:/app/data
       - /mnt/seestar-s50:/fits:rw
-      - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/nvidia-mps:/tmp/nvidia-mps
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "celery -A app.tasks.celery_app inspect ping"]
       interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - shared-infra
+
+  # Celery Beat scheduler for periodic tasks
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: astro-planner-beat
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    environment:
+      - REDIS_URL=redis://:buffalo-jump@redis:6379/1
+      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+      - DEFAULT_LAT=${DEFAULT_LAT:-45.9183}
+      - DEFAULT_LON=${DEFAULT_LON:--111.5433}
+      - DEFAULT_ELEVATION=${DEFAULT_ELEVATION:-1234}
+      - DEFAULT_TIMEZONE=${DEFAULT_TIMEZONE:-America/Denver}
+      - CELERY_TIMEZONE=${CELERY_TIMEZONE:-America/Denver}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'celery.*beat' || exit 1"]
+      interval: 30s
       timeout: 5s
       retries: 3
     networks:

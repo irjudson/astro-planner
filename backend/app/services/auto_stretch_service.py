@@ -212,7 +212,11 @@ class AutoStretchService:
         image.save(output_path, compression=None)
 
     def auto_process(
-        self, fits_path: Path, formats: Optional[List[str]] = None, params: Optional[StretchParams] = None
+        self,
+        fits_path: Path,
+        formats: Optional[List[str]] = None,
+        params: Optional[StretchParams] = None,
+        output_dir: Optional[Path] = None,
     ) -> AutoProcessResult:
         """
         Main entry point for auto-processing a FITS file.
@@ -221,6 +225,7 @@ class AutoStretchService:
             fits_path: Path to input FITS file
             formats: Output formats (default: jpg, png, tiff)
             params: Optional manual stretch parameters (auto-detected if None)
+            output_dir: Optional output directory (default: same as input file)
 
         Returns:
             AutoProcessResult with output files and parameters used
@@ -243,7 +248,13 @@ class AutoStretchService:
         if formats is None:
             formats = ["jpg", "png", "tiff"]
 
-        output_files = self.save_outputs(stretched, fits_path, formats)
+        # Use custom output directory if provided
+        if output_dir is not None:
+            output_base = output_dir / fits_path.stem
+        else:
+            output_base = fits_path
+
+        output_files = self.save_outputs(stretched, output_base, formats)
 
         return AutoProcessResult(
             output_files=output_files, params=params, input_shape=input_shape, output_shape=output_shape

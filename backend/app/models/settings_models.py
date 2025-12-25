@@ -193,4 +193,34 @@ DEFAULT_SETTINGS = [
         "description": "Time display format (12h or 24h)",
         "category": "ui",
     },
+    # Daily Planning settings
+    {
+        "key": "planning.daily_enabled",
+        "value": "true",
+        "value_type": "bool",
+        "description": "Enable automatic daily plan generation at noon",
+        "category": "planning",
+    },
+    {
+        "key": "planning.daily_time_hour",
+        "value": "12",
+        "value_type": "int",
+        "description": "Hour of day to generate daily plan (0-23, in local timezone)",
+        "category": "planning",
+    },
+    {
+        "key": "planning.daily_target_count",
+        "value": "5",
+        "value_type": "int",
+        "description": "Number of targets to include in daily plan",
+        "category": "planning",
+    },
+    {
+        "key": "planning.webhook_url",
+        "value": "",
+        "value_type": "string",
+        "description": "Optional webhook URL for plan creation notifications",
+        "category": "planning",
+        "is_secret": False,
+    },
 ]

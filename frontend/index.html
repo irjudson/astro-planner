@@ -2275,6 +2275,11 @@
                         <div id="ui-settings-list"></div>
                     </div>
 
+                    <div id="planning-settings-section" style="margin-bottom: 30px;">
+                        <h4 style="color: #667eea; margin-bottom: 10px;">Daily Planning Settings</h4>
+                        <div id="planning-settings-list"></div>
+                    </div>
+
                     <button class="btn btn-primary" onclick="saveAllAppSettings()">Save All Settings</button>
                 </div>
             </div>
@@ -6078,7 +6083,8 @@
                 'telescope': document.getElementById('telescope-settings-list'),
                 'processing': document.getElementById('processing-settings-list'),
                 'storage': document.getElementById('storage-settings-list'),
-                'ui': document.getElementById('ui-settings-list')
+                'ui': document.getElementById('ui-settings-list'),
+                'planning': document.getElementById('planning-settings-list')
             };
 
             // Clear all containers

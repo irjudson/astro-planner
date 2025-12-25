@@ -283,6 +283,24 @@ class BatchProcessResponse(BaseModel):
     files_found: int
 
 
+class StackAndStretchRequest(BaseModel):
+    """Request model for stack-and-stretch processing."""
+
+    folder_path: str
+    pattern: str = "Light_*.fit"
+    sigma: float = 2.5
+    formats: Optional[List[str]] = ["jpg"]
+
+
+class StackAndStretchResponse(BaseModel):
+    """Response model for stack-and-stretch."""
+
+    job_id: int
+    status: str
+    folder_path: str
+    files_found: int
+
+
 @router.post("/auto", response_model=AutoProcessResponse)
 async def auto_process_single(request: AutoProcessRequest, db: Session = Depends(get_db)):
     """
@@ -388,3 +406,58 @@ async def batch_process(request: BatchProcessRequest, db: Session = Depends(get_
         job_ids.append(job.id)
 
     return BatchProcessResponse(job_ids=job_ids, files_found=len(fits_files))
+
+
+@router.post("/stack-and-stretch", response_model=StackAndStretchResponse)
+async def stack_and_stretch(request: StackAndStretchRequest, db: Session = Depends(get_db)):
+    """
+    One-button processing: Stack sub-frames and auto-stretch to match Seestar output.
+
+    This is the complete pipeline that:
+    1. Loads all Light_*.fit sub-frames from the folder
+    2. Stacks them with sigma-clipping (rejects outliers)
+    3. Debayers the result (Bayer pattern -> RGB)
+    4. Auto-stretches using the Seestar-matching algorithm
+    5. Saves output as JPG/PNG/TIFF
+
+    This recreates the exact processing that Seestar does internally.
+
+    Example:
+        folder_path: "/fits/M81_sub" or "M 31_mosaic_sub"
+    """
+    # Validate folder exists
+    folder_path = Path(request.folder_path)
+
+    # Handle paths relative to /fits mount
+    if not folder_path.is_absolute():
+        folder_path = Path("/fits") / request.folder_path
+
+    if not folder_path.exists():
+        raise HTTPException(status_code=404, detail=f"Folder not found: {folder_path}")
+
+    if not folder_path.is_dir():
+        raise HTTPException(status_code=400, detail="Path must be a directory")
+
+    # Count matching files
+    sub_frames = list(folder_path.glob(request.pattern))
+    if not sub_frames:
+        raise HTTPException(status_code=404, detail=f"No files matching '{request.pattern}' found in {folder_path}")
+
+    # Create job
+    job = ProcessingJob(
+        file_id=None,  # No single file, processing a folder
+        pipeline_id=None,  # Custom pipeline
+        status="queued",
+    )
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    # Queue the stack-and-stretch task
+    from app.tasks.processing_tasks import stack_and_stretch_task
+
+    stack_and_stretch_task.delay(str(folder_path), request.pattern, request.sigma, request.formats, job.id)
+
+    return StackAndStretchResponse(
+        job_id=job.id, status="queued", folder_path=str(folder_path), files_found=len(sub_frames)
+    )
