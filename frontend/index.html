@@ -4021,7 +4021,13 @@
                 currentPlan.name = planData.name;
                 currentPlan.description = planData.description;
 
-                // Display the plan (if we're on the planner tab, show it there too)
+                // Close modal first (before switching tabs)
+                closeLoadPlanModal();
+
+                // Switch to planner tab to preview the loaded plan
+                showTab('planner');
+
+                // Display the plan
                 if (typeof displayPlan === 'function') {
                     displayPlan(currentPlan);
                 }
@@ -4029,11 +4035,8 @@
                 // Update UI
                 updatePlanSelectionUI();
 
-                // Close modal
-                closeLoadPlanModal();
-
-                // Show success message
-                alert(`Plan "${planData.name}" loaded successfully! You can now connect to your telescope and execute it.`);
+                // Show success notification
+                console.log(`Plan "${planData.name}" loaded successfully`);
 
             } catch (error) {
                 console.error('Error loading plan:', error);
