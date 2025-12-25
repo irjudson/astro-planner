@@ -5,8 +5,6 @@ import os
 from datetime import date, datetime
 from typing import Any, Dict
 
-import pytz
-
 from app.database import SessionLocal
 from app.models import Location, ObservingConstraints, PlanRequest
 from app.models.plan_models import SavedPlan
@@ -67,7 +65,7 @@ def generate_daily_plan_task(self) -> Dict[str, Any]:
             elevation = int(os.getenv("DEFAULT_ELEVATION", "1234"))
             timezone = os.getenv("CELERY_TIMEZONE", os.getenv("DEFAULT_TIMEZONE", "America/Denver"))
             location_name = os.getenv("DEFAULT_LOCATION_NAME", f"Lat {lat:.2f}, Lon {lon:.2f}")
-            logger.info(f"Using environment variables for location (no default location in database)")
+            logger.info("Using environment variables for location (no default location in database)")
 
         logger.info(f"Daily plan generation started for location: {location_name} ({lat}, {lon})")
 

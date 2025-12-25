@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 # Try to import GPU-accelerated libraries
 try:
     import cupy as cp
-    from cupyx.scipy import ndimage as cupy_ndimage
 
     HAS_CUPY = True
     logger.info("CuPy available - GPU acceleration enabled")

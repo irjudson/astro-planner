@@ -247,7 +247,7 @@ class TestExportSeestarALP:
         lines = result.split("\n")
 
         # Find data lines (not comments, not header)
-        data_lines = [l for l in lines if l and not l.startswith("#") and not l.startswith("TARGET_NAME")]
+        data_lines = [line for line in lines if line and not line.startswith("#") and not line.startswith("TARGET_NAME")]
 
         assert len(data_lines) == 1
         assert "M31" in data_lines[0]

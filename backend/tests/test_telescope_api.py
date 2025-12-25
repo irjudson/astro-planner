@@ -193,7 +193,6 @@ class TestTelescopeEndpoints:
 
     def test_get_progress_when_running(self, client):
         """Test progress endpoint during execution."""
-        from datetime import datetime
 
         # Mock the database session and execution record
         mock_execution = MagicMock()

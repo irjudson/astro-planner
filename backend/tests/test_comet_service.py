@@ -12,7 +12,6 @@ import pytest
 pytestmark = pytest.mark.integration
 
 from app.models import CometTarget, Location, OrbitalElements
-from app.models.catalog_models import CometCatalog
 from app.services.comet_service import CometService
 
 

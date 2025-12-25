@@ -2,10 +2,8 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 from PIL import Image
 
 from app.services.auto_stretch_service import AutoStretchService, StretchParams

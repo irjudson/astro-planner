@@ -6,8 +6,7 @@ They are marked as integration tests and skipped on macOS CI.
 
 import pytest
 
-from app.models import DSOTarget
-from app.models.catalog_models import ConstellationName, DSOCatalog
+from app.models.catalog_models import DSOCatalog
 from app.services.catalog_service import CatalogService
 
 # Mark all tests in this file as integration tests

@@ -1,7 +1,7 @@
 """Tests for weather and 7Timer services."""
 
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch
+from datetime import datetime
+from unittest.mock import Mock, patch
 
 import pytest
 import pytz

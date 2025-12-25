@@ -4,10 +4,9 @@ These tests require database services (PostgreSQL) to run.
 They are marked as integration tests and skipped on macOS CI.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
-import pytz
 
 from app.models import Location, ObservingConstraints, PlanRequest
 from app.services.planner_service import PlannerService
@@ -322,7 +321,7 @@ class TestPlannerServiceComprehensive:
         twilight = planner.calculate_twilight(location, "2025-01-15")
 
         # Each value should be parseable as ISO datetime
-        for key, value in twilight.items():
+        for _key, value in twilight.items():
             assert isinstance(value, str)
             # Should be able to parse as ISO format
             parsed = datetime.fromisoformat(value)

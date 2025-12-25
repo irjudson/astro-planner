@@ -1,11 +1,11 @@
 """Tests for telescope service."""
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from app.clients.seestar_client import SeestarClient, SeestarState
+from app.clients.seestar_client import SeestarClient
 from app.models import DSOTarget, ScheduledTarget, TargetScore
 from app.services.telescope_service import ExecutionError, ExecutionProgress, ExecutionState, TelescopeService
 

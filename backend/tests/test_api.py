@@ -4,7 +4,7 @@ These tests require database services (PostgreSQL) to run.
 They are marked as integration tests and skipped on macOS CI.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 

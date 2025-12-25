@@ -64,8 +64,9 @@ def setup_test_db_schema():
     This fixture is NOT autouse - it only runs for tests that need database access
     (via the client or override_get_db fixtures).
     """
-    from alembic import command
     from alembic.config import Config
+
+    from alembic import command
     from app.core.config import get_settings
 
     settings = get_settings()

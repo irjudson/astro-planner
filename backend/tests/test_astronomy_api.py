@@ -1,13 +1,11 @@
 """Tests for astronomy-specific API endpoints."""
 
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.cleardarksky_service import ClearDarkSkyForecast, CloudCover, Seeing, Transparency
 from app.services.satellite_service import PassVisibility, SatellitePass
 from app.services.viewing_months_service import MonthRating, ViewingMonth
 

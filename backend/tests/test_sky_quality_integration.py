@@ -190,8 +190,8 @@ class TestSkyQualityIntegration:
         ), "Dark sky site should have at least as many targets as city"
 
         # Dark site should have galaxies, city should not
-        dark_types = set(t.target.object_type for t in dark_plan.scheduled_targets)
-        city_types = set(t.target.object_type for t in city_plan.scheduled_targets)
+        dark_types = {t.target.object_type for t in dark_plan.scheduled_targets}
+        city_types = {t.target.object_type for t in city_plan.scheduled_targets}
 
         if "galaxy" in dark_types:
             assert "galaxy" not in city_types, "City plan should not include galaxies"

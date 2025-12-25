@@ -1,12 +1,12 @@
 """Tests for asteroid service."""
 
 from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from sqlalchemy.orm import Session
 
-from app.models import AsteroidEphemeris, AsteroidOrbitalElements, AsteroidTarget, AsteroidVisibility, Location
+from app.models import AsteroidOrbitalElements, AsteroidTarget, Location
 from app.models.catalog_models import AsteroidCatalog
 from app.services.asteroid_service import AsteroidService
 

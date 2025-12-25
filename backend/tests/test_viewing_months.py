@@ -1,6 +1,5 @@
 """Tests for best viewing months calculator."""
 
-from datetime import datetime
 
 import pytest
 
