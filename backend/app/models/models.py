@@ -45,9 +45,7 @@ class PlanRequest(BaseModel):
         try:
             datetime.strptime(v, "%Y-%m-%d")
         except ValueError:
-            raise ValueError(
-                f"observing_date must be in ISO format (YYYY-MM-DD), got: {v}"
-            )
+            raise ValueError(f"observing_date must be in ISO format (YYYY-MM-DD), got: {v}")
         return v
 
 
