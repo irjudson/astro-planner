@@ -3,15 +3,15 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Location(BaseModel):
     """Observatory location information."""
 
     name: str = Field(default="Three Forks, MT", description="Location name")
-    latitude: float = Field(description="Latitude in degrees (-90 to 90)")
-    longitude: float = Field(description="Longitude in degrees (-180 to 180)")
+    latitude: float = Field(ge=-90, le=90, description="Latitude in degrees (-90 to 90)")
+    longitude: float = Field(ge=-180, le=180, description="Longitude in degrees (-180 to 180)")
     elevation: float = Field(default=1234.0, description="Elevation in meters")
     timezone: str = Field(default="America/Denver", description="IANA timezone")
 
@@ -37,6 +37,18 @@ class PlanRequest(BaseModel):
     location: Location
     observing_date: str = Field(description="ISO date for observing session (YYYY-MM-DD)")
     constraints: ObservingConstraints = Field(default_factory=ObservingConstraints)
+
+    @field_validator("observing_date")
+    @classmethod
+    def validate_observing_date(cls, v: str) -> str:
+        """Validate that observing_date is a valid ISO date (YYYY-MM-DD)."""
+        try:
+            datetime.strptime(v, "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(
+                f"observing_date must be in ISO format (YYYY-MM-DD), got: {v}"
+            )
+        return v
 
 
 class DSOTarget(BaseModel):
