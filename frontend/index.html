@@ -4027,16 +4027,26 @@
                 // Switch to planner tab to preview the loaded plan
                 showTab('planner');
 
-                // Display the plan
-                if (typeof displayPlan === 'function') {
-                    displayPlan(currentPlan);
-                }
+                // Wait for tab to be fully rendered before displaying plan
+                // This ensures DOM elements are visible and charts can render properly
+                setTimeout(() => {
+                    // Display the plan
+                    if (typeof displayPlan === 'function') {
+                        displayPlan(currentPlan);
+                    }
 
-                // Update UI
-                updatePlanSelectionUI();
+                    // Update UI
+                    updatePlanSelectionUI();
 
-                // Show success notification
-                console.log(`Plan "${planData.name}" loaded successfully`);
+                    // Scroll to the plan preview section
+                    const sessionSummary = document.getElementById('session-summary');
+                    if (sessionSummary) {
+                        sessionSummary.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+
+                    // Show success notification
+                    console.log(`Plan "${planData.name}" loaded successfully`);
+                }, 100);
 
             } catch (error) {
                 console.error('Error loading plan:', error);
