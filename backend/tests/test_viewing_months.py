@@ -1,6 +1,5 @@
 """Tests for best viewing months calculator."""
 
-
 import pytest
 
 from app.services.viewing_months_service import MonthRating, ViewingMonth, ViewingMonthsService

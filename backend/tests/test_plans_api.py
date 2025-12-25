@@ -4,7 +4,6 @@ These tests require database services (PostgreSQL) to run.
 They are marked as integration tests and skipped on macOS CI.
 """
 
-
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
