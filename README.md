@@ -1,186 +1,429 @@
 # Astro Planner
 
-A complete web-based astrophotography session planner specifically designed for the **Seestar S50 smart telescope**. This application intelligently schedules deep sky objects (DSOs) throughout the night, accounting for visibility, weather conditions, and the unique characteristics of alt-az mounts.
+> Intelligent observing session planner for astrophotography with Seestar S50 integration
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)
 
-## Features
+---
 
-### Intelligent Planning
-- **Astronomical Calculations**: Precise twilight times, altitude/azimuth positions, and field rotation rates
-- **Smart Scheduling**: Greedy algorithm with urgency-based lookahead to maximize night coverage
-- **Seestar S50 Optimized**: Accounts for 50mm f/5 optics, 1.27°×0.71° FOV, and alt-az mount limitations
-- **Weather Integration**: Real-time forecasts from OpenWeatherMap API to optimize target selection
+## What is Astro Planner?
 
-### Rich Target Catalog
-- **27+ Pre-loaded Targets**: Popular Messier, NGC, and IC objects
-- **Object Types**: Galaxies, nebulae, star clusters, and planetary nebulae
-- **Detailed Information**: Coordinates, magnitude, size, and descriptions
+Astro Planner is a comprehensive observing session planning tool that helps astrophotographers maximize their imaging time by intelligently scheduling deep sky objects throughout the night. The application accounts for astronomical phenomena, weather conditions, and equipment limitations to create optimal observation plans.
 
-### Flexible Configuration
-- **Location-Based**: Customize for any observing site (lat/lon/elevation/timezone)
-- **Date Selection**: Plan for any night, defaults to tonight's session
-- **Constraints**: Set altitude limits, setup time, and object type preferences
-- **Field Rotation Aware**: Avoids zenith and optimizes for alt-az mount imaging
+**Perfect for:**
+- 🔭 Seestar S50 telescope users
+- 🌌 Astrophotography enthusiasts
+- 📊 Data-driven session planning
+- 🌐 Any location worldwide
 
-### Multiple Export Formats
-- **Seestar Plan Mode JSON**: Direct import into Seestar S50
-- **Seestar_alp Format**: Compatible with various astronomy tools
-- **Human-Readable Text**: Detailed session summary
-- **CSV**: For spreadsheet analysis
-- **JSON**: Complete data export
+---
+
+## Key Features
+
+### ✅ Implemented
+
+**Smart Scheduling**
+- Greedy algorithm with urgency-based lookahead optimizes target selection
+- Field rotation calculation for alt-az mounts
+- Automated daily plan generation at noon
+
+**Comprehensive Catalog**
+- **12,400+ objects** from OpenNGC catalog
+- Messier, NGC, and IC catalogs
+- Advanced filtering by type, magnitude, constellation
+- Search by catalog ID or common name
+
+**Weather Integration**
+- 7Timer astronomical seeing and transparency forecasts
+- OpenWeatherMap cloud cover and conditions
+- Composite weather scoring for target selection
+
+**Seestar S50 Integration**
+- Direct export to seestar_alp CSV format
+- QR code sharing for mobile workflow
+- Optimized for 50mm f/5 optics (1.27° × 0.71° FOV)
+- Alt-az mount field rotation compensation
+
+**GPU Processing**
+- CUDA-accelerated image stacking with CuPy
+- Sigma-clipped mean stacking for outlier rejection
+- Auto-stretch matching Seestar native output
+- NVIDIA MPS for efficient GPU sharing
+
+**Automatic Planning**
+- Daily plan generation at configurable time
+- Celery Beat scheduler for periodic tasks
+- Webhook notifications for plan creation
+- Database-backed configuration
+
+**Multiple Export Formats**
+- seestar_alp CSV (recommended)
+- Seestar Plan Mode JSON
+- Human-readable text
+- CSV for analysis
+- Complete JSON export
+
+### 🚧 In Progress
+
+**Frontend Catalog Browser**
+- Interactive catalog exploration UI
+- Advanced search and filtering
+- Target preview and details
+
+**Live Session Tracking**
+- Real-time execution monitoring
+- Progress updates during imaging
+- Weather-based re-planning
+
+### 📋 Planned (2026)
+
+**Comet/Asteroid Ephemeris**
+- Automated position calculations
+- Integration with MPC and JPL databases
+- Moving object tracking
+
+**Mosaic Planning**
+- Multi-panel session planning
+- FOV overlap calculation
+- Automatic stitching support
+
+**Multi-Telescope Support**
+- Equipment profiles
+- Simultaneous telescope control
+- Cloud observation coordination
+
+[See full roadmap →](docs/planning/ROADMAP.md)
+
+---
 
 ## Quick Start
 
-### Option 1: Native Development (Recommended for Development)
+### Docker (Recommended)
 
 ```bash
-# One-time setup
-cd astro-planner
-python3 -m venv venv
-source venv/bin/activate
-cd backend
-pip install -r requirements.txt -r requirements-processing.txt
-cd ..
-
-# Start services (background mode)
-./dev-simple.sh
-
-# Stop services when done
-./dev-stop.sh
-```
-
-Open http://localhost:9247 in your browser.
-
-See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed native development guide.
-
-### Option 2: Docker (Production-like)
-
-```bash
-cd astro-planner
+# Start all services
 docker-compose up -d
 
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
+# Access the application
+open http://localhost:9247
 ```
 
-Open http://localhost:9247 in your browser.
+**That's it!** The default configuration works out of the box for testing.
 
-## Requirements
+[Full quick start guide →](QUICK_START.md)
 
-- **Python**: 3.11 or higher
-- **OS**: Linux, macOS, or Windows (with WSL)
-- **API Key**: OpenWeatherMap (optional, free tier available)
+### Native Development
+
+```bash
+# Setup
+git clone https://github.com/irjudson/astro-planner.git
+cd astro-planner/backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Configure
+cp .env.example .env
+# Edit .env with your settings
+
+# Run
+alembic upgrade head
+uvicorn app.main:app --host 0.0.0.0 --port 9247 --reload
+```
+
+[Development guide →](docs/development/DEVELOPMENT.md)
+
+---
 
 ## Documentation
 
-- [DEVELOPMENT.md](DEVELOPMENT.md) - Native vs Docker development setup
-- [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing strategies and troubleshooting
-- [PROCESSING_DESIGN.md](PROCESSING_DESIGN.md) - Image processing pipeline architecture
-- [MOSAIC_AND_STACKING_PLAN.md](MOSAIC_AND_STACKING_PLAN.md) - Future roadmap
-- [CAPABILITIES_STATUS.md](CAPABILITIES_STATUS.md) - Current feature status
+### For Users
 
-## Project Structure
+- **[Quick Start](QUICK_START.md)** - Get started in 5 minutes
+- **[User Guide](docs/user-guides/USAGE.md)** - How to use the planner
+- **[API Documentation](docs/user-guides/API_USAGE.md)** - API endpoints and examples
+- **[Seestar Integration](docs/seestar/SEESTAR_INTEGRATION.md)** - Using with Seestar S50
+- **[Daily Planning](DAILY_PLANNING.md)** - Automatic plan generation
+
+### For Developers
+
+- **[Architecture](docs/architecture/ARCHITECTURE.md)** - System design and components
+- **[Development Setup](docs/development/DEVELOPMENT.md)** - Native installation guide
+- **[Testing Guide](docs/development/TESTING_GUIDE.md)** - Running and writing tests
+- **[Processing Design](PROCESSING_DESIGN.md)** - Image processing pipeline
+
+### For Operators
+
+- **[Docker Deployment](docs/development/DOCKER_SETUP.md)** - Production deployment
+- **[Configuration Reference](docs/CONFIGURATION.md)** - All environment variables
+- **[GPU Configuration](GPU_MPS_CONFIG.md)** - NVIDIA MPS setup
+
+[Complete documentation index →](docs/INDEX.md)
+
+---
+
+## Architecture
 
 ```
-astro-planner/
-├── backend/              # FastAPI application
-│   ├── app/
-│   │   ├── api/         # API endpoints
-│   │   ├── core/        # Configuration
-│   │   ├── models/      # Data models
-│   │   └── services/    # Business logic
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/            # Web interface
-│   └── index.html
-├── docker/              # Docker configuration
-│   └── Dockerfile
-├── data/                # Runtime data
-├── setup.sh             # Setup script
-├── test_api.py          # API test suite
-└── docker-compose.yml
+┌─────────────────────────────────────────────────────┐
+│              Frontend (Vue.js)                      │
+│         http://localhost:9247                       │
+└──────────────────┬──────────────────────────────────┘
+                   │ HTTP/REST API
+┌──────────────────▼──────────────────────────────────┐
+│           FastAPI Backend (Python 3.11)             │
+│  ┌────────────┐  ┌────────────┐  ┌──────────────┐  │
+│  │  Planner   │  │  Catalog   │  │   Weather    │  │
+│  │  Service   │  │  Service   │  │   Service    │  │
+│  └────────────┘  └────────────┘  └──────────────┘  │
+│  ┌────────────┐  ┌────────────┐  ┌──────────────┐  │
+│  │ Processing │  │ Telescope  │  │   Export     │  │
+│  │  Service   │  │  Service   │  │   Service    │  │
+│  └────────────┘  └────────────┘  └──────────────┘  │
+└──────────────────┬──────────────────────────────────┘
+                   │
+     ┌─────────────┼─────────────┐
+     │             │             │
+┌────▼────┐  ┌────▼─────┐  ┌───▼──────┐
+│PostgreSQL│  │  Redis   │  │  Celery  │
+│ Database │  │  Broker  │  │  Workers │
+└──────────┘  └──────────┘  └──────────┘
 ```
 
-## Default Location
+[Detailed architecture →](docs/architecture/ARCHITECTURE.md)
 
-The application defaults to **Three Forks, Montana** (45.9183°N, 111.5433°W, 1234m elevation, America/Denver timezone). You can customize this in the web interface or via the API.
+---
+
+## Tech Stack
+
+**Backend**
+- Python 3.11+
+- FastAPI for REST API
+- SQLAlchemy for ORM
+- Alembic for migrations
+- Celery for background tasks
+
+**Database**
+- PostgreSQL for data persistence
+- Redis for message broker
+
+**Processing**
+- CuPy for GPU acceleration (CUDA 12.8+)
+- NumPy for CPU fallback
+- Astropy for FITS file handling
+- Skyfield for astronomical calculations
+
+**Frontend**
+- Vue.js for reactive UI
+- Chart.js for visualizations
+- Vanilla JavaScript (no build step)
+
+**Deployment**
+- Docker and Docker Compose
+- NVIDIA Container Toolkit for GPU
+- Celery Beat for scheduling
+
+---
+
+## Default Configuration
+
+**Location:** Three Forks, Montana
+- Latitude: 45.9183°N
+- Longitude: 111.5433°W
+- Elevation: 1234m (4049 ft)
+- Timezone: America/Denver
+
+**Planning:**
+- Min altitude: 30°
+- Max altitude: 70° (to avoid high field rotation)
+- Setup time: 30 minutes
+- Planning mode: Balanced
+
+**Telescope:** Seestar S50
+- Aperture: 50mm
+- Focal length: 50mm (f/5)
+- FOV: 1.27° × 0.71°
+- Max exposure: 10 seconds
+
+[Configuration guide →](docs/CONFIGURATION.md)
+
+---
 
 ## Key Algorithms
 
 ### Field Rotation Calculation
-For alt-az mounts: `rate = 15 × cos(lat) / cos(alt) × |sin(az)|`
+For alt-az mounts, field rotation rate (degrees/minute):
 
-The scheduler avoids high rotation rates by:
-- Preferring 45-65° altitude range
-- Avoiding zenith during meridian passage
-- Scoring targets based on rotation rate
+```
+rate = 15 × cos(latitude) / cos(altitude) × |sin(azimuth)|
+```
+
+The scheduler:
+- Prefers 45-65° altitude range (optimal)
+- Avoids zenith during meridian passage
+- Scores targets based on rotation rate
 
 ### Target Scoring
-Composite score (0-1) based on:
-- **Visibility (40%)**: Altitude, duration, field rotation
-- **Weather (30%)**: Cloud cover, humidity, wind
-- **Object (30%)**: Brightness, size match to FOV
+Composite score (0-1) based on weighted components:
+
+| Component | Weight | Factors |
+|-----------|--------|---------|
+| Visibility | 40% | Altitude, duration, field rotation |
+| Weather | 30% | Cloud cover, humidity, wind, seeing |
+| Object Quality | 30% | Brightness, size match to FOV |
 
 ### Urgency-Based Scheduling
-Targets setting within the lookahead window (default 30 minutes) receive a priority bonus, ensuring time-sensitive objects aren't missed.
+Targets setting within the lookahead window (30 minutes) receive priority bonus to avoid missing time-sensitive objects.
+
+---
 
 ## API Endpoints
 
-- `POST /api/plan` - Generate complete observing plan
-- `GET /api/targets` - List all DSO targets
-- `GET /api/targets/{id}` - Get specific target details
-- `POST /api/twilight` - Calculate twilight times
-- `POST /api/export` - Export plan in various formats
-- `GET /api/health` - Health check
+**Planning:**
+- `POST /api/plan` - Generate observing plan
+- `GET /api/plans` - List saved plans
+- `POST /api/plans/{id}/execute` - Execute plan on telescope
 
-Full API documentation available at http://localhost:9247/api/docs
+**Catalog:**
+- `GET /api/targets` - List DSO targets (paginated)
+- `GET /api/targets/{id}` - Get target details
+- `GET /api/targets/search` - Search catalog
+- `GET /api/targets/stats` - Catalog statistics
+
+**Weather:**
+- `GET /api/weather/current` - Current conditions
+- `GET /api/weather/forecast` - Multi-hour forecast
+- `GET /api/astronomy/weather/7timer` - Astronomical seeing
+
+**Processing:**
+- `POST /api/process/auto` - Auto-process FITS file
+- `POST /api/process/stack-and-stretch` - Stack and stretch
+- `GET /api/process/jobs/{id}` - Job status
+
+**System:**
+- `GET /api/health` - Health check
+- `GET /api/docs` - OpenAPI documentation
+
+[Complete API documentation →](http://localhost:9247/api/docs)
+
+---
+
+## Requirements
+
+**Minimum:**
+- Python 3.11+
+- Docker 20.10+ and Docker Compose 2.0+ (Docker installation)
+- OR PostgreSQL 14+ and Redis 6+ (Native installation)
+
+**Optional:**
+- NVIDIA GPU with CUDA 12.8+ for GPU-accelerated processing
+- OpenWeatherMap API key (free tier) for weather forecasts
+
+**OS Support:**
+- Linux (tested on Ubuntu 22.04+)
+- macOS (tested on 12.0+)
+- Windows via WSL2
+
+---
 
 ## Testing
 
 ```bash
-# Start the server first
-python -m uvicorn app.main:app --reload
+# Start services
+docker-compose up -d
 
-# In another terminal
-python test_api.py
+# Run test suite
+docker exec astro-planner pytest
+
+# Run with coverage
+docker exec astro-planner pytest --cov=app
+
+# Run specific test
+docker exec astro-planner pytest tests/test_planner_service.py
 ```
 
-## Weather API Setup
+**Test Coverage:** 471 tests passing, 3 skipped
 
-1. Sign up for a free API key at https://openweathermap.org/api
-2. Edit `backend/.env` and set `OPENWEATHERMAP_API_KEY=your_key_here`
-3. Restart the application
+[Testing guide →](docs/development/TESTING_GUIDE.md)
 
-Without an API key, the system uses optimistic default weather forecasts.
+---
 
 ## Contributing
 
-This is a production-ready application designed for astrophotography enthusiasts using the Seestar S50. Contributions welcome:
+Contributions are welcome! Areas of interest:
 
-- Additional DSO targets
+**Features:**
+- Additional DSO catalogs (Caldwell, Arp, Sharpless)
+- Comet/asteroid ephemeris integration
+- Mosaic planning capabilities
+- Advanced image processing algorithms
+
+**Improvements:**
 - Enhanced scheduling algorithms
-- New export formats
-- UI improvements
+- Additional export formats
+- UI/UX enhancements
+- Performance optimizations
+
+**Documentation:**
+- Additional examples and tutorials
+- Translation to other languages
+- Video guides
+
+**Process:**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Follow [development guidelines](docs/development/DEVELOPMENT.md)
+4. Run tests and ensure they pass (`pytest`)
+5. Submit a pull request
+
+[Development guide →](docs/development/DEVELOPMENT.md)
+
+---
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT License - See [LICENSE](LICENSE) for details
+
+**Free for:**
+- Personal use
+- Commercial use
+- Modification
+- Distribution
+
+**Requirements:**
+- Include copyright notice
+- Include license text
+
+---
 
 ## Acknowledgments
 
-- Built with [FastAPI](https://fastapi.tiangolo.com/)
-- Astronomical calculations using [Skyfield](https://rhodesmill.org/skyfield/)
-- Weather data from [OpenWeatherMap](https://openweathermap.org/)
+**Software:**
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [Skyfield](https://rhodesmill.org/skyfield/) - Astronomical calculations
+- [Astropy](https://www.astropy.org/) - Astronomy tools for Python
+- [CuPy](https://cupy.dev/) - GPU-accelerated computing
+
+**Data Sources:**
+- [OpenNGC](https://github.com/mattiaverga/OpenNGC) - Open NGC/IC catalog (CC-BY-SA-4.0)
+- [OpenWeatherMap](https://openweathermap.org/) - Weather forecasts
+- [7Timer](http://www.7timer.info/) - Astronomical seeing forecasts
+
+**Community:**
+- [Seestar S50 Users](https://www.reddit.com/r/seestar/) - Telescope community
+- [smart-underworld/seestar_alp](https://github.com/smart-underworld/seestar_alp) - Seestar automation tools
+
+---
 
 ## Support
 
-For issues or questions, please check the documentation or create an issue in the project repository.
+**Documentation:** [docs/INDEX.md](docs/INDEX.md)
+
+**Issues:** [GitHub Issues](https://github.com/irjudson/astro-planner/issues)
+
+**Discussions:** [GitHub Discussions](https://github.com/irjudson/astro-planner/discussions) (for questions)
 
 ---
 

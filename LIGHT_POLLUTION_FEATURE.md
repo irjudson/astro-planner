@@ -1,5 +1,11 @@
 # Light Pollution and Sky Quality Feature
 
+---
+**Status:** Implemented
+**Last Updated:** 2025-12-25
+**Implementation:** Light pollution and sky quality features are implemented. API endpoint: `/api/astronomy/light-pollution`
+---
+
 ## Overview
 
 A comprehensive light pollution and sky quality service that provides Bortle scale classification, Sky Quality Meter (SQM) estimates, and observing recommendations for any location on Earth.

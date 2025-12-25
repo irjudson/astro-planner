@@ -1,5 +1,11 @@
 # Future Catalog Considerations
 
+---
+**Status:** Planned - Not Implemented
+**Last Updated:** 2025-12-25
+**Implementation:** All catalogs listed here are planned for future releases. See [ROADMAP.md](docs/planning/ROADMAP.md) for current priorities.
+---
+
 This document lists additional astronomical catalogs to consider for future integration into Astro Planner. These are beyond the Phase 1-3 priorities but may be valuable for specific use cases or user requests.
 
 ## Specialized Deep Sky Catalogs

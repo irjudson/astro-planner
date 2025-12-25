@@ -1,5 +1,11 @@
 # Astronomy Features Documentation
 
+---
+**Status:** Partially Implemented
+**Last Updated:** 2025-12-25
+**Implementation:** Some features described here are planned but not yet implemented. See [ROADMAP.md](docs/planning/ROADMAP.md) for current status.
+---
+
 This document describes the comprehensive astronomy tools integrated into the Astro Planner application.
 
 ## Overview
