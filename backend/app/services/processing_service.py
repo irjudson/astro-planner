@@ -17,6 +17,11 @@ class ProcessingService:
     """Orchestrates processing pipeline execution using direct file processing."""
 
     def __init__(self):
+        """Initialize the processing service.
+
+        Sets up the DirectProcessor and ensures the processing directory exists.
+        The processing directory is used to store job outputs and intermediate files.
+        """
         self.processor = DirectProcessor()
         self.data_dir = Path("/app/data/processing")
 
@@ -135,7 +140,14 @@ class ProcessingService:
             db.close()
 
     async def cancel_job(self, job_id: int) -> bool:
-        """Cancel a running job."""
+        """Cancel a running or pending processing job.
+
+        Args:
+            job_id: Unique identifier of the job to cancel
+
+        Returns:
+            True if the job was successfully cancelled, False if the job was not found
+        """
         db = SessionLocal()
         try:
             job = db.query(ProcessingJob).filter(ProcessingJob.id == job_id).first()
@@ -159,6 +171,4 @@ class ProcessingService:
         for job_dir in self.data_dir.glob("job_*"):
             if job_dir.is_dir() and job_dir.stat().st_mtime < cutoff:
                 logger.info(f"Cleaning up old job directory: {job_dir}")
-                import shutil
-
                 shutil.rmtree(job_dir, ignore_errors=True)

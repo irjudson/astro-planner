@@ -1,5 +1,6 @@
 """Main FastAPI application."""
 
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -9,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import router
 from app.core import get_settings
+
+logger = logging.getLogger(__name__)
 
 # Get settings
 settings = get_settings()
@@ -53,22 +56,22 @@ async def serve_plan_viewer(plan_id: str):
 if frontend_path.exists():
     app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
 else:
-    print(f"⚠️  Frontend not found at {frontend_path}")
+    logger.warning("Frontend not found at %s", frontend_path)
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup."""
-    print("🚀 Astro Planner API starting...")
-    print(f"📍 Default location: {settings.default_location_name}")
-    print(f"🔭 Seestar S50 FOV: {settings.seestar_fov_width}° × {settings.seestar_fov_height}°")
-    print(f"⏰ Min target duration: {settings.min_target_duration_minutes} minutes")
+    logger.info("Astro Planner API starting...")
+    logger.info("Default location: %s", settings.default_location_name)
+    logger.info("Seestar S50 FOV: %s° × %s°", settings.seestar_fov_width, settings.seestar_fov_height)
+    logger.info("Min target duration: %s minutes", settings.min_target_duration_minutes)
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown."""
-    print("👋 Astro Planner API shutting down...")
+    logger.info("Astro Planner API shutting down...")
 
 
 if __name__ == "__main__":

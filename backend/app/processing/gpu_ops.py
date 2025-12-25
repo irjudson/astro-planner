@@ -73,9 +73,26 @@ def save_fits(fits_path: str, data: np.ndarray, header: Any):
 
 
 def gpu_histogram_stretch(input_path: str, output_path: str, params: Dict[str, Any]) -> str:
-    """
-    GPU-accelerated histogram stretch using CuPy.
-    10-50x faster than CPU for large FITS files.
+    """GPU-accelerated histogram stretch using CuPy.
+
+    Applies a histogram stretch to bring faint details into the visible range
+    while preserving bright highlights. Uses CuPy for GPU acceleration, providing
+    10-50x speedup over CPU for large FITS files.
+
+    Args:
+        input_path: Path to input FITS file
+        output_path: Path where stretched FITS will be saved
+        params: Stretch parameters including:
+            - algorithm: "auto" for automatic stretch or "manual"
+            - black_point: Black point value (manual mode)
+            - white_point: White point value (manual mode)
+            - midtones: Midtones transfer function parameter (default 0.5)
+
+    Returns:
+        Path to the output file
+
+    Note:
+        Requires CUDA-capable GPU and CuPy installation
     """
     logger.info(f"GPU histogram stretch: {input_path} -> {output_path}")
 

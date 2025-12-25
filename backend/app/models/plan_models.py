@@ -28,4 +28,5 @@ class SavedPlan(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
+        """Return string representation of SavedPlan for debugging."""
         return f"<SavedPlan(id={self.id}, name='{self.name}', date='{self.observing_date}')>"

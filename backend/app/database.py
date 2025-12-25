@@ -1,16 +1,20 @@
 """Database configuration and session management."""
 
+import logging
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
 
 # Get database URL from environment or use default
 DATABASE_URL = settings.database_url
-print(f"DATABASE_URL: {DATABASE_URL}")
+logger.info("Database URL configured: %s", DATABASE_URL)
 
 # Create engine
 engine = create_engine(

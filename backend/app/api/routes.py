@@ -30,7 +30,6 @@ from app.services.telescope_service import TelescopeService
 
 router = APIRouter()
 
-# Include comet, asteroid, planet, processing, plans, astronomy, and settings endpoints
 router.include_router(comet_router)
 router.include_router(asteroid_router)
 router.include_router(planet_router)

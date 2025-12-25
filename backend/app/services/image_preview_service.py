@@ -1,5 +1,6 @@
 """Service for fetching and caching DSO preview images from SkyView."""
 
+import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -7,6 +8,8 @@ from typing import Optional
 import httpx
 
 from app.models.models import DSOTarget
+
+logger = logging.getLogger(__name__)
 
 
 class ImagePreviewService:
@@ -23,7 +26,7 @@ class ImagePreviewService:
             self.cache_available = True
         except (PermissionError, OSError) as e:
             # Cache directory unavailable (e.g., in test environments)
-            print(f"Warning: Image cache unavailable at {self.cache_dir}: {e}")
+            logger.warning("Image cache unavailable at %s: %s", self.cache_dir, e)
 
         # SkyView base URL (Virtual Astronomer service)
         self.skyview_url = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
@@ -58,7 +61,7 @@ class ImagePreviewService:
                 cache_path.write_bytes(image_data)
                 return f"/api/images/previews/{cache_filename}"
         except Exception as e:
-            print(f"Failed to fetch image for {target.catalog_id}: {e}")
+            logger.error("Failed to fetch image for %s: %s", target.catalog_id, e)
 
         return None
 
@@ -87,17 +90,17 @@ class ImagePreviewService:
         # Try SDSS first (best color images, but limited coverage)
         image_data = self._fetch_from_sdss(ra_deg, dec_deg, fov_arcmin)
         if image_data:
-            print(f"Fetched {target.catalog_id} from SDSS")
+            logger.info("Fetched %s from SDSS", target.catalog_id)
             return image_data
 
         # Try Pan-STARRS second (wider coverage, good quality)
         image_data = self._fetch_from_panstarrs(ra_deg, dec_deg, fov_arcmin)
         if image_data:
-            print(f"Fetched {target.catalog_id} from Pan-STARRS")
+            logger.info("Fetched %s from Pan-STARRS", target.catalog_id)
             return image_data
 
         # Fallback to SkyView DSS2 (grayscale but always available)
-        print(f"Using SkyView DSS fallback for {target.catalog_id}")
+        logger.info("Using SkyView DSS fallback for %s", target.catalog_id)
         return self._fetch_from_skyview_dss(ra_deg, dec_deg, fov_arcmin)
 
     def _fetch_from_sdss(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
@@ -124,7 +127,7 @@ class ImagePreviewService:
                     # SDSS returns a small image even for out-of-bounds, check size
                     return response.content
         except Exception as e:
-            print(f"SDSS fetch error: {e}")
+            logger.debug("SDSS fetch error: %s", e)
         return None
 
     def _fetch_from_panstarrs(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
@@ -150,7 +153,7 @@ class ImagePreviewService:
                 if response.status_code == 200 and "image" in response.headers.get("content-type", ""):
                     return response.content
         except Exception as e:
-            print(f"Pan-STARRS fetch error: {e}")
+            logger.debug("Pan-STARRS fetch error: %s", e)
         return None
 
     def _fetch_from_skyview_dss(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
@@ -173,7 +176,7 @@ class ImagePreviewService:
                 if "image" in response.headers.get("content-type", ""):
                     return response.content
         except Exception as e:
-            print(f"SkyView DSS fetch error: {e}")
+            logger.debug("SkyView DSS fetch error: %s", e)
         return None
 
     def _sanitize_catalog_id(self, catalog_id: str) -> str:

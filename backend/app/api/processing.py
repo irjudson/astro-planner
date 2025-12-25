@@ -1,5 +1,6 @@
 """API endpoints for processing system (direct file processing)."""
 
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -38,8 +39,6 @@ class DirectProcessRequest(BaseModel):
 
 
 # Processing data directory
-import os
-
 PROCESSING_DIR = Path(os.getenv("PROCESSING_DIR", "./data/processing"))
 PROCESSING_DIR.mkdir(parents=True, exist_ok=True)
 
