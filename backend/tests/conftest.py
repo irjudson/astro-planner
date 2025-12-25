@@ -405,3 +405,56 @@ def sample_fits_file(tmp_path):
     file_path = tmp_path / "test_image.fits"
     hdul.writeto(file_path, overwrite=True)
     return file_path
+
+
+# Common test fixtures (consolidated from individual test files)
+
+
+@pytest.fixture
+def sample_location():
+    """Shared location fixture for all tests."""
+    return {
+        "name": "Three Forks, MT",
+        "latitude": 45.9183,
+        "longitude": -111.5433,
+        "elevation": 1234.0,
+        "timezone": "America/Denver",
+    }
+
+
+@pytest.fixture
+def sample_target():
+    """Shared DSO target fixture."""
+    from datetime import datetime
+
+    from app.models import DSOTarget
+
+    return DSOTarget(
+        name="Andromeda Galaxy",
+        catalog_id="M31",
+        object_type="galaxy",
+        ra_hours=0.7122,
+        dec_degrees=41.269,
+        magnitude=3.4,
+        size_arcmin=190.0,
+        description="Nearest major galaxy",
+    )
+
+
+@pytest.fixture
+def sample_scheduled_target(sample_target):
+    """Shared scheduled target fixture."""
+    from datetime import datetime
+
+    from app.models import ScheduledTarget
+
+    return ScheduledTarget(
+        target=sample_target,
+        start_time=datetime(2025, 1, 15, 20, 0),
+        end_time=datetime(2025, 1, 15, 23, 0),
+        duration_minutes=180,
+        start_altitude=45.0,
+        end_altitude=60.0,
+        max_altitude=65.0,
+        field_rotation_deg=15.0,
+    )
