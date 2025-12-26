@@ -13,13 +13,14 @@ Requirements:
     - API accessible at localhost:9247
 """
 
-import requests
-import numpy as np
-from astropy.io import fits
+import os
+import sys
 import tempfile
 import time
-import sys
-import os
+
+import numpy as np
+import requests
+from astropy.io import fits
 
 # Configuration
 API_BASE = "http://localhost:9247/api"
