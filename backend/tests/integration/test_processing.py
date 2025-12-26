@@ -46,7 +46,7 @@ def create_test_fits():
 
         # Create Gaussian star profile
         radius = int(fwhm * 5)
-        y_grid, x_grid = np.ogrid[-radius:radius+1, -radius:radius+1]
+        y_grid, x_grid = np.ogrid[-radius : radius + 1, -radius : radius + 1]
         gaussian = brightness * np.exp(-(x_grid**2 + y_grid**2) / (2 * fwhm**2))
 
         # Add to image (with bounds checking)
@@ -64,13 +64,13 @@ def create_test_fits():
 
     # Create FITS HDU
     hdu = fits.PrimaryHDU(data=image_data)
-    hdu.header['OBJECT'] = 'Test Star Field'
-    hdu.header['EXPTIME'] = 300.0
-    hdu.header['TELESCOP'] = 'Seestar S50'
-    hdu.header['DATE-OBS'] = '2025-11-07T00:00:00'
+    hdu.header["OBJECT"] = "Test Star Field"
+    hdu.header["EXPTIME"] = 300.0
+    hdu.header["TELESCOP"] = "Seestar S50"
+    hdu.header["DATE-OBS"] = "2025-11-07T00:00:00"
 
     # Save to temporary file
-    temp_file = tempfile.NamedTemporaryFile(suffix='.fits', delete=False)
+    temp_file = tempfile.NamedTemporaryFile(suffix=".fits", delete=False)
     hdu.writeto(temp_file.name, overwrite=True)
 
     print(f"✓ Created test FITS: {temp_file.name}")
@@ -107,16 +107,12 @@ def create_session():
     session_name = f"test_session_{int(time.time())}"
 
     try:
-        response = requests.post(
-            f"{API_BASE}/process/sessions",
-            json={"session_name": session_name},
-            timeout=10
-        )
+        response = requests.post(f"{API_BASE}/process/sessions", json={"session_name": session_name}, timeout=10)
         response.raise_for_status()
 
         session = response.json()
         print(f"✓ Created session: {session['session_name']} (ID: {session['id']})")
-        return session['id']
+        return session["id"]
 
     except Exception as e:
         print(f"✗ Failed to create session: {e}")
@@ -128,15 +124,12 @@ def upload_file(session_id, fits_file):
     print(f"\n📤 Uploading FITS file...")
 
     try:
-        with open(fits_file, 'rb') as f:
-            files = {'file': (os.path.basename(fits_file), f, 'application/fits')}
-            data = {'file_type': 'stacked'}
+        with open(fits_file, "rb") as f:
+            files = {"file": (os.path.basename(fits_file), f, "application/fits")}
+            data = {"file_type": "stacked"}
 
             response = requests.post(
-                f"{API_BASE}/process/sessions/{session_id}/upload",
-                files=files,
-                data=data,
-                timeout=30
+                f"{API_BASE}/process/sessions/{session_id}/upload", files=files, data=data, timeout=30
             )
             response.raise_for_status()
 
@@ -154,10 +147,7 @@ def finalize_session(session_id):
     print(f"\n✅ Finalizing session...")
 
     try:
-        response = requests.post(
-            f"{API_BASE}/process/sessions/{session_id}/finalize",
-            timeout=10
-        )
+        response = requests.post(f"{API_BASE}/process/sessions/{session_id}/finalize", timeout=10)
         response.raise_for_status()
 
         print(f"✓ Session finalized and ready for processing")
@@ -174,19 +164,17 @@ def start_processing(session_id, preset="quick_dso"):
 
     try:
         response = requests.post(
-            f"{API_BASE}/process/sessions/{session_id}/process",
-            json={"pipeline_name": preset},
-            timeout=10
+            f"{API_BASE}/process/sessions/{session_id}/process", json={"pipeline_name": preset}, timeout=10
         )
         response.raise_for_status()
 
         job = response.json()
         print(f"✓ Processing job started (ID: {job['id']})")
-        return job['id']
+        return job["id"]
 
     except Exception as e:
         print(f"✗ Failed to start processing: {e}")
-        if hasattr(e, 'response') and e.response is not None:
+        if hasattr(e, "response") and e.response is not None:
             print(f"   Response: {e.response.text}")
         return None
 
@@ -201,40 +189,32 @@ def monitor_job(job_id, timeout=TIMEOUT):
 
     while time.time() - start_time < timeout:
         try:
-            response = requests.get(
-                f"{API_BASE}/process/jobs/{job_id}",
-                timeout=5
-            )
+            response = requests.get(f"{API_BASE}/process/jobs/{job_id}", timeout=5)
             response.raise_for_status()
 
             job = response.json()
-            status = job['status']
-            progress = job.get('progress_percent', 0)
-            current_step = job.get('current_step', '')
+            status = job["status"]
+            progress = job.get("progress_percent", 0)
+            current_step = job.get("current_step", "")
 
             # Print updates
             if status != last_status or progress != last_progress:
-                status_icon = {
-                    'pending': '⏸️',
-                    'running': '🔄',
-                    'complete': '✅',
-                    'failed': '❌'
-                }.get(status, '❓')
+                status_icon = {"pending": "⏸️", "running": "🔄", "complete": "✅", "failed": "❌"}.get(status, "❓")
 
                 print(f"  {status_icon} {status.upper()}: {progress:.1f}% - {current_step}")
                 last_status = status
                 last_progress = progress
 
             # Check if done
-            if status in ['complete', 'failed']:
-                if status == 'complete':
+            if status in ["complete", "failed"]:
+                if status == "complete":
                     print(f"\n✅ Processing completed successfully!")
-                    if 'output_file' in job:
+                    if "output_file" in job:
                         print(f"   Output: {job['output_file']}")
                     return True
                 else:
                     print(f"\n❌ Processing failed!")
-                    if 'error_message' in job:
+                    if "error_message" in job:
                         print(f"   Error: {job['error_message']}")
                     return False
 
@@ -253,24 +233,21 @@ def download_result(job_id, output_dir="."):
     print(f"\n📥 Downloading result...")
 
     try:
-        response = requests.get(
-            f"{API_BASE}/process/jobs/{job_id}/download",
-            timeout=30,
-            stream=True
-        )
+        response = requests.get(f"{API_BASE}/process/jobs/{job_id}/download", timeout=30, stream=True)
         response.raise_for_status()
 
         # Get filename from Content-Disposition header
         filename = "result.jpg"
-        if 'Content-Disposition' in response.headers:
+        if "Content-Disposition" in response.headers:
             import re
-            match = re.search(r'filename="(.+)"', response.headers['Content-Disposition'])
+
+            match = re.search(r'filename="(.+)"', response.headers["Content-Disposition"])
             if match:
                 filename = match.group(1)
 
         output_path = os.path.join(output_dir, filename)
 
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
@@ -345,6 +322,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
