@@ -1,7 +1,6 @@
 """Ephemeris calculations using Skyfield."""
 
 import math
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Tuple
