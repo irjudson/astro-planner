@@ -145,20 +145,20 @@ uvicorn app.main:app --host 0.0.0.0 --port 9247 --reload
 - **[User Guide](docs/user-guides/USAGE.md)** - How to use the planner
 - **[API Documentation](docs/user-guides/API_USAGE.md)** - API endpoints and examples
 - **[Seestar Integration](docs/seestar/SEESTAR_INTEGRATION.md)** - Using with Seestar S50
-- **[Daily Planning](DAILY_PLANNING.md)** - Automatic plan generation
+- **[Daily Planning](docs/planning/DAILY_PLANNING.md)** - Automatic plan generation
 
 ### For Developers
 
 - **[Architecture](docs/architecture/ARCHITECTURE.md)** - System design and components
 - **[Development Setup](docs/development/DEVELOPMENT.md)** - Native installation guide
 - **[Testing Guide](docs/development/TESTING_GUIDE.md)** - Running and writing tests
-- **[Processing Design](PROCESSING_DESIGN.md)** - Image processing pipeline
+- **[Processing Design](docs/architecture/PROCESSING_DESIGN.md)** - Image processing pipeline
 
 ### For Operators
 
 - **[Docker Deployment](docs/development/DOCKER_SETUP.md)** - Production deployment
 - **[Configuration Reference](docs/CONFIGURATION.md)** - All environment variables
-- **[GPU Configuration](GPU_MPS_CONFIG.md)** - NVIDIA MPS setup
+- **[GPU Configuration](docs/planning/GPU_MPS_CONFIG.md)** - NVIDIA MPS setup
 
 [Complete documentation index →](docs/INDEX.md)
 

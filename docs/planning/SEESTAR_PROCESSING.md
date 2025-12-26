@@ -17,16 +17,16 @@ When processing Seestar's already-stacked FITS files, the output matches Seestar
 
 ```bash
 # Process a single stacked FITS file
-python3 process_seestar.py /mnt/seestar-s50/MyWorks/M81/Stacked_34_M81_10.0s_IRCUT_20251115-190922.fit
+python3 scripts/process_seestar.py /mnt/seestar-s50/MyWorks/M81/Stacked_34_M81_10.0s_IRCUT_20251115-190922.fit
 
 # Process all stacked files in a directory
-python3 process_seestar.py /mnt/seestar-s50/MyWorks/M81/
+python3 scripts/process_seestar.py /mnt/seestar-s50/MyWorks/M81/
 
 # Stack sub-frames and stretch
-python3 process_seestar.py /mnt/seestar-s50/MyWorks/M81_sub/ --stack
+python3 scripts/process_seestar.py /mnt/seestar-s50/MyWorks/M81_sub/ --stack
 
 # Specify output directory and format
-python3 process_seestar.py /mnt/seestar-s50/MyWorks/M81/ --output ./processed --format jpg --format png
+python3 scripts/process_seestar.py /mnt/seestar-s50/MyWorks/M81/ --output ./processed --format jpg --format png
 ```
 
 ### API Endpoints
@@ -115,7 +115,7 @@ MyWorks/
 ## CLI Options
 
 ```
-python3 process_seestar.py PATH [OPTIONS]
+python3 scripts/process_seestar.py PATH [OPTIONS]
 
 Positional arguments:
   PATH                  FITS file or directory to process
@@ -230,7 +230,7 @@ Tested with M81, M31, M33, and NGC 1499 datasets:
 - `backend/app/services/stacking_service.py` - Sub-frame stacking
 - `backend/app/api/processing.py` - REST API endpoints
 - `backend/app/tasks/processing_tasks.py` - Celery background tasks
-- `process_seestar.py` - Command-line interface
+- `scripts/process_seestar.py` - Command-line interface
 
 ## Troubleshooting
 
@@ -240,7 +240,7 @@ If processing fails with "Permission denied" when writing outputs:
 
 ```bash
 # Use --output to specify a writable directory
-python3 process_seestar.py /mnt/seestar-s50/MyWorks/M81/ --output ./processed
+python3 scripts/process_seestar.py /mnt/seestar-s50/MyWorks/M81/ --output ./processed
 ```
 
 ### Stacked Output Doesn't Match Seestar

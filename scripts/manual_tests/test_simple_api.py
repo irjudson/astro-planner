@@ -6,7 +6,7 @@ Test the simplified direct processing API.
 import requests
 import sys
 import time
-from test_processing import create_test_fits
+from .test_processing import create_test_fits
 
 API_BASE = "http://localhost:9247/api"
 

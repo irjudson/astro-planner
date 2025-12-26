@@ -17,7 +17,7 @@ class EphemerisService:
     def __init__(self):
         """Initialize with ephemeris data."""
         self.ts = load.timescale()
-        self.eph = load("de421.bsp")
+        self.eph = load("../data/ephemeris/de421.bsp")
         self.earth = self.eph["earth"]
         self.sun = self.eph["sun"]
 
