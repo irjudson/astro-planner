@@ -7,7 +7,7 @@ from typing import Dict, Tuple
 
 import pytz
 from skyfield import almanac
-from skyfield.api import Star, load, wgs84
+from skyfield.api import Loader, Star, wgs84
 
 from app.models import DSOTarget, Location
 
@@ -20,7 +20,7 @@ class EphemerisService:
         # Configure Skyfield to use local ephemeris directory
         base_dir = Path(__file__).resolve().parent.parent.parent.parent
         ephemeris_dir = base_dir / "data" / "ephemeris"
-        loader = load.Loader(str(ephemeris_dir))
+        loader = Loader(str(ephemeris_dir))
 
         self.ts = loader.timescale()
         self.eph = loader("de421.bsp")
