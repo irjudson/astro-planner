@@ -81,8 +81,8 @@ class DirectProcessor:
 
     def _stretch_channel(self, channel: np.ndarray, algorithm: str, midtones: float) -> np.ndarray:
         """Stretch a single channel."""
-        # Clip outliers (robust min/max)
-        vmin, vmax = np.percentile(channel, [0.5, 99.5])
+        # Clip outliers (robust min/max) - more aggressive to match Seestar
+        vmin, vmax = np.percentile(channel, [0.1, 99.9])
 
         # Normalize to 0-1
         stretched = np.clip((channel - vmin) / (vmax - vmin), 0, 1)
