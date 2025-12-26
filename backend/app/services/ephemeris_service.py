@@ -1,7 +1,9 @@
 """Ephemeris calculations using Skyfield."""
 
 import math
+import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, Tuple
 
 import pytz
@@ -17,7 +19,10 @@ class EphemerisService:
     def __init__(self):
         """Initialize with ephemeris data."""
         self.ts = load.timescale()
-        self.eph = load("../data/ephemeris/de421.bsp")
+        # Use absolute path to ephemeris file
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent
+        ephemeris_path = base_dir / "data" / "ephemeris" / "de421.bsp"
+        self.eph = load(str(ephemeris_path))
         self.earth = self.eph["earth"]
         self.sun = self.eph["sun"]
 
