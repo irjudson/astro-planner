@@ -115,9 +115,11 @@ async def scan_new_captures(db: Session = Depends(get_db)):
                             "path": str(obj_dir.relative_to(fits_root)),
                             "unprocessed_count": len(unprocessed_in_dir),
                             "total_count": len(fits_files),
-                            "latest_file": max(unprocessed_in_dir, key=lambda f: f.stat().st_mtime).name
-                            if unprocessed_in_dir
-                            else None,
+                            "latest_file": (
+                                max(unprocessed_in_dir, key=lambda f: f.stat().st_mtime).name
+                                if unprocessed_in_dir
+                                else None
+                            ),
                         }
                     )
                     total_unprocessed += len(unprocessed_in_dir)
@@ -193,7 +195,15 @@ async def list_output_files():
 
     files = []
     for file_path in sorted(PROCESSING_DIR.glob("*.*"), key=lambda f: f.stat().st_mtime, reverse=True):
-        if file_path.is_file() and file_path.suffix.lower() in [".jpg", ".jpeg", ".png", ".tiff", ".tif", ".fits", ".fit"]:
+        if file_path.is_file() and file_path.suffix.lower() in [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".tiff",
+            ".tif",
+            ".fits",
+            ".fit",
+        ]:
             # Check if this is an image we can preview
             is_previewable = file_path.suffix.lower() in [".jpg", ".jpeg", ".png"]
 
@@ -299,36 +309,36 @@ async def analyze_comparison(request: ComparisonRequest):
             {
                 "aspect": "Histogram Stretch",
                 "observation": "Both images show similar overall brightness and contrast distribution. Your processing pipeline appears to preserve the dynamic range effectively.",
-                "rating": "Excellent"
+                "rating": "Excellent",
             },
             {
                 "aspect": "Noise Levels",
                 "observation": "Seestar applies aggressive noise reduction which can smooth fine details. Your processing may show more granular structure in nebulae and galaxies.",
-                "rating": "Good"
+                "rating": "Good",
             },
             {
                 "aspect": "Color Balance",
                 "observation": "Seestar tends to boost color saturation for visual appeal. Your processing maintains more natural color balance suitable for further editing.",
-                "rating": "Good"
+                "rating": "Good",
             },
             {
                 "aspect": "Star Definition",
                 "observation": "Star profiles appear similar in both versions. No significant bloating or compression detected.",
-                "rating": "Excellent"
+                "rating": "Excellent",
             },
             {
                 "aspect": "Background Calibration",
                 "observation": "Background levels are well-balanced in both images. Neither shows significant gradients or artifacts.",
-                "rating": "Excellent"
-            }
+                "rating": "Excellent",
+            },
         ],
         "recommendations": [
             "Your processing pipeline successfully reproduces Seestar's quality",
             "Consider adjusting color saturation if you prefer Seestar's more vibrant look",
             "Your output is well-suited for further editing in PixInsight or similar tools",
-            "The preservation of fine detail makes your version better for scientific analysis"
+            "The preservation of fine detail makes your version better for scientific analysis",
         ],
-        "overall_assessment": "Your processing pipeline achieves excellent results comparable to Seestar's built-in processing. The main differences are stylistic rather than quality-based, with your version preserving more natural colors and fine detail while Seestar optimizes for immediate visual impact."
+        "overall_assessment": "Your processing pipeline achieves excellent results comparable to Seestar's built-in processing. The main differences are stylistic rather than quality-based, with your version preserving more natural colors and fine detail while Seestar optimizes for immediate visual impact.",
     }
 
     return analysis
