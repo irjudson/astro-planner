@@ -17,11 +17,13 @@ class EphemerisService:
 
     def __init__(self):
         """Initialize with ephemeris data."""
-        self.ts = load.timescale()
-        # Use absolute path to ephemeris file
+        # Configure Skyfield to use local ephemeris directory
         base_dir = Path(__file__).resolve().parent.parent.parent.parent
-        ephemeris_path = base_dir / "data" / "ephemeris" / "de421.bsp"
-        self.eph = load(str(ephemeris_path))
+        ephemeris_dir = base_dir / "data" / "ephemeris"
+        loader = load.Loader(str(ephemeris_dir))
+
+        self.ts = loader.timescale()
+        self.eph = loader("de421.bsp")
         self.earth = self.eph["earth"]
         self.sun = self.eph["sun"]
 
