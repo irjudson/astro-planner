@@ -2,8 +2,10 @@
 
 from datetime import datetime
 import pytz
+import pytest
+from pydantic import ValidationError
 
-from app.models import TargetVisibility
+from app.models import TargetVisibility, VisibilityStatus
 
 
 def test_target_visibility_model():
@@ -14,16 +16,72 @@ def test_target_visibility_model():
     visibility = TargetVisibility(
         current_altitude=45.2,
         current_azimuth=180.5,
-        status="visible",
+        status=VisibilityStatus.VISIBLE,
         best_time_tonight=best_time,
         best_altitude_tonight=62.5,
         is_optimal_now=False
     )
 
     assert visibility.current_altitude == 45.2
-    assert visibility.status == "visible"
+    assert visibility.status == VisibilityStatus.VISIBLE
     assert visibility.best_altitude_tonight == 62.5
 
     # Test JSON serialization
     json_data = visibility.model_dump()
     assert json_data["status"] == "visible"
+
+
+def test_target_visibility_altitude_validation():
+    """Test altitude must be in valid range."""
+    # Valid altitude
+    visibility = TargetVisibility(
+        current_altitude=45.0,
+        current_azimuth=180.0,
+        status=VisibilityStatus.VISIBLE
+    )
+    assert visibility.current_altitude == 45.0
+
+    # Invalid: too high
+    with pytest.raises(ValidationError):
+        TargetVisibility(
+            current_altitude=95.0,
+            current_azimuth=180.0,
+            status=VisibilityStatus.VISIBLE
+        )
+
+    # Invalid: too low
+    with pytest.raises(ValidationError):
+        TargetVisibility(
+            current_altitude=-95.0,
+            current_azimuth=180.0,
+            status=VisibilityStatus.VISIBLE
+        )
+
+
+def test_target_visibility_azimuth_validation():
+    """Test azimuth must be in valid range."""
+    # Invalid: >= 360
+    with pytest.raises(ValidationError):
+        TargetVisibility(
+            current_altitude=45.0,
+            current_azimuth=360.0,
+            status=VisibilityStatus.VISIBLE
+        )
+
+    # Invalid: negative
+    with pytest.raises(ValidationError):
+        TargetVisibility(
+            current_altitude=45.0,
+            current_azimuth=-10.0,
+            status=VisibilityStatus.VISIBLE
+        )
+
+
+def test_target_visibility_invalid_status():
+    """Test invalid status values are rejected."""
+    with pytest.raises(ValidationError):
+        TargetVisibility(
+            current_altitude=45.0,
+            current_azimuth=180.0,
+            status="invalid_status"
+        )
