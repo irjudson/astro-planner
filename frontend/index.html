@@ -4308,6 +4308,13 @@
             lastResults: []  // Store last results for add-to-plan functionality
         };
 
+        // HTML escaping helper to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Custom Plan Builder State
         const customPlan = {
             targets: [],  // Array of catalog objects
@@ -4369,7 +4376,7 @@
 
                 const chips = this.targets.map(t => `
                     <span class="plan-chip">
-                        ${t.name} <button onclick="customPlan.remove('${t.catalog_id}')">&times;</button>
+                        ${escapeHtml(t.name)} <button onclick="customPlan.remove('${escapeHtml(t.catalog_id)}')">&times;</button>
                     </span>
                 `).join('');
 
