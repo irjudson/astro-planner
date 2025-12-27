@@ -1504,6 +1504,18 @@
         .plan-chip button:hover {
             color: #c82333;
         }
+
+        /* Visibility Badge Styles - Task 7 */
+        .visibility-badge {
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .visibility-info {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 10px;
+        }
     </style>
     <!-- Tron Theme CSS - loaded AFTER inline styles to ensure proper override -->
     <link rel="stylesheet" href="tron-theme.css">
@@ -4680,7 +4692,7 @@
                         </div>
                     `;
                 } else {
-                    // DSO display (original)
+                    // DSO display with visibility
                     const magStr = obj.magnitude && obj.magnitude < 99 ? obj.magnitude.toFixed(1) : 'N/A';
                     const sizeStr = obj.size_arcmin ? `${obj.size_arcmin.toFixed(1)}'` : 'N/A';
                     const raStr = obj.ra_hours ? `${obj.ra_hours.toFixed(2)}h` : 'N/A';
@@ -4692,53 +4704,108 @@
                     // Auto-generate preview image URL
                     const sanitizedId = obj.catalog_id.replace(/ /g, '_').replace(/\//g, '_').replace(/:/g, '_');
                     const previewImageUrl = `/api/images/targets/${sanitizedId}`;
-                    console.log(`Catalog preview URL for ${obj.name}: ${previewImageUrl}`);
+
+                    // Visibility badge and info
+                    let visibilityBadge = '';
+                    let visibilityInfo = '';
+
+                    if (obj.visibility) {
+                        const vis = obj.visibility;
+                        const badgeColors = {
+                            visible: '#28a745',
+                            rising: '#007bff',
+                            setting: '#fd7e14',
+                            below_horizon: '#6c757d'
+                        };
+                        const badgeLabels = {
+                            visible: '🟢 Visible',
+                            rising: '🔵 Rising',
+                            setting: '🟠 Setting',
+                            below_horizon: '⚫ Below'
+                        };
+
+                        visibilityBadge = `<span class="visibility-badge" style="background: ${badgeColors[vis.status]}; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.8em;">${badgeLabels[vis.status]}</span>`;
+
+                        const altTrend = vis.status === 'rising' ? '↗' : vis.status === 'setting' ? '↘' : '';
+                        const bestTime = vis.best_time_tonight ? new Date(vis.best_time_tonight).toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'}) : 'N/A';
+                        const bestAlt = vis.best_altitude_tonight ? vis.best_altitude_tonight.toFixed(0) + '°' : 'N/A';
+
+                        visibilityInfo = `
+                            <div class="visibility-info" style="border-top: 1px solid #e0e0e0; padding-top: 10px; margin-top: 10px;">
+                                <div style="font-size: 0.9em; color: #666; line-height: 1.8;">
+                                    <div>📍 Alt now: ${vis.current_altitude.toFixed(0)}° ${altTrend}</div>
+                                    <div>⭐ Best: ${bestTime} at ${bestAlt}</div>
+                                    <div>📅 Best months: ${getBestMonths(obj.ra_hours)}</div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // No location configured
+                        visibilityInfo = `
+                            <div class="visibility-info" style="border-top: 1px solid #e0e0e0; padding-top: 10px; margin-top: 10px;">
+                                <div style="font-size: 0.9em; color: #666; line-height: 1.8;">
+                                    <div>📍 <a href="#" onclick="event.preventDefault(); showTab('settings'); return false;" style="color: #667eea;">Set location</a> to see visibility</div>
+                                    <div>📅 Best months: ${getBestMonths(obj.ra_hours)}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Check if already in plan
+                    const inPlan = customPlan.targets.find(t => t.catalog_id === obj.catalog_id);
+                    const addButtonHtml = inPlan
+                        ? '<button class="select-btn" disabled style="background: #28a745; color: white;">✓ Added</button>'
+                        : `<button class="select-btn" onclick="event.stopPropagation(); addToPlan('${obj.catalog_id}')" style="background: #667eea; color: white;">➕ Add to Plan</button>`;
 
                     return `
                         <div class="catalog-item">
                             <div class="catalog-item-header">
                                 <div class="catalog-item-name">${obj.name}</div>
-                                <div class="catalog-item-type">${obj.object_type}</div>
+                                ${visibilityBadge || `<div class="catalog-item-type">${obj.object_type}</div>`}
                             </div>
                             <div style="margin-bottom: 12px;">
                                 <img src="${previewImageUrl}"
                                      alt="${obj.name} preview"
-                                     style="width: 100%; max-width: 250px; height: auto; border-radius: 6px; border: 2px solid var(--tron-border); cursor: pointer; display: block; margin: 0 auto;"
+                                     style="width: 100%; max-width: 250px; height: auto; border-radius: 6px; border: 2px solid #e0e0e0; cursor: pointer; display: block; margin: 0 auto;"
                                      onclick="event.stopPropagation(); showObjectPreview('${obj.name}', '${obj.catalog_id}', ${raDeg}, ${obj.dec_degrees}, ${obj.size_arcmin || 60})"
                                      onerror="this.style.display='none'">
                             </div>
                             <div class="catalog-item-details">
-                                <div><strong>Catalog ID:</strong> ${obj.catalog_id}</div>
-                                <div><strong>Magnitude:</strong> ${magStr}</div>
-                                <div><strong>Size:</strong> ${sizeStr}</div>
+                                <div><strong>Type:</strong> ${obj.object_type}</div>
+                                <div><strong>Magnitude:</strong> ${magStr} • <strong>Size:</strong> ${sizeStr}</div>
                                 <div><strong>RA/Dec:</strong> ${raStr}, ${decStr}</div>
-                                ${obj.description ? `<div style="margin-top: 8px; font-style: italic;">${obj.description}</div>` : ''}
                             </div>
-                            <div class="catalog-item-actions" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
+                            ${visibilityInfo}
+                            <div class="catalog-item-actions" style="display: flex; gap: 8px; margin-top: 12px;">
                                 ${raDeg && obj.dec_degrees ? `
                                     <button class="preview-btn" onclick="event.stopPropagation(); showObjectPreview('${obj.name}', '${obj.catalog_id}', ${raDeg}, ${obj.dec_degrees}, ${obj.size_arcmin || 60})">
                                         🔭 Preview
                                     </button>
                                 ` : ''}
-                                ${obj.ra_hours !== null && obj.dec_degrees !== null ? `
-                                    <button class="select-btn" onclick="event.stopPropagation(); showViewingMonths('${obj.name}', ${obj.ra_hours}, ${obj.dec_degrees})">
-                                        📅 Best Months
-                                    </button>
-                                ` : ''}
-                                ${(() => {
-                                    const inPlan = customPlan.targets.find(t => t.catalog_id === obj.catalog_id);
-                                    return inPlan
-                                        ? '<button class="select-btn" disabled style="background: #28a745; color: white;">✓ Added</button>'
-                                        : `<button class="select-btn" onclick="event.stopPropagation(); addToPlan('${obj.catalog_id}')" style="background: #667eea; color: white;">➕ Add to Plan</button>`;
-                                })()}
-                                <button class="select-btn" onclick="event.stopPropagation(); selectCatalogObject('${obj.catalog_id}')">
-                                    ℹ️ Details
-                                </button>
+                                ${addButtonHtml}
                             </div>
                         </div>
                     `;
                 }
             }).join('');
+        }
+
+        // Helper: Get best viewing months from RA
+        function getBestMonths(raHours) {
+            if (!raHours) return 'N/A';
+
+            // Convert RA to month (opposition month when object is highest at midnight)
+            // RA 0h → September/October (opposite of March sun)
+            // RA 6h → December/January
+            // RA 12h → March/April
+            // RA 18h → June/July
+
+            const monthStart = Math.floor((raHours + 6) / 2) % 12;
+            const monthEnd = (monthStart + 2) % 12;
+
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            return `${months[monthStart]}-${months[monthEnd]}`;
         }
 
         // Add target to custom plan
