@@ -2690,9 +2690,12 @@
                 loadCatalogStats();
                 // Load sort preference before loading catalog objects
                 if (typeof loadSortPreference === 'function') {
-                    loadSortPreference().then(() => {
-                        loadCatalogObjects();
-                    });
+                    loadSortPreference()
+                        .then(() => loadCatalogObjects())
+                        .catch((e) => {
+                            console.warn('Sort preference failed to load:', e);
+                            loadCatalogObjects(); // Still load catalog with default sort
+                        });
                 } else {
                     loadCatalogObjects();
                 }
