@@ -1,12 +1,15 @@
 """DSO catalog management service."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy.orm import Session
 
 from app.models import DSOTarget, Location, TargetVisibility
 from app.models.catalog_models import ConstellationName, DSOCatalog
+
+if TYPE_CHECKING:
+    from app.services.ephemeris_service import EphemerisService
 
 
 class CatalogService:
