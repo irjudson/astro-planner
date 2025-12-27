@@ -1902,6 +1902,18 @@
 
                     <div class="filter-tags" id="active-filters"></div>
 
+                    <!-- Sort Dropdown -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                        <label for="catalog-sort" style="display: block; margin-bottom: 5px; font-weight: 500;">Sort by:</label>
+                        <select id="catalog-sort" onchange="handleSortChange()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="visibility">Visibility Tonight</option>
+                            <option value="magnitude">Brightness (magnitude)</option>
+                            <option value="size">Size (largest first)</option>
+                            <option value="name">Name (A-Z)</option>
+                        </select>
+                        <div id="sort-indicator" style="margin-top: 5px; font-size: 0.85em; color: #666;"></div>
+                    </div>
+
                     <div style="text-align: right; margin-top: 15px;">
                         <button class="btn" style="padding: 10px 20px; font-size: 0.9em;" onclick="clearCatalogFilters()">Clear Filters</button>
                     </div>
@@ -2676,7 +2688,14 @@
             // Load catalog stats on initial page load since catalog tab is active by default
             if (typeof loadCatalogStats === 'function') {
                 loadCatalogStats();
-                loadCatalogObjects();
+                // Load sort preference before loading catalog objects
+                if (typeof loadSortPreference === 'function') {
+                    loadSortPreference().then(() => {
+                        loadCatalogObjects();
+                    });
+                } else {
+                    loadCatalogObjects();
+                }
             }
         });
 
@@ -4317,6 +4336,7 @@
             searchQuery: '',
             page: 0,
             limit: 50,
+            sortBy: 'magnitude',  // Default sort
             lastResults: []  // Store last results for add-to-plan functionality
         };
 
@@ -4532,6 +4552,9 @@
                     }
                     if (catalogFilters.constellation) {
                         params.append('constellation', catalogFilters.constellation);
+                    }
+                    if (catalogFilters.sortBy) {
+                        params.append('sort_by', catalogFilters.sortBy);
                     }
                     params.append('limit', catalogFilters.limit);
                     params.append('offset', catalogFilters.page * catalogFilters.limit);
@@ -4806,6 +4829,76 @@
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
             return `${months[monthStart]}-${months[monthEnd]}`;
+        }
+
+        // Sort handling functions
+        function handleSortChange() {
+            const sortSelect = document.getElementById('catalog-sort');
+            const sortBy = sortSelect.value;
+
+            // Save preference
+            try {
+                localStorage.setItem('astro_catalog_sort', sortBy);
+            } catch (e) {
+                console.warn('Could not save sort preference:', e);
+            }
+
+            // Update sort indicator
+            updateSortIndicator(sortBy);
+
+            // Update filters and reload
+            catalogFilters.sortBy = sortBy;
+            catalogFilters.page = 0;
+            loadCatalogObjects();
+        }
+
+        function updateSortIndicator(sortBy) {
+            const indicator = document.getElementById('sort-indicator');
+            const sortLabels = {
+                magnitude: 'Sorted by brightness (brightest first)',
+                visibility: 'Sorted by visibility (best to image now first)',
+                size: 'Sorted by size (largest first)',
+                name: 'Sorted alphabetically'
+            };
+
+            indicator.textContent = sortLabels[sortBy] || '';
+        }
+
+        // Load saved sort preference with smart default
+        async function loadSortPreference() {
+            try {
+                // Check if we have a saved preference
+                const saved = localStorage.getItem('astro_catalog_sort');
+
+                if (saved) {
+                    // Use saved preference
+                    catalogFilters.sortBy = saved;
+                    document.getElementById('catalog-sort').value = saved;
+                    updateSortIndicator(saved);
+                } else {
+                    // No saved preference - determine smart default
+                    try {
+                        const settingsResponse = await fetch('/api/settings');
+                        const settings = await settingsResponse.json();
+                        const hasLocation = settings.location_latitude !== null;
+
+                        // Smart default: visibility if location configured, magnitude otherwise
+                        const defaultSort = hasLocation ? 'visibility' : 'magnitude';
+                        catalogFilters.sortBy = defaultSort;
+                        document.getElementById('catalog-sort').value = defaultSort;
+                        updateSortIndicator(defaultSort);
+                    } catch (e) {
+                        console.warn('Could not check location settings:', e);
+                        // Fallback to magnitude
+                        catalogFilters.sortBy = 'magnitude';
+                        document.getElementById('catalog-sort').value = 'magnitude';
+                        updateSortIndicator('magnitude');
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not load sort preference:', e);
+                catalogFilters.sortBy = 'magnitude';
+            }
         }
 
         // Add target to custom plan
