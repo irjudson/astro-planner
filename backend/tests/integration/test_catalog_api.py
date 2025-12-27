@@ -3,6 +3,7 @@
 import pytest
 
 
+@pytest.mark.integration
 def test_list_targets_with_visibility(client):
     """Test /api/targets endpoint with visibility calculations."""
     # Note: This requires location to be configured in settings
@@ -21,6 +22,7 @@ def test_list_targets_with_visibility(client):
         # visibility may or may not be present depending on location config
 
 
+@pytest.mark.integration
 def test_list_targets_sort_by_magnitude(client):
     """Test sorting by magnitude."""
     response = client.get("/api/targets?limit=10&sort_by=magnitude")
@@ -33,6 +35,7 @@ def test_list_targets_sort_by_magnitude(client):
         assert data[0]["magnitude"] <= data[1]["magnitude"]
 
 
+@pytest.mark.integration
 def test_list_targets_sort_by_size(client):
     """Test sorting by size."""
     response = client.get("/api/targets?limit=10&sort_by=size")
@@ -45,6 +48,7 @@ def test_list_targets_sort_by_size(client):
         assert data[0]["size_arcmin"] >= data[1]["size_arcmin"]
 
 
+@pytest.mark.integration
 def test_list_targets_sort_by_name(client):
     """Test sorting by name."""
     response = client.get("/api/targets?limit=10&sort_by=name")
