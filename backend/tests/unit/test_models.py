@@ -19,7 +19,7 @@ def test_target_visibility_model():
         status=VisibilityStatus.VISIBLE,
         best_time_tonight=best_time,
         best_altitude_tonight=62.5,
-        is_optimal_now=False
+        is_optimal_now=False,
     )
 
     assert visibility.current_altitude == 45.2
@@ -34,57 +34,33 @@ def test_target_visibility_model():
 def test_target_visibility_altitude_validation():
     """Test altitude must be in valid range."""
     # Valid altitude
-    visibility = TargetVisibility(
-        current_altitude=45.0,
-        current_azimuth=180.0,
-        status=VisibilityStatus.VISIBLE
-    )
+    visibility = TargetVisibility(current_altitude=45.0, current_azimuth=180.0, status=VisibilityStatus.VISIBLE)
     assert visibility.current_altitude == 45.0
 
     # Invalid: too high
     with pytest.raises(ValidationError):
-        TargetVisibility(
-            current_altitude=95.0,
-            current_azimuth=180.0,
-            status=VisibilityStatus.VISIBLE
-        )
+        TargetVisibility(current_altitude=95.0, current_azimuth=180.0, status=VisibilityStatus.VISIBLE)
 
     # Invalid: too low
     with pytest.raises(ValidationError):
-        TargetVisibility(
-            current_altitude=-95.0,
-            current_azimuth=180.0,
-            status=VisibilityStatus.VISIBLE
-        )
+        TargetVisibility(current_altitude=-95.0, current_azimuth=180.0, status=VisibilityStatus.VISIBLE)
 
 
 def test_target_visibility_azimuth_validation():
     """Test azimuth must be in valid range."""
     # Invalid: >= 360
     with pytest.raises(ValidationError):
-        TargetVisibility(
-            current_altitude=45.0,
-            current_azimuth=360.0,
-            status=VisibilityStatus.VISIBLE
-        )
+        TargetVisibility(current_altitude=45.0, current_azimuth=360.0, status=VisibilityStatus.VISIBLE)
 
     # Invalid: negative
     with pytest.raises(ValidationError):
-        TargetVisibility(
-            current_altitude=45.0,
-            current_azimuth=-10.0,
-            status=VisibilityStatus.VISIBLE
-        )
+        TargetVisibility(current_altitude=45.0, current_azimuth=-10.0, status=VisibilityStatus.VISIBLE)
 
 
 def test_target_visibility_invalid_status():
     """Test invalid status values are rejected."""
     with pytest.raises(ValidationError):
-        TargetVisibility(
-            current_altitude=45.0,
-            current_azimuth=180.0,
-            status="invalid_status"
-        )
+        TargetVisibility(current_altitude=45.0, current_azimuth=180.0, status="invalid_status")
 
 
 def test_dso_target_with_visibility():
@@ -102,7 +78,7 @@ def test_dso_target_with_visibility():
         status=VisibilityStatus.VISIBLE,
         best_time_tonight=best_time,
         best_altitude_tonight=62.5,
-        is_optimal_now=False
+        is_optimal_now=False,
     )
 
     target = DSOTarget(
@@ -114,7 +90,7 @@ def test_dso_target_with_visibility():
         magnitude=3.4,
         size_arcmin=190.0,
         description="Andromeda Galaxy",
-        visibility=visibility
+        visibility=visibility,
     )
 
     assert target.visibility is not None
@@ -129,7 +105,7 @@ def test_dso_target_with_visibility():
         object_type="nebula",
         magnitude=4.0,
         size_arcmin=85.0,
-        description="Orion Nebula"
+        description="Orion Nebula",
     )
 
     assert target_no_vis.visibility is None

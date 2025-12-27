@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class VisibilityStatus(str, Enum):
     """Visibility status enumeration."""
+
     VISIBLE = "visible"
     RISING = "rising"
     SETTING = "setting"
@@ -84,7 +85,9 @@ class TargetVisibility(BaseModel):
     current_altitude: float = Field(..., ge=-90, le=90, description="Current altitude in degrees")
     current_azimuth: float = Field(..., ge=0, lt=360, description="Current azimuth in degrees")
     status: VisibilityStatus = Field(..., description="Visibility status")
-    best_time_tonight: Optional[datetime] = Field(None, description="Best viewing time during tonight's observing window")
+    best_time_tonight: Optional[datetime] = Field(
+        None, description="Best viewing time during tonight's observing window"
+    )
     best_altitude_tonight: Optional[float] = Field(None, ge=-90, le=90, description="Altitude at best time")
     is_optimal_now: bool = Field(False, description="True if currently at optimal altitude (45-65°)")
 

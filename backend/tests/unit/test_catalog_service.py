@@ -21,11 +21,11 @@ def test_add_visibility_info():
     ephemeris.calculate_position.return_value = (45.2, 180.5)  # alt, az
     ephemeris.calculate_twilight_times.return_value = {
         "astronomical_twilight_end": pytz.timezone("America/Denver").localize(datetime(2025, 11, 15, 19, 30)),
-        "astronomical_twilight_start": pytz.timezone("America/Denver").localize(datetime(2025, 11, 16, 5, 30))
+        "astronomical_twilight_start": pytz.timezone("America/Denver").localize(datetime(2025, 11, 16, 5, 30)),
     }
     ephemeris.get_best_viewing_time.return_value = (
         pytz.timezone("America/Denver").localize(datetime(2025, 11, 15, 23, 30)),
-        62.5
+        62.5,
     )
 
     target = DSOTarget(
@@ -36,15 +36,10 @@ def test_add_visibility_info():
         object_type="galaxy",
         magnitude=3.4,
         size_arcmin=190.0,
-        description="Andromeda Galaxy"
+        description="Andromeda Galaxy",
     )
 
-    location = Location(
-        latitude=45.9183,
-        longitude=-111.5433,
-        elevation=1234,
-        timezone="America/Denver"
-    )
+    location = Location(latitude=45.9183, longitude=-111.5433, elevation=1234, timezone="America/Denver")
 
     current_time = pytz.timezone("America/Denver").localize(datetime(2025, 11, 15, 21, 0))
 
@@ -68,11 +63,11 @@ def test_add_visibility_info_at_horizon():
     ephemeris.calculate_position.return_value = (0.0, 90.0)  # alt=0 (exactly at horizon), az=90
     ephemeris.calculate_twilight_times.return_value = {
         "astronomical_twilight_end": pytz.timezone("America/Denver").localize(datetime(2025, 11, 15, 19, 30)),
-        "astronomical_twilight_start": pytz.timezone("America/Denver").localize(datetime(2025, 11, 16, 5, 30))
+        "astronomical_twilight_start": pytz.timezone("America/Denver").localize(datetime(2025, 11, 16, 5, 30)),
     }
     ephemeris.get_best_viewing_time.return_value = (
         pytz.timezone("America/Denver").localize(datetime(2025, 11, 15, 23, 30)),
-        15.0
+        15.0,
     )
 
     target = DSOTarget(
@@ -83,15 +78,10 @@ def test_add_visibility_info_at_horizon():
         object_type="galaxy",
         magnitude=3.4,
         size_arcmin=190.0,
-        description="Andromeda Galaxy"
+        description="Andromeda Galaxy",
     )
 
-    location = Location(
-        latitude=45.9183,
-        longitude=-111.5433,
-        elevation=1234,
-        timezone="America/Denver"
-    )
+    location = Location(latitude=45.9183, longitude=-111.5433, elevation=1234, timezone="America/Denver")
 
     current_time = pytz.timezone("America/Denver").localize(datetime(2025, 11, 15, 21, 0))
 
