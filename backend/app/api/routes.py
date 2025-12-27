@@ -147,8 +147,10 @@ async def list_targets(
             offset=0,
         )
 
-        # Add visibility if requested and location configured
-        if include_visibility:
+        # Performance optimization: Only calculate visibility for ALL targets if sorting by visibility
+        # Otherwise, sort first, paginate, then calculate visibility only for paginated results
+        if sort_by == "visibility" and include_visibility:
+            # When sorting by visibility, we need to calculate it for all targets first
             try:
                 settings_service = SettingsService(db)
                 location = settings_service.get_location()
@@ -166,17 +168,8 @@ async def list_targets(
                 # If visibility fails, continue without it
                 print(f"Warning: Could not calculate visibility: {e}")
 
-        # Sort targets
-        if sort_by == "magnitude":
-            targets.sort(key=lambda t: t.magnitude)
-        elif sort_by == "size":
-            targets.sort(key=lambda t: t.size_arcmin, reverse=True)
-        elif sort_by == "name":
-            targets.sort(key=lambda t: t.catalog_id)
-        elif sort_by == "visibility" and include_visibility:
             # Sort by: optimal now > visible > rising > setting > below horizon
             # Within each group, sort by altitude
-
             def visibility_sort_key(t):
                 if not t.visibility:
                     return (999, -999)  # No visibility - sort last
@@ -191,8 +184,39 @@ async def list_targets(
 
             targets.sort(key=visibility_sort_key)
 
-        # Apply pagination after sorting
-        paginated = targets[offset : offset + limit] if limit else targets[offset:]
+            # Apply pagination after sorting by visibility
+            paginated = targets[offset : offset + limit] if limit else targets[offset:]
+
+        else:
+            # Sort by non-visibility fields first (no visibility calculation needed)
+            if sort_by == "magnitude":
+                targets.sort(key=lambda t: t.magnitude)
+            elif sort_by == "size":
+                targets.sort(key=lambda t: t.size_arcmin, reverse=True)
+            elif sort_by == "name":
+                targets.sort(key=lambda t: t.catalog_id)
+
+            # Apply pagination BEFORE calculating visibility (performance optimization)
+            paginated = targets[offset : offset + limit] if limit else targets[offset:]
+
+            # Now add visibility only to the paginated results
+            if include_visibility:
+                try:
+                    settings_service = SettingsService(db)
+                    location = settings_service.get_location()
+
+                    if location:
+                        ephemeris = EphemerisService()
+                        current_time = datetime.now(pytz.timezone(location.timezone))
+
+                        # Add visibility to each paginated target
+                        paginated = [
+                            catalog_service.add_visibility_info(target, location, ephemeris, current_time)
+                            for target in paginated
+                        ]
+                except Exception as e:
+                    # If visibility fails, continue without it
+                    print(f"Warning: Could not calculate visibility: {e}")
 
         return paginated
     except Exception as e:
