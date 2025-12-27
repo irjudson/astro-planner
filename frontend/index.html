@@ -4435,15 +4435,68 @@
                     }
                 }
 
-                // TODO: Call /api/plan with custom targets
-                // For now, just show message
-                alert(`Generating plan for ${this.targets.length} objects...\n\nThis will be implemented in next task.`);
+                // Show loading state
+                const container = document.getElementById('custom-plan-container');
+                const originalHtml = container.innerHTML;
+                container.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner" style="margin: 0 auto 10px;"></div><p>Generating optimized plan...</p></div>';
 
-                // Clear custom plan
-                this.clear();
+                try {
+                    // Get planning parameters from planner tab (or use defaults)
+                    const location = {
+                        name: document.getElementById('location-name')?.value || 'Unknown',
+                        latitude: parseFloat(document.getElementById('latitude')?.value || 0),
+                        longitude: parseFloat(document.getElementById('longitude')?.value || 0),
+                        elevation: parseFloat(document.getElementById('elevation')?.value || 0) * 0.3048, // Convert feet to meters
+                        timezone: document.getElementById('timezone')?.value || 'UTC'
+                    };
 
-                // Switch to planner tab
-                showTab('planner');
+                    const observingDate = document.getElementById('observing-date')?.value || new Date().toISOString().split('T')[0];
+
+                    const constraints = {
+                        min_altitude: parseFloat(document.getElementById('min-altitude')?.value || 30),
+                        max_altitude: parseFloat(document.getElementById('max-altitude')?.value || 90),
+                        setup_time_minutes: parseInt(document.getElementById('setup-time')?.value || 30),
+                        object_types: ["galaxy", "nebula", "cluster", "planetary_nebula"],  // Default to all types
+                        planning_mode: document.getElementById('planning-mode')?.value || 'balanced',
+                        daytime_planning: document.getElementById('daytime-planning')?.checked || false
+                    };
+
+                    const planRequest = {
+                        location: location,
+                        observing_date: observingDate,
+                        constraints: constraints,
+                        custom_targets: this.targets.map(t => t.catalog_id)  // Send catalog IDs
+                    };
+
+                    const response = await fetch('/api/plan', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(planRequest)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+                        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const plan = await response.json();
+
+                    // Store plan globally for planner tab
+                    window.currentPlan = plan;
+
+                    // Clear custom plan on success
+                    this.clear();
+
+                    // Switch to planner tab and display results
+                    showTab('planner');
+                    displayPlan(plan);
+
+                } catch (error) {
+                    console.error('Error generating plan:', error);
+                    alert(`Failed to generate plan: ${error.message}`);
+                    // Restore original UI on error
+                    container.innerHTML = originalHtml;
+                }
             }
         };
 

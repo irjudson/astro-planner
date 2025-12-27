@@ -101,19 +101,33 @@ class PlannerService:
         except Exception as e:
             print(f"Warning: Failed to get sky quality: {e}")
 
-        # Filter targets by object type
-        # Limit to brighter objects (mag < 12) and top 200 candidates for performance
-        # Seestar S50 works best with magnitude 8-11 targets anyway
+        # Get candidate targets
         t0 = time.time()
-        targets = self.catalog.filter_targets(
-            object_types=request.constraints.object_types,
-            max_magnitude=12.0,  # Practical limit for Seestar S50
-            limit=200,  # Enough variety while keeping performance fast
-        )
-        print(f"[TIMING] Target filtering: {time.time() - t0:.2f}s ({len(targets)} targets)")
+        if request.custom_targets:
+            # Use custom target list
+            targets = []
+            for catalog_id in request.custom_targets:
+                target = self.catalog.get_target_by_id(catalog_id)
+                if target:
+                    targets.append(target)
 
-        # Apply sky quality filtering if available
-        if sky_quality and sky_quality.suitable_for:
+            if len(targets) == 0:
+                raise ValueError("None of the custom targets were found in catalog")
+
+            print(f"[TIMING] Custom target loading: {time.time() - t0:.2f}s ({len(targets)} targets)")
+        else:
+            # Filter targets by object type
+            # Limit to brighter objects (mag < 12) and top 200 candidates for performance
+            # Seestar S50 works best with magnitude 8-11 targets anyway
+            targets = self.catalog.filter_targets(
+                object_types=request.constraints.object_types,
+                max_magnitude=12.0,  # Practical limit for Seestar S50
+                limit=200,  # Enough variety while keeping performance fast
+            )
+            print(f"[TIMING] Target filtering: {time.time() - t0:.2f}s ({len(targets)} targets)")
+
+        # Apply sky quality filtering if available (skip for custom targets - user explicitly chose them)
+        if not request.custom_targets and sky_quality and sky_quality.suitable_for:
             # Filter targets based on sky quality suitability
             # Keep targets whose object type is in the suitable_for list
             suitable_types = set(sky_quality.suitable_for)
