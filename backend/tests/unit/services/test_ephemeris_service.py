@@ -442,3 +442,74 @@ class TestTwilightAngleIntegration:
         total_twilight = twilight["astronomical_twilight_end"].timestamp() - twilight["sunset"].timestamp()
         # Total twilight from sunset to astronomical should be 1-2 hours at mid-latitudes
         assert 45 * 60 < total_twilight < 3 * 60 * 60, "Total twilight should be 45min-3hr"
+
+
+class TestBestViewingTime:
+    """Tests for best viewing time calculations."""
+
+    @pytest.fixture
+    def ephemeris(self):
+        """Create ephemeris service instance."""
+        return EphemerisService()
+
+    @pytest.fixture
+    def test_location(self):
+        """Create test location (Montana)."""
+        return Location(
+            name="Three Forks, MT",
+            latitude=45.9183,
+            longitude=-111.5433,
+            elevation=1234,
+            timezone="America/Denver",
+        )
+
+    def test_get_best_viewing_time(self, ephemeris, test_location):
+        """Test finding peak altitude during observing window."""
+        # M31 (Andromeda) - peaks around local midnight in fall
+        m31 = DSOTarget(
+            name="M31",
+            catalog_id="M31",
+            ra_hours=0.71,
+            dec_degrees=41.27,
+            object_type="galaxy",
+            magnitude=3.4,
+            size_arcmin=190.0,
+            description="Andromeda Galaxy",
+        )
+
+        # November evening observing window (8 PM - 4 AM)
+        tz = pytz.timezone("America/Denver")
+        start_time = tz.localize(datetime(2025, 11, 15, 20, 0))
+        end_time = tz.localize(datetime(2025, 11, 16, 4, 0))
+
+        best_time, best_alt = ephemeris.get_best_viewing_time(m31, test_location, start_time, end_time)
+
+        # M31 should peak during the observing window at high altitude
+        assert best_time is not None
+        assert best_alt > 60.0  # Should be well above horizon
+        assert best_alt <= 90.0  # Cannot exceed zenith
+        assert start_time < best_time < end_time
+
+    def test_get_best_viewing_time_below_horizon(self, ephemeris, test_location):
+        """Test object that never rises during window."""
+        # Southern hemisphere object (LMC)
+        lmc = DSOTarget(
+            name="LMC",
+            catalog_id="LMC",
+            ra_hours=5.24,
+            dec_degrees=-69.75,
+            object_type="galaxy",
+            magnitude=0.9,
+            size_arcmin=645.0,
+            description="Large Magellanic Cloud",
+        )
+
+        # Three Forks, MT (northern hemisphere - LMC never visible)
+        tz = pytz.timezone("America/Denver")
+        start_time = tz.localize(datetime(2025, 11, 15, 20, 0))
+        end_time = tz.localize(datetime(2025, 11, 16, 4, 0))
+
+        best_time, best_alt = ephemeris.get_best_viewing_time(lmc, test_location, start_time, end_time)
+
+        # Should return None or negative altitude
+        assert best_time is None or best_alt < 0

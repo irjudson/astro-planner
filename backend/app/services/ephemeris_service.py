@@ -3,7 +3,7 @@
 import math
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import pytz
 from skyfield import almanac
@@ -207,3 +207,40 @@ class EphemerisService:
         """
         alt, _ = self.calculate_position(target, location, time)
         return min_alt <= alt <= max_alt
+
+    def get_best_viewing_time(
+        self, target: DSOTarget, location: Location, start_time: datetime, end_time: datetime
+    ) -> Tuple[Optional[datetime], Optional[float]]:
+        """
+        Find the best viewing time (peak altitude) during observing window.
+
+        Args:
+            target: DSO target
+            location: Observer location
+            start_time: Start of observing window (timezone-aware)
+            end_time: End of observing window (timezone-aware)
+
+        Returns:
+            Tuple of (best_time, best_altitude) or (None, None) if never rises
+        """
+        # Sample altitude every 15 minutes
+        sample_interval = timedelta(minutes=15)
+        current_time = start_time
+
+        best_time = None
+        best_altitude = -90.0  # Start below horizon
+
+        while current_time <= end_time:
+            alt, _ = self.calculate_position(target, location, current_time)
+
+            if alt > best_altitude:
+                best_altitude = alt
+                best_time = current_time
+
+            current_time += sample_interval
+
+        # Return None if object never rises above horizon
+        if best_altitude < 0:
+            return None, None
+
+        return best_time, best_altitude
