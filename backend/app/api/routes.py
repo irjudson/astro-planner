@@ -95,9 +95,11 @@ async def list_targets(
     constellation: Optional[str] = Query(None, description="Filter by constellation (3-letter abbreviation)"),
     limit: Optional[int] = Query(100, description="Maximum number of results (default: 100, max: 1000)", le=1000),
     offset: int = Query(0, description="Offset for pagination (default: 0)", ge=0),
+    include_visibility: bool = Query(True, description="Include real-time visibility calculations"),
+    sort_by: str = Query("magnitude", description="Sort order: magnitude|size|name|visibility"),
 ):
     """
-    List available DSO targets with advanced filtering.
+    List available DSO targets with advanced filtering, sorting, and optional visibility.
 
     Supports filtering by:
     - Object type (galaxy, nebula, cluster, planetary_nebula)
@@ -110,6 +112,7 @@ async def list_targets(
     - /targets?object_types=galaxy&object_types=nebula - Get galaxies and nebulae
     - /targets?max_magnitude=10&limit=50 - Get 50 objects brighter than magnitude 10
     - /targets?constellation=Ori - Get all objects in Orion
+    - /targets?sort_by=visibility&include_visibility=true - Get objects sorted by visibility
 
     Args:
         object_types: Filter by one or more object types
@@ -118,21 +121,80 @@ async def list_targets(
         constellation: Filter by constellation
         limit: Maximum number of results to return
         offset: Number of results to skip (for pagination)
+        include_visibility: Calculate real-time visibility (requires location in settings)
+        sort_by: Sort order (magnitude, size, name, visibility)
 
     Returns:
-        List of DSO targets matching filters, sorted by brightness
+        List of DSO targets matching filters with optional visibility info
     """
     try:
-        catalog = CatalogService(db)
-        targets = catalog.filter_targets(
+        from datetime import datetime
+
+        import pytz
+
+        from app.services.ephemeris_service import EphemerisService
+        from app.services.settings_service import SettingsService
+
+        catalog_service = CatalogService(db)
+
+        # Get filtered targets (without pagination to allow sorting)
+        targets = catalog_service.filter_targets(
             object_types=object_types,
             min_magnitude=min_magnitude,
             max_magnitude=max_magnitude,
             constellation=constellation,
-            limit=limit,
-            offset=offset,
+            limit=None,  # Get all for sorting, then paginate
+            offset=0,
         )
-        return targets
+
+        # Add visibility if requested and location configured
+        if include_visibility:
+            try:
+                settings_service = SettingsService(db)
+                location = settings_service.get_location()
+
+                if location:
+                    ephemeris = EphemerisService()
+                    current_time = datetime.now(pytz.timezone(location.timezone))
+
+                    # Add visibility to each target
+                    targets = [
+                        catalog_service.add_visibility_info(target, location, ephemeris, current_time)
+                        for target in targets
+                    ]
+            except Exception as e:
+                # If visibility fails, continue without it
+                print(f"Warning: Could not calculate visibility: {e}")
+
+        # Sort targets
+        if sort_by == "magnitude":
+            targets.sort(key=lambda t: t.magnitude)
+        elif sort_by == "size":
+            targets.sort(key=lambda t: t.size_arcmin, reverse=True)
+        elif sort_by == "name":
+            targets.sort(key=lambda t: t.catalog_id)
+        elif sort_by == "visibility" and include_visibility:
+            # Sort by: optimal now > visible > rising > setting > below horizon
+            # Within each group, sort by altitude
+
+            def visibility_sort_key(t):
+                if not t.visibility:
+                    return (999, -999)  # No visibility - sort last
+
+                status_order = {"visible": 0, "rising": 1, "setting": 2, "below_horizon": 3}
+                status_rank = status_order.get(t.visibility.status, 999)
+
+                # Within status, prefer higher altitude
+                alt = t.visibility.current_altitude
+
+                return (status_rank, -alt)
+
+            targets.sort(key=visibility_sort_key)
+
+        # Apply pagination after sorting
+        paginated = targets[offset : offset + limit] if limit else targets[offset:]
+
+        return paginated
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching targets: {str(e)}")
 
