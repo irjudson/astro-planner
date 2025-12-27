@@ -1476,6 +1476,34 @@
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.6; transform: scale(0.95); }
         }
+
+        /* Custom Plan Builder Styles */
+        .plan-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .plan-chip button {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .plan-chip button:hover {
+            color: #c82333;
+        }
     </style>
     <!-- Tron Theme CSS - loaded AFTER inline styles to ensure proper override -->
     <link rel="stylesheet" href="tron-theme.css">
@@ -1864,6 +1892,24 @@
 
                     <div style="text-align: right; margin-top: 15px;">
                         <button class="btn" style="padding: 10px 20px; font-size: 0.9em;" onclick="clearCatalogFilters()">Clear Filters</button>
+                    </div>
+                </div>
+
+                <!-- Custom Plan Builder -->
+                <div id="custom-plan-container" style="display: none; background: #f8f9fa; border: 2px solid #667eea; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0; color: #333;">🎯 Your Custom Plan (<span id="plan-count">0</span> objects)</h3>
+
+                    <div id="plan-chips" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <!-- Chips rendered by JavaScript -->
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="customPlan.generatePlan()" class="btn" style="background: #667eea; color: white; padding: 12px 24px; flex: 1;">
+                            Generate Optimized Plan
+                        </button>
+                        <button onclick="customPlan.clear()" class="btn" style="background: #dc3545; color: white; padding: 12px 24px;">
+                            Clear All
+                        </button>
                     </div>
                 </div>
 
@@ -4258,8 +4304,113 @@
             constellation: '',
             searchQuery: '',
             page: 0,
-            limit: 50
+            limit: 50,
+            lastResults: []  // Store last results for add-to-plan functionality
         };
+
+        // Custom Plan Builder State
+        const customPlan = {
+            targets: [],  // Array of catalog objects
+
+            add(target) {
+                // Don't add duplicates
+                if (this.targets.find(t => t.catalog_id === target.catalog_id)) {
+                    return false;
+                }
+                this.targets.push(target);
+                this.save();
+                this.render();
+                return true;
+            },
+
+            remove(catalogId) {
+                this.targets = this.targets.filter(t => t.catalog_id !== catalogId);
+                this.save();
+                this.render();
+            },
+
+            clear() {
+                this.targets = [];
+                this.save();
+                this.render();
+            },
+
+            save() {
+                try {
+                    localStorage.setItem('astro_custom_plan', JSON.stringify(this.targets));
+                } catch (e) {
+                    console.warn('Could not save custom plan to localStorage:', e);
+                }
+            },
+
+            load() {
+                try {
+                    const saved = localStorage.getItem('astro_custom_plan');
+                    if (saved) {
+                        this.targets = JSON.parse(saved);
+                        this.render();
+                    }
+                } catch (e) {
+                    console.warn('Could not load custom plan from localStorage:', e);
+                    this.targets = [];
+                }
+            },
+
+            render() {
+                const container = document.getElementById('custom-plan-container');
+                if (!container) return;
+
+                if (this.targets.length === 0) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                container.style.display = 'block';
+
+                const chips = this.targets.map(t => `
+                    <span class="plan-chip">
+                        ${t.name} <button onclick="customPlan.remove('${t.catalog_id}')">&times;</button>
+                    </span>
+                `).join('');
+
+                document.getElementById('plan-chips').innerHTML = chips;
+                document.getElementById('plan-count').textContent = this.targets.length;
+            },
+
+            async generatePlan() {
+                if (this.targets.length === 0) {
+                    alert('Add objects to your plan first!');
+                    return;
+                }
+
+                // Check if planner tab has existing plan
+                const existingPlan = document.getElementById('session-summary');
+                const hasExistingPlan = existingPlan && existingPlan.style.display !== 'none';
+
+                if (hasExistingPlan) {
+                    if (!confirm(`Replace existing plan?\n\nThis will replace the current plan in the Planner tab with a new plan optimized for these ${this.targets.length} objects.`)) {
+                        return;
+                    }
+                }
+
+                // TODO: Call /api/plan with custom targets
+                // For now, just show message
+                alert(`Generating plan for ${this.targets.length} objects...\n\nThis will be implemented in next task.`);
+
+                // Clear custom plan
+                this.clear();
+
+                // Switch to planner tab
+                showTab('planner');
+            }
+        };
+
+        // Load saved plan on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => customPlan.load());
+        } else {
+            customPlan.load();
+        }
 
         // Load catalog statistics
         async function loadCatalogStats() {
@@ -4395,6 +4546,9 @@
 
         // Display catalog objects
         function displayCatalogObjects(objects) {
+            // Store for add-to-plan functionality
+            catalogFilters.lastResults = objects;
+
             const grid = document.getElementById('catalog-grid');
             const resultsCount = document.getElementById('catalog-results-count');
             const pageInfo = document.getElementById('page-info');
@@ -4564,6 +4718,12 @@
                                         📅 Best Months
                                     </button>
                                 ` : ''}
+                                ${(() => {
+                                    const inPlan = customPlan.targets.find(t => t.catalog_id === obj.catalog_id);
+                                    return inPlan
+                                        ? '<button class="select-btn" disabled style="background: #28a745; color: white;">✓ Added</button>'
+                                        : `<button class="select-btn" onclick="event.stopPropagation(); addToPlan('${obj.catalog_id}')" style="background: #667eea; color: white;">➕ Add to Plan</button>`;
+                                })()}
                                 <button class="select-btn" onclick="event.stopPropagation(); selectCatalogObject('${obj.catalog_id}')">
                                     ℹ️ Details
                                 </button>
@@ -4572,6 +4732,20 @@
                     `;
                 }
             }).join('');
+        }
+
+        // Add target to custom plan
+        function addToPlan(catalogId) {
+            const target = catalogFilters.lastResults.find(t => t.catalog_id === catalogId);
+            if (!target) {
+                alert('Could not find target');
+                return;
+            }
+
+            if (customPlan.add(target)) {
+                // Refresh catalog display to update button state
+                displayCatalogObjects(catalogFilters.lastResults);
+            }
         }
 
         // Select catalog object (placeholder for future functionality)
