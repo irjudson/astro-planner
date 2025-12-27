@@ -48,7 +48,8 @@ def test_add_visibility_info():
     enriched = service.add_visibility_info(target, location, ephemeris, current_time)
 
     assert enriched.visibility is not None
-    assert enriched.visibility.current_altitude == 45.2
+    # current_altitude now shows the altitude at best viewing time (62.5°)
+    assert enriched.visibility.current_altitude == 62.5
     assert enriched.visibility.status == "visible"
     assert enriched.visibility.best_altitude_tonight == 62.5
 
@@ -90,5 +91,7 @@ def test_add_visibility_info_at_horizon():
     enriched = service.add_visibility_info(target, location, ephemeris, current_time)
 
     assert enriched.visibility is not None
-    assert enriched.visibility.current_altitude == 0.0
-    assert enriched.visibility.status == "below_horizon"  # Objects at horizon should be below_horizon
+    # current_altitude now shows the altitude at best viewing time (15.0°)
+    assert enriched.visibility.current_altitude == 15.0
+    # 15° altitude is in the "rising" category (between 0-30°)
+    assert enriched.visibility.status == "rising"
