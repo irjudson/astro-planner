@@ -63,6 +63,17 @@ class DSOTarget(BaseModel):
     image_url: Optional[str] = Field(default=None, description="Preview image URL (relative path)")
 
 
+class TargetVisibility(BaseModel):
+    """Real-time visibility information for a catalog object."""
+
+    current_altitude: float = Field(..., description="Current altitude in degrees")
+    current_azimuth: float = Field(..., description="Current azimuth in degrees")
+    status: str = Field(..., description="Visibility status: visible|rising|setting|below_horizon")
+    best_time_tonight: Optional[datetime] = Field(None, description="Best viewing time during tonight's observing window")
+    best_altitude_tonight: Optional[float] = Field(None, description="Altitude at best time")
+    is_optimal_now: bool = Field(False, description="True if currently at optimal altitude (45-65°)")
+
+
 class OrbitalElements(BaseModel):
     """Keplerian orbital elements for a comet."""
 

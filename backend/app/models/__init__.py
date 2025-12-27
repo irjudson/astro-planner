@@ -22,6 +22,7 @@ from .models import (
     ScheduledTarget,
     SessionInfo,
     TargetScore,
+    TargetVisibility,
     WeatherForecast,
 )
 from .processing_models import ProcessingFile, ProcessingJob, ProcessingPipeline
@@ -43,6 +44,7 @@ __all__ = [
     "PlanetEphemeris",
     "PlanetVisibility",
     "TargetScore",
+    "TargetVisibility",
     "ScheduledTarget",
     "WeatherForecast",
     "SessionInfo",
