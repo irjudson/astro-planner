@@ -150,7 +150,16 @@ async def list_targets(
         # Performance optimization: Only calculate visibility for ALL targets if sorting by visibility
         # Otherwise, sort first, paginate, then calculate visibility only for paginated results
         if sort_by == "visibility" and include_visibility:
-            # When sorting by visibility, we need to calculate it for all targets first
+            # Performance: When sorting by visibility, limit to brightest 500 targets first
+            # This avoids expensive ephemeris calculations on 1000+ faint objects
+            # Sort by magnitude first to get the brightest candidates
+            targets.sort(key=lambda t: t.magnitude)
+
+            # Take only brightest 500 targets for visibility calculations
+            # This is a reasonable tradeoff: most visible objects are bright anyway
+            max_visibility_calc = 500
+            targets_for_visibility = targets[:max_visibility_calc]
+
             try:
                 settings_service = SettingsService(db)
                 location = settings_service.get_location()
@@ -159,10 +168,10 @@ async def list_targets(
                     ephemeris = EphemerisService()
                     current_time = datetime.now(pytz.timezone(location.timezone))
 
-                    # Add visibility to each target
-                    targets = [
+                    # Add visibility to each target (only brightest 500)
+                    targets_for_visibility = [
                         catalog_service.add_visibility_info(target, location, ephemeris, current_time)
-                        for target in targets
+                        for target in targets_for_visibility
                     ]
             except Exception as e:
                 # If visibility fails, continue without it
@@ -182,10 +191,10 @@ async def list_targets(
 
                 return (status_rank, -alt)
 
-            targets.sort(key=visibility_sort_key)
+            targets_for_visibility.sort(key=visibility_sort_key)
 
             # Apply pagination after sorting by visibility
-            paginated = targets[offset : offset + limit] if limit else targets[offset:]
+            paginated = targets_for_visibility[offset : offset + limit] if limit else targets_for_visibility[offset:]
 
         else:
             # Sort by non-visibility fields first (no visibility calculation needed)
