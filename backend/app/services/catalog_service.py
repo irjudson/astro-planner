@@ -1,10 +1,11 @@
 """DSO catalog management service."""
 
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import DSOTarget
+from app.models import DSOTarget, Location, TargetVisibility
 from app.models.catalog_models import ConstellationName, DSOCatalog
 
 
@@ -207,3 +208,64 @@ class CatalogService:
 
         dso_objects = query.all()
         return [self._db_row_to_target(dso) for dso in dso_objects]
+
+    def add_visibility_info(
+        self,
+        target: DSOTarget,
+        location: Location,
+        ephemeris: "EphemerisService",
+        current_time: datetime,
+    ) -> DSOTarget:
+        """
+        Add real-time visibility information to a target.
+
+        Args:
+            target: DSO target
+            location: Observer location
+            ephemeris: Ephemeris service instance
+            current_time: Current time (timezone-aware)
+
+        Returns:
+            Target with visibility field populated
+        """
+        # Calculate current position
+        current_alt, current_az = ephemeris.calculate_position(target, location, current_time)
+
+        # Determine visibility status
+        if current_alt < 0:
+            status = "below_horizon"
+        elif current_alt < 30:
+            status = "rising"
+        elif current_alt > 70:
+            status = "setting"
+        else:
+            status = "visible"
+
+        # Check if optimal (45-65° altitude)
+        is_optimal = 45.0 <= current_alt <= 65.0
+
+        # Calculate tonight's observing window
+        twilight_times = ephemeris.calculate_twilight_times(location, current_time)
+
+        # Get best viewing time during observing window
+        astro_end = twilight_times.get("astronomical_twilight_end")
+        astro_start = twilight_times.get("astronomical_twilight_start")
+
+        best_time = None
+        best_alt = None
+
+        if astro_end and astro_start:
+            best_time, best_alt = ephemeris.get_best_viewing_time(target, location, astro_end, astro_start)
+
+        # Create visibility object
+        visibility = TargetVisibility(
+            current_altitude=current_alt,
+            current_azimuth=current_az,
+            status=status,
+            best_time_tonight=best_time,
+            best_altitude_tonight=best_alt,
+            is_optimal_now=is_optimal,
+        )
+
+        # Return copy of target with visibility added
+        return target.model_copy(update={"visibility": visibility})
