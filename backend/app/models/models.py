@@ -70,6 +70,7 @@ class DSOTarget(BaseModel):
     size_arcmin: float = Field(description="Approximate size in arcminutes")
     description: Optional[str] = Field(default=None, description="Object description")
     image_url: Optional[str] = Field(default=None, description="Preview image URL (relative path)")
+    visibility: Optional["TargetVisibility"] = Field(None, description="Real-time visibility info (if calculated)")
 
 
 class TargetVisibility(BaseModel):
