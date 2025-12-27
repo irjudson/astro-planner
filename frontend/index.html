@@ -4733,7 +4733,7 @@
                         visibilityInfo = `
                             <div class="visibility-info" style="border-top: 1px solid #e0e0e0; padding-top: 10px; margin-top: 10px;">
                                 <div style="font-size: 0.9em; color: #666; line-height: 1.8;">
-                                    <div>📍 Alt now: ${vis.current_altitude.toFixed(0)}° ${altTrend}</div>
+                                    <div>📍 Alt now: ${vis.current_altitude ? vis.current_altitude.toFixed(0) : 'N/A'}° ${altTrend}</div>
                                     <div>⭐ Best: ${bestTime} at ${bestAlt}</div>
                                     <div>📅 Best months: ${getBestMonths(obj.ra_hours)}</div>
                                 </div>
@@ -4800,7 +4800,7 @@
             // RA 12h → March/April
             // RA 18h → June/July
 
-            const monthStart = Math.floor((raHours + 6) / 2) % 12;
+            const monthStart = Math.floor((raHours / 2 - 4 + 12)) % 12;
             const monthEnd = (monthStart + 2) % 12;
 
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
