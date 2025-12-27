@@ -1,8 +1,9 @@
 """Tests for Pydantic models."""
 
 from datetime import datetime
-import pytz
+
 import pytest
+import pytz
 from pydantic import ValidationError
 
 from app.models import TargetVisibility, VisibilityStatus
@@ -65,9 +66,11 @@ def test_target_visibility_invalid_status():
 
 def test_dso_target_with_visibility():
     """Test DSOTarget with optional visibility field."""
-    from app.models import DSOTarget, TargetVisibility, VisibilityStatus
     from datetime import datetime
+
     import pytz
+
+    from app.models import DSOTarget, TargetVisibility, VisibilityStatus
 
     tz = pytz.timezone("America/Denver")
     best_time = tz.localize(datetime(2025, 11, 15, 23, 30))

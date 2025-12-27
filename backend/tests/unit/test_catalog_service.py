@@ -1,9 +1,10 @@
 """Tests for catalog service."""
 
-import pytest
 from datetime import datetime
-import pytz
 from unittest.mock import MagicMock
+
+import pytest
+import pytz
 
 from app.models import DSOTarget, Location, TargetVisibility
 from app.services.catalog_service import CatalogService

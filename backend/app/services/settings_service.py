@@ -1,6 +1,7 @@
 """Settings service for retrieving configuration."""
 
 from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from app.models import Location
