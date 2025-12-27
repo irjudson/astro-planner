@@ -232,7 +232,7 @@ class CatalogService:
         current_alt, current_az = ephemeris.calculate_position(target, location, current_time)
 
         # Determine visibility status
-        if current_alt < 0:
+        if current_alt <= 0:
             status = "below_horizon"
         elif current_alt < 30:
             status = "rising"
