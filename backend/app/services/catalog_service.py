@@ -1,8 +1,9 @@
 """DSO catalog management service."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, List, Optional
 
+import pytz
 from sqlalchemy.orm import Session
 
 from app.models import DSOTarget, Location, TargetVisibility
@@ -60,6 +61,10 @@ class CatalogService:
         if size_arcmin and size_arcmin > 1:
             description += f", {size_arcmin:.1f}' across"
 
+        # Generate preview image URL
+        sanitized_id = catalog_id.replace(" ", "_").replace("/", "_").replace(":", "_")
+        image_url = f"/api/images/targets/{sanitized_id}"
+
         return DSOTarget(
             name=name,
             catalog_id=catalog_id,
@@ -69,6 +74,7 @@ class CatalogService:
             magnitude=mag,
             size_arcmin=size_arcmin,
             description=description,
+            image_url=image_url,
         )
 
     def _get_constellation_full_name(self, abbreviation: str) -> str:
@@ -220,21 +226,46 @@ class CatalogService:
         current_time: datetime,
     ) -> DSOTarget:
         """
-        Add real-time visibility information to a target.
+        Add visibility information for tonight's viewing window.
 
         Args:
             target: DSO target
             location: Observer location
             ephemeris: Ephemeris service instance
-            current_time: Current time (timezone-aware)
+            current_time: Current time (timezone-aware), used to determine tonight's window
 
         Returns:
-            Target with visibility field populated
+            Target with visibility field populated for tonight's best viewing time
         """
-        # Calculate current position
-        current_alt, current_az = ephemeris.calculate_position(target, location, current_time)
+        # Calculate tonight's observing window
+        twilight_times = ephemeris.calculate_twilight_times(location, current_time)
 
-        # Determine visibility status
+        # Get best viewing time during tonight's dark hours
+        astro_end = twilight_times.get("astronomical_twilight_end")
+        astro_start = twilight_times.get("astronomical_twilight_start")
+
+        best_time = None
+        best_alt = None
+
+        if astro_end and astro_start:
+            best_time, best_alt = ephemeris.get_best_viewing_time(target, location, astro_end, astro_start)
+
+        # Use best viewing time for visibility calculations
+        # If object never rises above horizon tonight, use midnight as fallback
+        if best_time and best_alt is not None and best_alt > 0:
+            calc_time = best_time
+            current_alt = best_alt
+            # Recalculate azimuth at best time
+            _, current_az = ephemeris.calculate_position(target, location, calc_time)
+        else:
+            # Object doesn't rise tonight - use midnight for consistency
+            tz = pytz.timezone(location.timezone)
+            midnight = tz.localize(datetime.combine(current_time.date(), datetime.min.time()))
+            if midnight < current_time:
+                midnight += timedelta(days=1)
+            current_alt, current_az = ephemeris.calculate_position(target, location, midnight)
+
+        # Determine visibility status based on best altitude
         if current_alt <= 0:
             status = "below_horizon"
         elif current_alt < 30:
@@ -244,21 +275,8 @@ class CatalogService:
         else:
             status = "visible"
 
-        # Check if optimal (45-65° altitude)
+        # Check if optimal (45-65° altitude) at best time
         is_optimal = 45.0 <= current_alt <= 65.0
-
-        # Calculate tonight's observing window
-        twilight_times = ephemeris.calculate_twilight_times(location, current_time)
-
-        # Get best viewing time during observing window
-        astro_end = twilight_times.get("astronomical_twilight_end")
-        astro_start = twilight_times.get("astronomical_twilight_start")
-
-        best_time = None
-        best_alt = None
-
-        if astro_end and astro_start:
-            best_time, best_alt = ephemeris.get_best_viewing_time(target, location, astro_end, astro_start)
 
         # Create visibility object
         visibility = TargetVisibility(
