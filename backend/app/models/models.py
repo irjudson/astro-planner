@@ -261,6 +261,14 @@ class TargetScore(BaseModel):
     total_score: float = Field(ge=0, le=1, description="Combined total score (0-1)")
 
 
+class GapAlternative(BaseModel):
+    """Alternative target suggestion for filling a schedule gap."""
+
+    target: DSOTarget
+    score: TargetScore
+    duration_minutes: int = Field(description="Duration this target could fill in minutes")
+
+
 class ScheduledTarget(BaseModel):
     """A target scheduled in the observing plan."""
 
@@ -279,6 +287,10 @@ class ScheduledTarget(BaseModel):
     recommended_exposure: int = Field(description="Recommended exposure time in seconds")
     recommended_frames: int = Field(description="Recommended number of frames")
     score: TargetScore
+    is_gap_filler: bool = Field(default=False, description="Whether this target was auto-filled into a gap")
+    gap_alternatives: Optional[List["GapAlternative"]] = Field(
+        default=None, description="Alternative targets for this gap (if auto-filled)"
+    )
 
 
 class WeatherForecast(BaseModel):
@@ -316,6 +328,19 @@ class SessionInfo(BaseModel):
     total_imaging_minutes: int = Field(description="Total imaging time in minutes")
 
 
+class GapFillStats(BaseModel):
+    """Statistics about gap-filling operation."""
+
+    total_gaps_found: int = Field(description="Total number of gaps detected")
+    gaps_filled: int = Field(description="Number of gaps successfully filled")
+    gaps_unfilled: int = Field(description="Number of gaps that could not be filled")
+    total_gap_time_minutes: int = Field(description="Total time across all gaps in minutes")
+    filled_gap_time_minutes: int = Field(description="Time filled by gap fillers in minutes")
+    unfilled_reasons: List[str] = Field(
+        default_factory=list, description="Reasons gaps were not filled (e.g., 'No suitable targets', 'Gap too small')"
+    )
+
+
 class ObservingPlan(BaseModel):
     """Complete observing plan for a session."""
 
@@ -326,6 +351,7 @@ class ObservingPlan(BaseModel):
     total_targets: int = Field(description="Total number of targets")
     coverage_percent: float = Field(description="Percentage of night covered")
     sky_quality: Optional[Dict[str, Any]] = Field(default=None, description="Sky quality information for location")
+    gap_fill_stats: Optional["GapFillStats"] = Field(default=None, description="Gap-filling statistics")
     generated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
