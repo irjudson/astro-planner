@@ -232,6 +232,155 @@ async def list_targets(
         raise HTTPException(status_code=500, detail=f"Error fetching targets: {str(e)}")
 
 
+@router.get("/targets/scored", response_model=List[DSOTarget])
+async def list_scored_targets(
+    db: Session = Depends(get_db),
+    context: str = Query("tonight", description="Context for scoring: 'tonight' or 'plan'"),
+    plan_id: Optional[int] = Query(None, description="Plan ID (required if context='plan')"),
+    object_types: Optional[List[str]] = Query(None, description="Filter by object types"),
+    limit: int = Query(100, description="Maximum number of results", le=1000),
+    offset: int = Query(0, description="Offset for pagination", ge=0),
+):
+    """
+    Get catalog targets scored and sorted by scheduler algorithm.
+
+    This endpoint uses the same scoring logic as the planner to rank targets
+    by their suitability for observation. Supports two context modes:
+
+    - 'tonight': Score targets for tonight's observing window at saved location
+    - 'plan': Score targets using parameters from a saved plan
+
+    Args:
+        context: Scoring context ('tonight' or 'plan')
+        plan_id: Saved plan ID (required if context='plan')
+        object_types: Filter by object types
+        limit: Maximum number of results
+        offset: Pagination offset
+
+    Returns:
+        List of targets sorted by scheduler score (best first)
+    """
+    try:
+        from datetime import datetime, timedelta
+
+        import pytz
+
+        from app.models.plan_models import SavedPlan
+        from app.services.ephemeris_service import EphemerisService
+        from app.services.scheduler_service import SchedulerService
+        from app.services.settings_service import SettingsService
+        from app.services.weather_service import WeatherService
+
+        # Validate context
+        if context not in ["tonight", "plan"]:
+            raise HTTPException(status_code=400, detail="context must be 'tonight' or 'plan'")
+
+        if context == "plan" and not plan_id:
+            raise HTTPException(status_code=400, detail="plan_id required when context='plan'")
+
+        catalog_service = CatalogService(db)
+        settings_service = SettingsService(db)
+        scheduler = SchedulerService()
+
+        # Build scoring context based on mode
+        if context == "tonight":
+            # Use saved location + tonight's window
+            location = settings_service.get_location()
+            if not location:
+                raise HTTPException(status_code=400, detail="No location configured in settings")
+
+            tz = pytz.timezone(location.timezone)
+            now = datetime.now(tz)
+
+            # Calculate tonight's twilight times
+            ephemeris = EphemerisService()
+            twilight_times = ephemeris.calculate_twilight_times(location, now)
+
+            scoring_start = twilight_times["astronomical_twilight_end"]
+            scoring_end = twilight_times["astronomical_twilight_start"]
+
+            # Use default constraints
+            from app.models import ObservingConstraints
+
+            constraints = ObservingConstraints()
+
+        else:  # context == "plan"
+            # Load plan and extract context
+            plan_record = db.query(SavedPlan).filter(SavedPlan.id == plan_id).first()
+            if not plan_record:
+                raise HTTPException(status_code=404, detail=f"Plan {plan_id} not found")
+
+            # Reconstruct plan from saved data
+            from app.models import ObservingPlan
+
+            plan = ObservingPlan(**plan_record.plan_data)
+
+            location = plan.location
+            scoring_start = plan.session.imaging_start
+            scoring_end = plan.session.imaging_end
+
+            # Use constraints from request (or defaults if plan doesn't have them)
+            from app.models import ObservingConstraints
+
+            constraints = ObservingConstraints()  # TODO: Extract from plan if stored
+
+        # Get candidate targets with filters
+        targets = catalog_service.filter_targets(
+            object_types=object_types,
+            max_magnitude=12.0,  # Same limit as planner
+            limit=500,  # Reasonable pool for scoring
+            offset=0,
+        )
+
+        # Score each target using scheduler algorithm
+        weather_service = WeatherService()
+        weather_forecasts = weather_service.get_forecast(location, scoring_start, scoring_end)
+
+        scored_targets = []
+        for target in targets:
+            # Check if visible during scoring window
+            mid_time = scoring_start + (scoring_end - scoring_start) / 2
+            if not scheduler.ephemeris.is_target_visible(
+                target, location, mid_time, constraints.min_altitude, constraints.max_altitude
+            ):
+                continue
+
+            # Calculate visibility duration
+            duration = scheduler._calculate_visibility_duration(
+                target, location, scoring_start, scoring_end, constraints
+            )
+
+            if duration < timedelta(minutes=scheduler.settings.min_target_duration_minutes):
+                continue
+
+            # Get weather score
+            weather_score = scheduler._get_weather_score_for_time(mid_time, weather_forecasts)
+
+            # Score the target
+            score_data = scheduler._score_target(target, location, mid_time, duration, constraints, weather_score)
+
+            # Store score in target (for sorting)
+            target_with_score = target.model_copy()
+            # We can't add a score field to DSOTarget, so we'll just sort by the score
+            scored_targets.append((target_with_score, score_data.total_score))
+
+        # Sort by score descending
+        scored_targets.sort(key=lambda x: x[1], reverse=True)
+
+        # Apply pagination
+        paginated = [t for t, _ in scored_targets[offset : offset + limit]]
+
+        return paginated
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error scoring targets: {str(e)}")
+
+
 @router.get("/targets/{catalog_id}", response_model=DSOTarget)
 async def get_target(catalog_id: str, db: Session = Depends(get_db)):
     """
