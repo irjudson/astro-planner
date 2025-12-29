@@ -214,11 +214,24 @@ class PlannerService:
             # Track which targets are already scheduled
             observed_targets = {st.target.catalog_id for st in scheduled_targets}
 
-            # Fill gaps with same candidate pool
+            # For gap filling, use full catalog if custom targets were specified
+            # (custom targets are for main schedule, but gaps can be filled from any suitable target)
+            gap_filler_candidates = targets
+            if request.custom_targets:
+                # Fetch broader pool of targets for gap filling
+                t_gap_candidates = time.time()
+                gap_filler_candidates = self.catalog.filter_targets(
+                    object_types=request.constraints.object_types,
+                    max_magnitude=12.0,
+                    limit=200,
+                )
+                print(f"[TIMING] Gap filler candidate loading: {time.time() - t_gap_candidates:.2f}s ({len(gap_filler_candidates)} candidates)")
+
+            # Fill gaps with candidate pool
             t5 = time.time()
             gap_fillers = self.scheduler.fill_gaps(
                 gaps=gaps,
-                targets=targets,
+                targets=gap_filler_candidates,
                 location=request.location,
                 session=session,
                 constraints=request.constraints,
