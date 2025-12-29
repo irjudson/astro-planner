@@ -3238,6 +3238,13 @@
                         <strong>Night Coverage</strong>
                         ${plan.coverage_percent.toFixed(1)}%
                     </div>
+                    ${plan.gap_fill_stats ? `
+                        <div class="summary-item" style="border-left: 3px solid #FF9800; padding-left: 12px;">
+                            <strong>Gap Filling</strong>
+                            ${plan.gap_fill_stats.gaps_filled} of ${plan.gap_fill_stats.total_gaps_found} gaps filled
+                            (${plan.gap_fill_stats.filled_gap_time_minutes} of ${plan.gap_fill_stats.total_gap_time_minutes} minutes)
+                        </div>
+                    ` : ''}
                     ${skyQualityHtml}
                     ${astronomyWeatherHtml}
                     ${satelliteWarningHtml}
@@ -3301,6 +3308,11 @@
                     st.target.image_url = `/api/images/targets/${sanitizedId}`;
                 }
 
+                // Check if this is a gap filler
+                const isGapFiller = st.is_gap_filler || false;
+                const gapFillerBadge = isGapFiller ? `<span style="background: #FF9800; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; margin-left: 8px;">Auto-filled</span>` : '';
+                const cardStyle = isGapFiller ? 'border: 2px dashed rgba(255, 152, 0, 0.8); background: rgba(255, 152, 0, 0.05);' : '';
+
                 // Image preview section
                 const imageHtml = st.target.image_url ? `
                     <div style="margin-bottom: 12px;">
@@ -3313,10 +3325,10 @@
                 ` : '';
 
                 return `
-                <div class="target-card" id="target-card-${i}">
+                <div class="target-card" id="target-card-${i}" style="${cardStyle}">
                     <div class="target-header">
                         <div>
-                            <div class="target-name">${i+1}. ${st.target.name} (${st.target.catalog_id}) <span class="target-score">- Score: ${st.score.total_score.toFixed(2)}</span></div>
+                            <div class="target-name">${i+1}. ${st.target.name} (${st.target.catalog_id}) ${gapFillerBadge} <span class="target-score">- Score: ${st.score.total_score.toFixed(2)}</span></div>
                         </div>
                         <div class="target-type">${st.target.object_type}</div>
                     </div>
@@ -3343,13 +3355,18 @@
                     ${st.target.description ? `<p style="margin-top:10px; font-style:italic;">${st.target.description}</p>` : ''}
 
                     <!-- Action Buttons -->
-                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--tron-border); display: flex; gap: 10px;">
-                        <button class="preview-btn" onclick="showAltitudeChart(${i})" style="flex: 1;">
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--tron-border); display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="preview-btn" onclick="showAltitudeChart(${i})" style="flex: 1; min-width: 140px;">
                             📊 Altitude Graph
                         </button>
                         ${raDeg && st.target.dec_degrees ? `
-                            <button class="preview-btn" onclick="showObjectPreview('${st.target.name}', '${st.target.catalog_id}', ${raDeg}, ${st.target.dec_degrees}, ${sizeArcmin})" style="flex: 1;">
+                            <button class="preview-btn" onclick="showObjectPreview('${st.target.name}', '${st.target.catalog_id}', ${raDeg}, ${st.target.dec_degrees}, ${sizeArcmin})" style="flex: 1; min-width: 140px;">
                                 🔭 Preview Object
+                            </button>
+                        ` : ''}
+                        ${isGapFiller && st.gap_alternatives && st.gap_alternatives.length > 0 ? `
+                            <button class="preview-btn" onclick="showGapFillerAlternatives(${i})" style="flex: 1; min-width: 140px; background: #FF9800; color: #000;">
+                                🔄 Alternatives
                             </button>
                         ` : ''}
                     </div>
@@ -3389,6 +3406,115 @@
         function formatTime(isoString) {
             const date = new Date(isoString);
             return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function showGapFillerAlternatives(targetIndex) {
+            if (!currentPlan || !currentPlan.scheduled_targets[targetIndex]) {
+                console.error('Invalid target index');
+                return;
+            }
+
+            const st = currentPlan.scheduled_targets[targetIndex];
+            if (!st.is_gap_filler || !st.gap_alternatives || st.gap_alternatives.length === 0) {
+                alert('No alternatives available for this target');
+                return;
+            }
+
+            // Build modal content
+            const alternativesHtml = st.gap_alternatives.map((alt, idx) => `
+                <div style="padding: 12px; margin: 8px 0; background: rgba(255, 152, 0, 0.1); border: 1px solid rgba(255, 152, 0, 0.3); border-radius: 6px;">
+                    <div style="font-weight: bold; margin-bottom: 6px;">
+                        ${alt.target.name} (${alt.target.catalog_id})
+                    </div>
+                    <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 6px;">
+                        <strong>Type:</strong> ${alt.target.object_type} |
+                        <strong>Magnitude:</strong> ${alt.target.magnitude.toFixed(1)} |
+                        <strong>Score:</strong> ${alt.score.total_score.toFixed(2)}
+                    </div>
+                    <div style="font-size: 0.9em; opacity: 0.9; margin-bottom: 8px;">
+                        <strong>Duration:</strong> ${alt.duration_minutes} minutes
+                    </div>
+                    <div style="font-size: 0.85em; opacity: 0.8; font-style: italic;">
+                        ${alt.target.description || 'No description available'}
+                    </div>
+                </div>
+            `).join('');
+
+            const modalContent = `
+                <div style="background: var(--tron-panel); color: var(--tron-text); padding: 25px; border-radius: 8px; max-width: 600px; margin: 20px auto; border: 2px solid var(--tron-border);">
+                    <h3 style="color: var(--tron-cyan); margin-bottom: 15px;">
+                        Gap Filler Alternatives
+                    </h3>
+
+                    <div style="margin-bottom: 20px; padding: 12px; background: rgba(0, 255, 255, 0.1); border-radius: 6px;">
+                        <div style="font-weight: bold; margin-bottom: 6px;">Current (Auto-filled):</div>
+                        <div>${st.target.name} (${st.target.catalog_id})</div>
+                        <div style="font-size: 0.9em; opacity: 0.9; margin-top: 4px;">
+                            Score: ${st.score.total_score.toFixed(2)} | Duration: ${st.duration_minutes} min
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: bold; margin-bottom: 10px; color: #FF9800;">Alternatives:</div>
+                        ${alternativesHtml}
+                    </div>
+
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--tron-border); text-align: center; opacity: 0.8; font-size: 0.9em;">
+                        <p style="margin-bottom: 10px;">
+                            Swap functionality will be available in a future update.
+                        </p>
+                        <p>
+                            For now, you can regenerate the plan to get different targets.
+                        </p>
+                    </div>
+
+                    <button onclick="closeModal()"
+                            style="margin-top: 20px; padding: 10px 20px; background: var(--tron-cyan); color: var(--tron-bg); border: none; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold;">
+                        Close
+                    </button>
+                </div>
+            `;
+
+            // Show modal
+            showModal(modalContent);
+        }
+
+        function showModal(htmlContent) {
+            // Remove existing modal if any
+            const existingModal = document.getElementById('custom-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.id = 'custom-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow-y: auto;
+            `;
+            modal.innerHTML = htmlContent;
+            modal.onclick = (e) => {
+                if (e.target === modal) closeModal();
+            };
+
+            document.body.appendChild(modal);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            if (modal) {
+                modal.remove();
+            }
         }
 
         async function exportPlan(format) {
@@ -3732,9 +3858,12 @@
 
             // Prepare datasets for each target
             const datasets = plan.scheduled_targets.map((st, index) => {
-                // Generate color from index
-                const hue = (index * 360 / plan.scheduled_targets.length) % 360;
-                const color = `hsl(${hue}, 70%, 60%)`;
+                const isGapFiller = st.is_gap_filler || false;
+
+                // Use orange for gap fillers, HSL rainbow for regular targets
+                const color = isGapFiller ?
+                    'rgba(255, 152, 0, 0.85)' :
+                    `hsl(${(index * 360 / plan.scheduled_targets.length) % 360}, 70%, 60%)`;
 
                 const dataPoints = st.altitude_points.map(point => ({
                     x: new Date(point[0]),
@@ -3742,11 +3871,12 @@
                 }));
 
                 return {
-                    label: `${st.target.name} (${st.target.catalog_id})`,
+                    label: `${st.target.name} (${st.target.catalog_id})${isGapFiller ? ' [Auto]' : ''}`,
                     data: dataPoints,
                     borderColor: color,
                     backgroundColor: 'transparent',
                     borderWidth: 2,
+                    borderDash: isGapFiller ? [5, 5] : [],
                     pointRadius: 0,
                     pointHoverRadius: 5,
                     tension: 0.4,
