@@ -5,7 +5,15 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
 from app.core import get_settings
-from app.models import DSOTarget, GapAlternative, Location, ObservingConstraints, ScheduledTarget, SessionInfo, TargetScore
+from app.models import (
+    DSOTarget,
+    GapAlternative,
+    Location,
+    ObservingConstraints,
+    ScheduledTarget,
+    SessionInfo,
+    TargetScore,
+)
 from app.services.ephemeris_service import EphemerisService
 from app.services.weather_service import WeatherService
 
@@ -683,9 +691,7 @@ class SchedulerService:
 
             # Calculate visibility duration within gap
             gap_duration = gap.end_time - gap.start_time
-            duration = self._calculate_visibility_duration(
-                target, location, gap.start_time, gap.end_time, constraints
-            )
+            duration = self._calculate_visibility_duration(target, location, gap.start_time, gap.end_time, constraints)
 
             # Must be visible for at least 5 minutes less than gap
             min_duration = timedelta(minutes=max(self.settings.min_target_duration_minutes, gap.duration_minutes - 5))

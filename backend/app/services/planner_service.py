@@ -225,7 +225,9 @@ class PlannerService:
                     max_magnitude=12.0,
                     limit=200,
                 )
-                print(f"[TIMING] Gap filler candidate loading: {time.time() - t_gap_candidates:.2f}s ({len(gap_filler_candidates)} candidates)")
+                print(
+                    f"[TIMING] Gap filler candidate loading: {time.time() - t_gap_candidates:.2f}s ({len(gap_filler_candidates)} candidates)"
+                )
 
             # Fill gaps with candidate pool
             t5 = time.time()
