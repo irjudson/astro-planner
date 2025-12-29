@@ -1,12 +1,23 @@
 """Observing session scheduler using greedy algorithm with urgency lookahead."""
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
 
 from app.core import get_settings
-from app.models import DSOTarget, Location, ObservingConstraints, ScheduledTarget, SessionInfo, TargetScore
+from app.models import DSOTarget, GapAlternative, Location, ObservingConstraints, ScheduledTarget, SessionInfo, TargetScore
 from app.services.ephemeris_service import EphemerisService
 from app.services.weather_service import WeatherService
+
+
+@dataclass
+class Gap:
+    """Represents an unfilled time gap in the schedule."""
+
+    start_time: datetime
+    end_time: datetime
+    duration_minutes: int
+    position_index: int  # Position in schedule (0 = before first target)
 
 
 class SchedulerService:
@@ -444,3 +455,283 @@ class SchedulerService:
         closest_forecast = min(weather_forecasts, key=lambda f: abs((f.timestamp - time).total_seconds()))
 
         return self.weather.calculate_weather_score(closest_forecast)
+
+    def detect_gaps(
+        self,
+        scheduled_targets: List[ScheduledTarget],
+        session: SessionInfo,
+        constraints: ObservingConstraints,
+    ) -> List[Gap]:
+        """
+        Detect unfilled time gaps in a schedule.
+
+        Args:
+            scheduled_targets: List of scheduled targets (must be sorted by start_time)
+            session: Session information
+            constraints: Observing constraints (for planning mode thresholds)
+
+        Returns:
+            List of Gap objects representing unfilled time windows
+        """
+        gaps = []
+        slew_time = timedelta(seconds=self.settings.slew_time_seconds)
+
+        # Determine minimum gap duration based on planning mode
+        planning_mode = constraints.planning_mode
+        if planning_mode == "quality":
+            min_gap_duration = timedelta(minutes=45)
+        elif planning_mode == "quantity":
+            min_gap_duration = timedelta(minutes=15)
+        else:  # balanced
+            min_gap_duration = timedelta(minutes=30)
+
+        # Check for gap before first target
+        if scheduled_targets:
+            first_start = scheduled_targets[0].start_time
+            gap_duration = first_start - session.imaging_start
+            if gap_duration >= min_gap_duration:
+                gaps.append(
+                    Gap(
+                        start_time=session.imaging_start,
+                        end_time=first_start,
+                        duration_minutes=int(gap_duration.total_seconds() / 60),
+                        position_index=0,
+                    )
+                )
+
+        # Check for gaps between targets
+        for i in range(len(scheduled_targets) - 1):
+            current_target = scheduled_targets[i]
+            next_target = scheduled_targets[i + 1]
+
+            # Gap starts after current target ends + slew time
+            gap_start = current_target.end_time + slew_time
+            gap_end = next_target.start_time
+            gap_duration = gap_end - gap_start
+
+            if gap_duration >= min_gap_duration:
+                gaps.append(
+                    Gap(
+                        start_time=gap_start,
+                        end_time=gap_end,
+                        duration_minutes=int(gap_duration.total_seconds() / 60),
+                        position_index=i + 1,
+                    )
+                )
+
+        # Check for trailing gap after last target
+        if scheduled_targets:
+            last_end = scheduled_targets[-1].end_time
+            gap_duration = session.imaging_end - last_end
+            if gap_duration >= min_gap_duration:
+                gaps.append(
+                    Gap(
+                        start_time=last_end,
+                        end_time=session.imaging_end,
+                        duration_minutes=int(gap_duration.total_seconds() / 60),
+                        position_index=len(scheduled_targets),
+                    )
+                )
+        elif session.imaging_end > session.imaging_start:
+            # No targets scheduled at all - entire session is a gap
+            gap_duration = session.imaging_end - session.imaging_start
+            if gap_duration >= min_gap_duration:
+                gaps.append(
+                    Gap(
+                        start_time=session.imaging_start,
+                        end_time=session.imaging_end,
+                        duration_minutes=int(gap_duration.total_seconds() / 60),
+                        position_index=0,
+                    )
+                )
+
+        return gaps
+
+    def fill_gaps(
+        self,
+        gaps: List[Gap],
+        targets: List[DSOTarget],
+        location: Location,
+        session: SessionInfo,
+        constraints: ObservingConstraints,
+        weather_forecasts: List,
+        observed_targets: set,
+    ) -> List[ScheduledTarget]:
+        """
+        Fill schedule gaps with suitable targets.
+
+        Uses relaxed scoring thresholds and prioritizes gap-fit efficiency.
+
+        Args:
+            gaps: List of gaps to fill
+            targets: Candidate target pool
+            location: Observer location
+            session: Session information
+            constraints: Observing constraints
+            weather_forecasts: Weather forecasts
+            observed_targets: Set of already-scheduled target IDs
+
+        Returns:
+            List of gap-filler ScheduledTarget objects
+        """
+        gap_fillers = []
+        relaxed_min_score = 0.5  # Relaxed from normal 0.6
+        max_gaps_to_fill = 20  # Prevent excessive computation
+
+        for gap in gaps[:max_gaps_to_fill]:
+            # Find best target for this gap
+            best_candidate = self._find_best_gap_filler(
+                gap=gap,
+                targets=targets,
+                location=location,
+                constraints=constraints,
+                weather_forecasts=weather_forecasts,
+                observed_targets=observed_targets,
+                min_score=relaxed_min_score,
+            )
+
+            if best_candidate:
+                target, duration, score_data, alternatives = best_candidate
+
+                # Calculate positions and field rotation
+                start_alt, start_az = self.ephemeris.calculate_position(target, location, gap.start_time)
+                end_time = gap.start_time + duration
+                end_alt, end_az = self.ephemeris.calculate_position(target, location, end_time)
+
+                # Field rotation rate at midpoint
+                mid_time = gap.start_time + (duration / 2)
+                rotation_rate = self.ephemeris.calculate_field_rotation_rate(target, location, mid_time)
+
+                # Calculate altitude points
+                altitude_points = []
+                sample_time = gap.start_time
+                sample_interval = timedelta(minutes=15)
+
+                while sample_time <= end_time:
+                    alt, _ = self.ephemeris.calculate_position(target, location, sample_time)
+                    altitude_points.append((sample_time, alt))
+                    sample_time += sample_interval
+
+                if altitude_points and altitude_points[-1][0] != end_time:
+                    alt, _ = self.ephemeris.calculate_position(target, location, end_time)
+                    altitude_points.append((end_time, alt))
+
+                # Calculate exposure settings
+                recommended_exposure, recommended_frames = self._calculate_exposure_settings(target, duration)
+
+                # Create gap-filler scheduled target
+                gap_filler = ScheduledTarget(
+                    target=target,
+                    start_time=gap.start_time,
+                    end_time=end_time,
+                    duration_minutes=int(duration.total_seconds() / 60),
+                    start_altitude=start_alt,
+                    end_altitude=end_alt,
+                    start_azimuth=start_az,
+                    end_azimuth=end_az,
+                    altitude_points=altitude_points,
+                    field_rotation_rate=rotation_rate,
+                    recommended_exposure=recommended_exposure,
+                    recommended_frames=recommended_frames,
+                    score=score_data,
+                    is_gap_filler=True,
+                    gap_alternatives=alternatives,
+                )
+
+                gap_fillers.append(gap_filler)
+                observed_targets.add(target.catalog_id)
+
+        return gap_fillers
+
+    def _find_best_gap_filler(
+        self,
+        gap: Gap,
+        targets: List[DSOTarget],
+        location: Location,
+        constraints: ObservingConstraints,
+        weather_forecasts: List,
+        observed_targets: set,
+        min_score: float,
+    ) -> Optional[Tuple[DSOTarget, timedelta, TargetScore, List[GapAlternative]]]:
+        """
+        Find the best target to fill a specific gap.
+
+        Args:
+            gap: Gap to fill
+            targets: Candidate targets
+            location: Observer location
+            constraints: Observing constraints
+            weather_forecasts: Weather forecasts
+            observed_targets: Set of already-scheduled target IDs
+            min_score: Minimum acceptable score
+
+        Returns:
+            Tuple of (target, duration, score, alternatives) or None if no suitable target
+        """
+        candidates = []
+
+        for target in targets:
+            # Skip already observed targets
+            if target.catalog_id in observed_targets:
+                continue
+
+            # Check if target is visible during gap
+            if not self.ephemeris.is_target_visible(
+                target, location, gap.start_time, constraints.min_altitude, constraints.max_altitude
+            ):
+                continue
+
+            # Calculate visibility duration within gap
+            gap_duration = gap.end_time - gap.start_time
+            duration = self._calculate_visibility_duration(
+                target, location, gap.start_time, gap.end_time, constraints
+            )
+
+            # Must be visible for at least 5 minutes less than gap
+            min_duration = timedelta(minutes=max(self.settings.min_target_duration_minutes, gap.duration_minutes - 5))
+            if duration < min_duration:
+                continue
+
+            # Get weather score
+            weather_score = self._get_weather_score_for_time(gap.start_time, weather_forecasts)
+
+            # Score the target
+            score_data = self._score_target(target, location, gap.start_time, duration, constraints, weather_score)
+
+            # Apply gap-filling bonuses
+            base_score = score_data.total_score
+
+            # Fit bonus: prefer targets that fill ≥ 90% of gap
+            fit_ratio = duration.total_seconds() / gap_duration.total_seconds()
+            fit_bonus = 0.1 if fit_ratio >= 0.9 else 0.0
+
+            # Diversity bonus: prefer different object types
+            # (This would require passing current plan object types - simplified for now)
+            diversity_bonus = 0.05 if target.object_type not in ["galaxy"] else 0.0  # Placeholder
+
+            total_score = base_score + fit_bonus + diversity_bonus
+
+            if total_score >= min_score:
+                candidates.append((target, duration, total_score, score_data))
+
+        if not candidates:
+            return None
+
+        # Sort by total score descending
+        candidates.sort(key=lambda x: x[2], reverse=True)
+
+        # Best candidate
+        best_target, best_duration, best_total_score, best_score_data = candidates[0]
+
+        # Build alternatives list (top 3, excluding best)
+        alternatives = []
+        for alt_target, alt_duration, alt_total_score, alt_score_data in candidates[1:3]:
+            alternatives.append(
+                GapAlternative(
+                    target=alt_target,
+                    score=alt_score_data,
+                    duration_minutes=int(alt_duration.total_seconds() / 60),
+                )
+            )
+
+        return best_target, best_duration, best_score_data, alternatives
