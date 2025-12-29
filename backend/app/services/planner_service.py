@@ -7,7 +7,7 @@ from typing import Dict
 import pytz
 from sqlalchemy.orm import Session
 
-from app.models import Location, ObservingPlan, PlanRequest, SessionInfo
+from app.models import GapFillStats, Location, ObservingPlan, PlanRequest, SessionInfo
 from app.services import CatalogService, EphemerisService, ExportService, SchedulerService, WeatherService
 from app.services.comet_service import CometService
 from app.services.image_preview_service import ImagePreviewService
@@ -204,9 +204,38 @@ class PlannerService:
         )
         print(f"[TIMING] Scheduler: {time.time() - t3:.2f}s ({len(scheduled_targets)} scheduled)")
 
-        # Calculate coverage
-        if scheduled_targets:
-            total_scheduled_time = sum(st.duration_minutes for st in scheduled_targets)
+        # Detect and fill gaps
+        t4 = time.time()
+        gaps = self.scheduler.detect_gaps(scheduled_targets, session, request.constraints)
+        print(f"[TIMING] Gap detection: {time.time() - t4:.2f}s ({len(gaps)} gaps found)")
+
+        gap_fillers = []
+        if gaps:
+            # Track which targets are already scheduled
+            observed_targets = {st.target.catalog_id for st in scheduled_targets}
+
+            # Fill gaps with same candidate pool
+            t5 = time.time()
+            gap_fillers = self.scheduler.fill_gaps(
+                gaps=gaps,
+                targets=targets,
+                location=request.location,
+                session=session,
+                constraints=request.constraints,
+                weather_forecasts=weather_forecast,
+                observed_targets=observed_targets,
+            )
+            print(f"[TIMING] Gap filling: {time.time() - t5:.2f}s ({len(gap_fillers)} gap fillers added)")
+
+        # Merge gap fillers into schedule and sort by start time
+        all_scheduled = sorted(scheduled_targets + gap_fillers, key=lambda x: x.start_time)
+
+        # Calculate gap-fill statistics
+        gap_fill_stats = self._calculate_gap_stats(gaps, gap_fillers)
+
+        # Calculate coverage (including gap fillers)
+        if all_scheduled:
+            total_scheduled_time = sum(st.duration_minutes for st in all_scheduled)
             coverage_percent = (total_scheduled_time / session.total_imaging_minutes) * 100
         else:
             coverage_percent = 0.0
@@ -215,14 +244,51 @@ class PlannerService:
         plan = ObservingPlan(
             session=session,
             location=request.location,
-            scheduled_targets=scheduled_targets,
+            scheduled_targets=all_scheduled,
             weather_forecast=weather_forecast,
-            total_targets=len(scheduled_targets),
+            total_targets=len(all_scheduled),
             coverage_percent=coverage_percent,
             sky_quality=sky_quality_dict,
+            gap_fill_stats=gap_fill_stats,
         )
 
         return plan
+
+    def _calculate_gap_stats(self, gaps: list, gap_fillers: list) -> GapFillStats:
+        """
+        Calculate statistics about gap-filling operation.
+
+        Args:
+            gaps: List of Gap objects detected
+            gap_fillers: List of ScheduledTarget objects that filled gaps
+
+        Returns:
+            GapFillStats with summary information
+        """
+        total_gaps = len(gaps)
+        filled_gaps = len(gap_fillers)
+        unfilled_gaps = total_gaps - filled_gaps
+
+        total_gap_time = sum(gap.duration_minutes for gap in gaps)
+        filled_gap_time = sum(gf.duration_minutes for gf in gap_fillers)
+
+        # Determine reasons for unfilled gaps
+        unfilled_reasons = []
+        if unfilled_gaps > 0:
+            # Simple heuristic - if we have gaps but no fillers, likely no suitable targets
+            if filled_gaps == 0:
+                unfilled_reasons.append("No suitable targets found")
+            else:
+                unfilled_reasons.append(f"{unfilled_gaps} gaps could not be filled")
+
+        return GapFillStats(
+            total_gaps_found=total_gaps,
+            gaps_filled=filled_gaps,
+            gaps_unfilled=unfilled_gaps,
+            total_gap_time_minutes=total_gap_time,
+            filled_gap_time_minutes=filled_gap_time,
+            unfilled_reasons=unfilled_reasons,
+        )
 
     def calculate_twilight(self, location: Location, date: str) -> Dict[str, str]:
         """
