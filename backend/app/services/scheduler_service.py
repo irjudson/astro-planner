@@ -731,7 +731,7 @@ class SchedulerService:
 
         # Build alternatives list (top 3, excluding best)
         alternatives = []
-        for alt_target, alt_duration, alt_total_score, alt_score_data in candidates[1:3]:
+        for alt_target, alt_duration, _alt_total_score, alt_score_data in candidates[1:3]:
             alternatives.append(
                 GapAlternative(
                     target=alt_target,
