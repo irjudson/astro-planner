@@ -1,8 +1,10 @@
 """File scanner service for discovering and processing image files."""
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
+from datetime import datetime
 from thefuzz import fuzz
 from sqlalchemy.orm import Session
+from astropy.io import fits
 
 from app.models.catalog_models import DSOCatalog
 
@@ -64,3 +66,54 @@ class FileScannerService:
             return (best_match, confidence)
 
         return None
+
+    def _extract_fits_metadata(self, file_path: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract FITS metadata from an image file.
+
+        Extracts: OBJECT, EXPTIME, FILTER, CCD-TEMP, GAIN, DATE-OBS
+
+        Args:
+            file_path: Path to FITS file
+
+        Returns:
+            Dict with keys: target_name, exposure_seconds, filter_name,
+            temperature_celsius, gain, observation_date
+            Returns None if file cannot be read
+        """
+        try:
+            with fits.open(file_path) as hdul:
+                header = hdul[0].header
+
+                # Extract metadata with safe access
+                metadata = {
+                    "target_name": header.get("OBJECT"),
+                    "exposure_seconds": None,
+                    "filter_name": header.get("FILTER"),
+                    "temperature_celsius": header.get("CCD-TEMP"),
+                    "gain": header.get("GAIN"),
+                    "observation_date": None,
+                }
+
+                # Convert exposure time to int (from float seconds)
+                if "EXPTIME" in header:
+                    try:
+                        metadata["exposure_seconds"] = int(header["EXPTIME"])
+                    except (ValueError, TypeError):
+                        pass
+
+                # Parse DATE-OBS if present
+                if "DATE-OBS" in header:
+                    try:
+                        # Try to parse ISO format datetime
+                        date_str = header["DATE-OBS"]
+                        # Handle common formats like "2024-12-25T20:30:00"
+                        metadata["observation_date"] = datetime.fromisoformat(date_str)
+                    except (ValueError, TypeError):
+                        pass
+
+                return metadata
+
+        except Exception:
+            # Return None if file cannot be read
+            return None

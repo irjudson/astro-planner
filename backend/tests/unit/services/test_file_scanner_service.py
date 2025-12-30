@@ -1,6 +1,7 @@
 """Tests for file scanner service."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch, MagicMock
+from datetime import datetime
 import pytest
 from sqlalchemy.orm import Session
 
@@ -84,5 +85,64 @@ class TestFuzzyMatching:
         mock_db.query.return_value.all.return_value = []
 
         result = file_scanner_service._fuzzy_match_catalog("NONEXISTENT_OBJECT_XYZ")
+
+        assert result is None
+
+
+class TestFitsMetadataExtraction:
+    """Test FITS metadata extraction from image files."""
+
+    @patch("app.services.file_scanner_service.fits")
+    def test_extract_fits_metadata_success(self, mock_fits, file_scanner_service):
+        """Test successful FITS metadata extraction."""
+        # Mock FITS file reading
+        mock_hdu = MagicMock()
+        mock_hdu.header = {
+            "OBJECT": "M31",
+            "EXPTIME": 10.0,
+            "FILTER": "L",
+            "CCD-TEMP": -10.5,
+            "GAIN": 100,
+            "DATE-OBS": "2024-12-25T20:30:00",
+        }
+        mock_fits.open.return_value.__enter__.return_value = [mock_hdu]
+
+        result = file_scanner_service._extract_fits_metadata("/path/to/file.fits")
+
+        assert result is not None
+        assert result["target_name"] == "M31"
+        assert result["exposure_seconds"] == 10
+        assert result["filter_name"] == "L"
+        assert result["temperature_celsius"] == -10.5
+        assert result["gain"] == 100
+        assert result["observation_date"] is not None
+
+    @patch("app.services.file_scanner_service.fits")
+    def test_extract_fits_metadata_missing_fields(self, mock_fits, file_scanner_service):
+        """Test FITS extraction with missing optional fields."""
+        # Mock FITS file with minimal fields
+        mock_hdu = MagicMock()
+        mock_hdu.header = {
+            "OBJECT": "M42",
+        }
+        mock_fits.open.return_value.__enter__.return_value = [mock_hdu]
+
+        result = file_scanner_service._extract_fits_metadata("/path/to/file.fits")
+
+        assert result is not None
+        assert result["target_name"] == "M42"
+        # Optional fields should be None
+        assert result.get("exposure_seconds") is None
+        assert result.get("filter_name") is None
+        assert result.get("temperature_celsius") is None
+        assert result.get("gain") is None
+
+    @patch("app.services.file_scanner_service.fits")
+    def test_extract_fits_metadata_file_error(self, mock_fits, file_scanner_service):
+        """Test FITS extraction with file read error."""
+        # Mock file read error
+        mock_fits.open.side_effect = Exception("File not found")
+
+        result = file_scanner_service._extract_fits_metadata("/path/to/nonexistent.fits")
 
         assert result is None
