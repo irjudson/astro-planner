@@ -194,8 +194,8 @@ class SeestarClient:
         )
 
         # Sign the challenge using RSA-SHA1 (required by Seestar firmware protocol)
-        # nosec B303 - SHA1 used for RSA signing (not password hashing), required by hardware
-        signature = private_key.sign(challenge_str.encode("utf-8"), padding.PKCS1v15(), hashes.SHA1())
+        # SHA1 used for RSA signing (not password hashing), required by hardware
+        signature = private_key.sign(challenge_str.encode("utf-8"), padding.PKCS1v15(), hashes.SHA1())  # nosec B303
 
         # Return base64-encoded signature
         return base64.b64encode(signature).decode("utf-8")
