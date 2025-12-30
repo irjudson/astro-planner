@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     fits_dir: str = "./fits"  # Directory for FITS file storage
     processing_dir: str = "./data/processing"  # Directory for processing work
 
+    # Seestar Authentication
+    seestar_private_key_path: str = "./secrets/seestar_private_key.pem"  # Path to Seestar RSA private key
+
     class Config:
         env_file = ".env"
         case_sensitive = False

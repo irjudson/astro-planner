@@ -14,11 +14,14 @@ import socket
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+
+from app.core.config import get_settings
 
 
 class SeestarState(Enum):
@@ -97,32 +100,32 @@ class SeestarClient:
     COMMAND_TIMEOUT = 10.0
     RECEIVE_BUFFER_SIZE = 4096
 
-    # RSA private key for firmware 6.45+ authentication
-    # This key is embedded in the Seestar app's native library and used for signing challenges
-    SEESTAR_RSA_KEY_REMOVED_FROM_HISTORY = """-----BEGIN PRIVATE KEY-----
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
------END PRIVATE KEY-----"""
-
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None, private_key_path: Optional[str] = None):
         """Initialize Seestar client.
 
         Args:
             logger: Optional logger instance. If None, creates default logger.
+            private_key_path: Optional path to RSA private key file. If None, uses config setting.
         """
         self.logger = logger or logging.getLogger(__name__)
+
+        # Load RSA private key for firmware 6.45+ authentication
+        settings = get_settings()
+        key_path = Path(private_key_path or settings.seestar_private_key_path)
+        if not key_path.is_absolute():
+            # Make relative paths relative to backend directory
+            key_path = Path(__file__).parent.parent.parent / key_path
+
+        try:
+            with open(key_path, "rb") as f:
+                self._private_key_pem = f.read()
+            self.logger.debug(f"Loaded Seestar private key from {key_path}")
+        except FileNotFoundError:
+            self.logger.error(f"Seestar private key not found at {key_path}")
+            raise ConnectionError(
+                f"Seestar authentication key not found at {key_path}. "
+                "Please ensure the key file exists or set SEESTAR_PRIVATE_KEY_PATH environment variable."
+            )
 
         # Connection state
         self._socket: Optional[socket.socket] = None
@@ -190,7 +193,7 @@ class SeestarClient:
         """
         # Load the private key
         private_key = serialization.load_pem_private_key(
-            self.SEESTAR_RSA_KEY_REMOVED_FROM_HISTORY.encode(), password=None, backend=default_backend()
+            self._private_key_pem, password=None, backend=default_backend()
         )
 
         # Sign the challenge using RSA-SHA1 (required by Seestar firmware protocol)
