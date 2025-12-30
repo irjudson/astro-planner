@@ -1345,3 +1345,433 @@ class SeestarClient:
         response = await self._send_command("get_compass_state", {})
 
         return response.get("result", {})
+
+    # ========================================================================
+    # Phase 6: Remote Connection Management
+    # ========================================================================
+
+    async def join_remote_session(self, session_id: str = "") -> bool:
+        """Join a remote observation session.
+
+        Allows multiple clients to control the telescope.
+
+        Args:
+            session_id: Optional session identifier
+
+        Returns:
+            True if join successful
+
+        Raises:
+            CommandError: If join fails
+        """
+        self.logger.info(f"Joining remote session: {session_id}")
+
+        params = {"session_id": session_id} if session_id else {}
+
+        response = await self._send_command("remote_join", params)
+
+        self.logger.info(f"Join remote session response: {response}")
+        return response.get("result") == 0
+
+    async def leave_remote_session(self) -> bool:
+        """Leave current remote session.
+
+        Returns:
+            True if leave successful
+
+        Raises:
+            CommandError: If leave fails
+        """
+        self.logger.info("Leaving remote session")
+
+        response = await self._send_command("remote_disjoin", {})
+
+        self.logger.info(f"Leave remote session response: {response}")
+        return response.get("result") == 0
+
+    async def disconnect_remote_client(self, client_id: str = "") -> bool:
+        """Disconnect a remote client.
+
+        Args:
+            client_id: Optional client identifier to disconnect
+
+        Returns:
+            True if disconnect successful
+
+        Raises:
+            CommandError: If disconnect fails
+        """
+        self.logger.info(f"Disconnecting remote client: {client_id}")
+
+        params = {"client_id": client_id} if client_id else {}
+
+        response = await self._send_command("remote_disconnect", params)
+
+        self.logger.info(f"Disconnect remote client response: {response}")
+        return response.get("result") == 0
+
+    # ========================================================================
+    # Phase 7: Network/WiFi Management
+    # ========================================================================
+
+    async def configure_access_point(self, ssid: str, password: str, is_5g: bool = True) -> bool:
+        """Configure WiFi access point settings.
+
+        Args:
+            ssid: Access point SSID
+            password: Access point password
+            is_5g: Use 5GHz band (True) or 2.4GHz (False)
+
+        Returns:
+            True if configuration successful
+
+        Raises:
+            CommandError: If configuration fails
+        """
+        self.logger.info(f"Configuring AP: {ssid}, 5G={is_5g}")
+
+        params = {"ssid": ssid, "passwd": password, "is_5g": is_5g}
+
+        response = await self._send_command("pi_set_ap", params)
+
+        self.logger.info(f"Configure AP response: {response}")
+        return response.get("result") == 0
+
+    async def set_wifi_country(self, country_code: str) -> bool:
+        """Set WiFi regulatory country/region.
+
+        Args:
+            country_code: Two-letter country code (e.g., "US", "GB", "JP")
+
+        Returns:
+            True if setting successful
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(f"Setting WiFi country: {country_code}")
+
+        params = {"country": country_code}
+
+        response = await self._send_command("set_wifi_country", params)
+
+        self.logger.info(f"Set WiFi country response: {response}")
+        return response.get("result") == 0
+
+    async def enable_wifi_client_mode(self) -> bool:
+        """Enable WiFi client/station mode.
+
+        Allows telescope to connect to existing WiFi networks.
+
+        Returns:
+            True if enabled successfully
+
+        Raises:
+            CommandError: If enable fails
+        """
+        self.logger.info("Enabling WiFi client mode")
+
+        response = await self._send_command("pi_station_open", {})
+
+        self.logger.info(f"Enable WiFi client response: {response}")
+        return response.get("result") == 0
+
+    async def disable_wifi_client_mode(self) -> bool:
+        """Disable WiFi client/station mode.
+
+        Returns to AP-only mode.
+
+        Returns:
+            True if disabled successfully
+
+        Raises:
+            CommandError: If disable fails
+        """
+        self.logger.info("Disabling WiFi client mode")
+
+        response = await self._send_command("pi_station_close", {})
+
+        self.logger.info(f"Disable WiFi client response: {response}")
+        return response.get("result") == 0
+
+    async def scan_wifi_networks(self) -> Dict[str, Any]:
+        """Scan for available WiFi networks.
+
+        Returns:
+            Dict with list of available networks
+
+        Raises:
+            CommandError: If scan fails
+        """
+        self.logger.info("Scanning for WiFi networks")
+
+        response = await self._send_command("pi_station_scan", {})
+
+        return response.get("result", {})
+
+    async def connect_to_wifi(self, ssid: str) -> bool:
+        """Connect to a WiFi network.
+
+        Network must already be saved with credentials.
+
+        Args:
+            ssid: Network SSID to connect to
+
+        Returns:
+            True if connection initiated successfully
+
+        Raises:
+            CommandError: If connection fails
+        """
+        self.logger.info(f"Connecting to WiFi: {ssid}")
+
+        params = {"ssid": ssid}
+
+        response = await self._send_command("pi_station_select", params)
+
+        self.logger.info(f"Connect to WiFi response: {response}")
+        return response.get("result") == 0
+
+    async def save_wifi_network(self, ssid: str, password: str, security: str = "WPA2-PSK") -> bool:
+        """Save WiFi network credentials.
+
+        Args:
+            ssid: Network SSID
+            password: Network password
+            security: Security type (WPA2-PSK, WPA-PSK, WEP, etc.)
+
+        Returns:
+            True if saved successfully
+
+        Raises:
+            CommandError: If save fails
+        """
+        self.logger.info(f"Saving WiFi network: {ssid}")
+
+        params = {"ssid": ssid, "passwd": password, "security": security}
+
+        response = await self._send_command("pi_station_set", params)
+
+        self.logger.info(f"Save WiFi network response: {response}")
+        return response.get("result") == 0
+
+    async def list_saved_wifi_networks(self) -> Dict[str, Any]:
+        """List saved WiFi networks.
+
+        Returns:
+            Dict with list of saved networks
+
+        Raises:
+            CommandError: If list fails
+        """
+        response = await self._send_command("pi_station_list", {})
+
+        return response.get("result", {})
+
+    async def remove_wifi_network(self, ssid: str) -> bool:
+        """Remove saved WiFi network.
+
+        Args:
+            ssid: Network SSID to remove
+
+        Returns:
+            True if removed successfully
+
+        Raises:
+            CommandError: If remove fails
+        """
+        self.logger.info(f"Removing WiFi network: {ssid}")
+
+        params = {"ssid": ssid}
+
+        response = await self._send_command("pi_station_remove", params)
+
+        self.logger.info(f"Remove WiFi network response: {response}")
+        return response.get("result") == 0
+
+    # ========================================================================
+    # Phase 8: Raspberry Pi System Commands
+    # ========================================================================
+
+    async def get_pi_info(self) -> Dict[str, Any]:
+        """Get Raspberry Pi system information.
+
+        Returns info about CPU, memory, disk, temperature, etc.
+
+        Returns:
+            System information dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("pi_get_info", {})
+
+        return response.get("result", {})
+
+    async def get_pi_time(self) -> Dict[str, Any]:
+        """Get Raspberry Pi system time.
+
+        Returns:
+            Time information dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("pi_get_time", {})
+
+        return response.get("result", {})
+
+    async def set_pi_time(self, unix_timestamp: int) -> bool:
+        """Set Raspberry Pi system time.
+
+        Args:
+            unix_timestamp: Unix timestamp (seconds since epoch)
+
+        Returns:
+            True if time set successfully
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(f"Setting Pi time: {unix_timestamp}")
+
+        params = {"time": unix_timestamp}
+
+        response = await self._send_command("pi_set_time", params)
+
+        self.logger.info(f"Set Pi time response: {response}")
+        return response.get("result") == 0
+
+    async def get_station_state(self) -> Dict[str, Any]:
+        """Get WiFi station state.
+
+        Returns connection status, signal strength, IP address, etc.
+
+        Returns:
+            Station state dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("pi_station_state", {})
+
+        return response.get("result", {})
+
+    # ========================================================================
+    # Phase 9: Hardware Control (Dew Heater, Filters, Accessories)
+    # ========================================================================
+
+    async def set_dew_heater(self, enabled: bool, power_level: int = 90) -> bool:
+        """Control dew heater via pi_output_set2.
+
+        CRITICAL: Uses pi_output_set2, NOT set_setting!
+        From APK analysis: BaseDeviceViewModel.java:1310
+
+        Args:
+            enabled: True to enable heater, False to disable
+            power_level: Heater power level 0-100 (default: 90, same as official app)
+
+        Returns:
+            True if setting successful
+
+        Raises:
+            CommandError: If setting fails
+        """
+        if not 0 <= power_level <= 100:
+            raise ValueError(f"Power level must be 0-100, got {power_level}")
+
+        self.logger.info(f"Setting dew heater: {'ON' if enabled else 'OFF'} at {power_level}% power")
+
+        # Correct implementation from APK decompilation
+        params = {"heater": {"state": enabled, "value": power_level}}
+
+        response = await self._send_command("pi_output_set2", params)
+
+        self.logger.info(f"Set dew heater response: {response}")
+        return response.get("result") == 0
+
+    async def set_dc_output(self, output_config: Dict[str, Any]) -> bool:
+        """Set DC output configuration for accessories.
+
+        Controls external devices via DC output ports.
+
+        Args:
+            output_config: Output configuration dict
+                Example: {"port": 1, "enabled": True, "voltage": 12}
+
+        Returns:
+            True if setting successful
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(f"Setting DC output: {output_config}")
+
+        response = await self._send_command("pi_output_set2", output_config)
+
+        self.logger.info(f"Set DC output response: {response}")
+        return response.get("result") == 0
+
+    async def get_dc_output(self) -> Dict[str, Any]:
+        """Get current DC output configuration.
+
+        Returns:
+            DC output state dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("pi_output_get2", {})
+
+        return response.get("result", {})
+
+    # ========================================================================
+    # Phase 10: Demo Mode & Miscellaneous
+    # ========================================================================
+
+    async def start_demo_mode(self) -> bool:
+        """Start demonstration/exhibition mode.
+
+        Simulates telescope movements without actually moving hardware.
+
+        Returns:
+            True if demo mode started successfully
+
+        Raises:
+            CommandError: If start fails
+        """
+        self.logger.info("Starting demo mode")
+
+        response = await self._send_command("start_demonstrate", {})
+
+        self.logger.info(f"Start demo mode response: {response}")
+        return response.get("result") == 0
+
+    async def stop_demo_mode(self) -> bool:
+        """Stop demonstration/exhibition mode.
+
+        Returns:
+            True if demo mode stopped successfully
+
+        Raises:
+            CommandError: If stop fails
+        """
+        self.logger.info("Stopping demo mode")
+
+        response = await self._send_command("stop_demonstrate", {})
+
+        self.logger.info(f"Stop demo mode response: {response}")
+        return response.get("result") == 0
+
+    async def check_client_verified(self) -> bool:
+        """Check if current client is verified/authenticated.
+
+        Returns:
+            True if client is verified
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("pi_is_verified", {})
+
+        return response.get("result", {}).get("is_verified", False)
