@@ -33,3 +33,39 @@ class CaptureHistory(Base):
 
     # Relationships (will add when OutputFile exists)
     # output_files = relationship("OutputFile", back_populates="capture_history")
+
+
+class OutputFile(Base):
+    """Links captured files to targets and executions."""
+
+    __tablename__ = "output_files"
+
+    id = Column(Integer, primary_key=True)
+    file_path = Column(String(500), nullable=False, unique=True, index=True)
+    file_type = Column(String(20), nullable=False)  # raw_fits, stacked_fits, jpg, png, tiff
+    file_size_bytes = Column(BigInteger, nullable=False)
+
+    # Target linking
+    catalog_id = Column(String(50), nullable=False, index=True)
+    catalog_id_confidence = Column(Float, default=1.0)  # Fuzzy match score
+
+    # Execution linking (nullable - files may exist before tracking)
+    execution_id = Column(Integer, ForeignKey("telescope_executions.id"), nullable=True)
+    execution_target_id = Column(Integer, ForeignKey("execution_targets.id"), nullable=True)
+
+    # FITS metadata
+    exposure_seconds = Column(Integer, nullable=True)
+    filter_name = Column(String(20), nullable=True)
+    temperature_celsius = Column(Float, nullable=True)
+    gain = Column(Integer, nullable=True)
+
+    # Quality metrics
+    fwhm = Column(Float, nullable=True)
+    star_count = Column(Integer, nullable=True)
+
+    # Timestamps
+    observation_date = Column(DateTime, nullable=True)  # From FITS DATE-OBS
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships (will add back_populates when ready)
+    # capture_history = relationship("CaptureHistory", back_populates="output_files")
