@@ -190,20 +190,14 @@ class SeestarClient:
         """
         # Load the private key
         private_key = serialization.load_pem_private_key(
-            self.SEESTAR_RSA_KEY_REMOVED_FROM_HISTORY.encode(),
-            password=None,
-            backend=default_backend()
+            self.SEESTAR_RSA_KEY_REMOVED_FROM_HISTORY.encode(), password=None, backend=default_backend()
         )
 
         # Sign the challenge using RSA-SHA1
-        signature = private_key.sign(
-            challenge_str.encode('utf-8'),
-            padding.PKCS1v15(),
-            hashes.SHA1()
-        )
+        signature = private_key.sign(challenge_str.encode("utf-8"), padding.PKCS1v15(), hashes.SHA1())
 
         # Return base64-encoded signature
-        return base64.b64encode(signature).decode('utf-8')
+        return base64.b64encode(signature).decode("utf-8")
 
     async def _authenticate(self) -> None:
         """Perform 2-step authentication for firmware 6.45+.
@@ -229,10 +223,7 @@ class SeestarClient:
             self.logger.info("Signing challenge and authenticating...")
             signed_challenge = self._sign_challenge(challenge_str)
 
-            verify_params = {
-                "sign": signed_challenge,
-                "data": challenge_str
-            }
+            verify_params = {"sign": signed_challenge, "data": challenge_str}
 
             verify_response = await self._send_command("verify_client", verify_params)
 
@@ -261,7 +252,7 @@ class SeestarClient:
                 "method": "scan_iscope",
                 "params": "",
                 "app_version": "3.0.0",  # Pretend to be latest app version
-                "protocol_version": "6.45"  # Match firmware version exactly
+                "protocol_version": "6.45",  # Match firmware version exactly
             }
             message_bytes = json.dumps(message).encode()
 
@@ -445,11 +436,7 @@ class SeestarClient:
         self._command_id += 1
 
         # Build message with version info for firmware 6.x compatibility
-        message = {
-            "method": method,
-            "id": cmd_id,
-            "jsonrpc": "2.0"  # Add JSON-RPC version
-        }
+        message = {"method": method, "id": cmd_id, "jsonrpc": "2.0"}  # Add JSON-RPC version
         if params is not None:
             message["params"] = params
 
