@@ -1,11 +1,14 @@
 """File scanner service for discovering and processing image files."""
 
+import os
 from typing import Optional, Tuple, Dict, Any
 from datetime import datetime
 from thefuzz import fuzz
 from sqlalchemy.orm import Session
 from astropy.io import fits
 
+from app.core.config import get_settings
+from app.models.capture_models import OutputFile
 from app.models.catalog_models import DSOCatalog
 
 
@@ -137,3 +140,86 @@ class FileScannerService:
             "fwhm": None,
             "star_count": None,
         }
+
+    def scan_files(self, directory: str, db: Session) -> int:
+        """
+        Scan directory for files and create OutputFile records.
+
+        1. Scans directory for files matching file_scan_extensions
+        2. For each file:
+           - Extract FITS metadata (if FITS)
+           - Fuzzy match target name to catalog
+           - Calculate quality metrics
+           - Create OutputFile record in database
+        3. Returns count of files processed
+
+        Args:
+            directory: Directory path to scan
+            db: Database session
+
+        Returns:
+            Number of files processed
+        """
+        settings = get_settings()
+        file_count = 0
+
+        # Walk through directory
+        for root, dirs, files in os.walk(directory):
+            for filename in files:
+                # Check if file has matching extension
+                file_ext = os.path.splitext(filename)[1].lower()
+                if file_ext not in settings.file_scan_extensions:
+                    continue
+
+                # Get full file path
+                file_path = os.path.join(root, filename)
+
+                try:
+                    # Get file size
+                    file_size = os.path.getsize(file_path)
+
+                    # Extract FITS metadata if applicable
+                    metadata = None
+                    if file_ext in [".fit", ".fits"]:
+                        metadata = self._extract_fits_metadata(file_path)
+
+                    # Determine target name and fuzzy match
+                    target_name = None
+                    catalog_id = None
+                    confidence = 1.0
+
+                    if metadata and metadata.get("target_name"):
+                        target_name = metadata["target_name"]
+                        # Fuzzy match to catalog
+                        match_result = self._fuzzy_match_catalog(target_name)
+                        if match_result:
+                            catalog_id, confidence = match_result
+
+                    # Calculate quality metrics
+                    quality = self._calculate_quality_metrics(file_path)
+
+                    # Create OutputFile record
+                    output_file = OutputFile(
+                        file_path=file_path,
+                        file_type=file_ext[1:] if file_ext else "unknown",  # Remove leading dot
+                        file_size_bytes=file_size,
+                        catalog_id=catalog_id or "UNKNOWN",
+                        catalog_id_confidence=confidence,
+                        exposure_seconds=metadata.get("exposure_seconds") if metadata else None,
+                        filter_name=metadata.get("filter_name") if metadata else None,
+                        temperature_celsius=metadata.get("temperature_celsius") if metadata else None,
+                        gain=metadata.get("gain") if metadata else None,
+                        observation_date=metadata.get("observation_date") if metadata else None,
+                        fwhm=quality.get("fwhm") if quality else None,
+                        star_count=quality.get("star_count") if quality else None,
+                    )
+
+                    db.add(output_file)
+                    db.commit()
+                    file_count += 1
+
+                except Exception:
+                    # Skip files that cannot be processed
+                    continue
+
+        return file_count

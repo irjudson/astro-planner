@@ -166,3 +166,89 @@ class TestQualityMetrics:
         assert isinstance(result, dict)
         assert "fwhm" in result
         assert "star_count" in result
+
+
+class TestScanFiles:
+    """Test main scan_files method that orchestrates file discovery and processing."""
+
+    @patch("app.services.file_scanner_service.os.walk")
+    @patch("app.services.file_scanner_service.os.path.getsize")
+    def test_scan_files_empty_directory(self, mock_getsize, mock_walk, file_scanner_service, mock_db):
+        """Test scanning an empty directory."""
+        # Mock empty directory
+        mock_walk.return_value = [("/path/to/dir", [], [])]
+
+        result = file_scanner_service.scan_files("/path/to/dir", mock_db)
+
+        assert result == 0
+
+    @patch("app.services.file_scanner_service.os.walk")
+    @patch("app.services.file_scanner_service.os.path.getsize")
+    @patch("app.services.file_scanner_service.fits")
+    def test_scan_files_with_fits_files(self, mock_fits, mock_getsize, mock_walk, file_scanner_service, mock_db):
+        """Test scanning directory with FITS files."""
+        # Mock directory with one FITS file
+        mock_walk.return_value = [
+            ("/path/to/dir", [], ["image.fits"]),
+        ]
+        mock_getsize.return_value = 1024 * 1024  # 1 MB
+
+        # Mock FITS metadata extraction
+        mock_hdu = MagicMock()
+        mock_hdu.header = {
+            "OBJECT": "M31",
+            "EXPTIME": 10.0,
+            "FILTER": "L",
+        }
+        mock_fits.open.return_value.__enter__.return_value = [mock_hdu]
+
+        # Mock database operations
+        mock_db.add = Mock()
+        mock_db.commit = Mock()
+
+        # Mock fuzzy matching
+        file_scanner_service._fuzzy_match_catalog = Mock(return_value=("M31", 1.0))
+
+        result = file_scanner_service.scan_files("/path/to/dir", mock_db)
+
+        assert result == 1
+        mock_db.add.assert_called_once()
+        mock_db.commit.assert_called_once()
+
+    @patch("app.services.file_scanner_service.os.walk")
+    @patch("app.services.file_scanner_service.os.path.getsize")
+    def test_scan_files_non_fits_file_skipped(self, mock_getsize, mock_walk, file_scanner_service, mock_db):
+        """Test that non-FITS files are skipped."""
+        # Mock directory with non-matching file
+        mock_walk.return_value = [
+            ("/path/to/dir", [], ["readme.txt"]),
+        ]
+
+        result = file_scanner_service.scan_files("/path/to/dir", mock_db)
+
+        assert result == 0
+        mock_db.add.assert_not_called()
+
+    @patch("app.services.file_scanner_service.os.walk")
+    @patch("app.services.file_scanner_service.os.path.getsize")
+    @patch("app.services.file_scanner_service.fits")
+    def test_scan_files_no_fuzzy_match(self, mock_fits, mock_getsize, mock_walk, file_scanner_service, mock_db):
+        """Test handling file when fuzzy matching returns no match."""
+        # Mock directory with FITS file
+        mock_walk.return_value = [
+            ("/path/to/dir", [], ["unknown.fits"]),
+        ]
+        mock_getsize.return_value = 1024
+
+        # Mock FITS metadata
+        mock_hdu = MagicMock()
+        mock_hdu.header = {"OBJECT": "UNKNOWN_OBJECT"}
+        mock_fits.open.return_value.__enter__.return_value = [mock_hdu]
+
+        # Mock no match from fuzzy matching
+        file_scanner_service._fuzzy_match_catalog = Mock(return_value=None)
+
+        result = file_scanner_service.scan_files("/path/to/dir", mock_db)
+
+        # Should still process but with None catalog_id
+        assert result == 1
