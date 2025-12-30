@@ -51,7 +51,7 @@ class OutputFile(Base):
 
     # Execution linking (nullable - files may exist before tracking)
     execution_id = Column(Integer, ForeignKey("telescope_executions.id"), nullable=True)
-    execution_target_id = Column(Integer, ForeignKey("execution_targets.id"), nullable=True)
+    execution_target_id = Column(Integer, ForeignKey("telescope_execution_targets.id"), nullable=True)
 
     # FITS metadata
     exposure_seconds = Column(Integer, nullable=True)
