@@ -137,6 +137,45 @@ uvicorn app.main:app --host 0.0.0.0 --port 9247 --reload
 
 ---
 
+## Seestar S50 Authentication Setup
+
+To use Seestar S50 telescope control features, you need the RSA private key for authentication with firmware 6.45+.
+
+### Automatic Key Extraction
+
+Run the extraction script:
+
+```bash
+cd backend
+./scripts/extract_seestar_key.sh
+```
+
+The script will:
+1. Look for the Seestar APK in `/tmp/`
+2. Extract the embedded RSA private key
+3. Save it to `backend/secrets/seestar_private_key.pem`
+
+### Manual Key Provision
+
+If you already have the key, create the file manually:
+
+```bash
+mkdir -p backend/secrets
+# Paste your PEM key into:
+nano backend/secrets/seestar_private_key.pem
+chmod 600 backend/secrets/seestar_private_key.pem
+```
+
+### Getting Help
+
+If you need assistance obtaining the key:
+- Open an issue: [GitHub Issues](https://github.com/irjudson/astro-planner/issues)
+- Contact the maintainer for instructions
+
+**Note:** The key is extracted from the official Seestar app and is required for the authentication protocol used by firmware 6.45+. This is the same key used by the official app.
+
+---
+
 ## Documentation
 
 ### For Users
