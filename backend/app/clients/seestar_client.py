@@ -7,6 +7,7 @@ Protocol documentation: docs/seestar-protocol-spec.md
 """
 
 import asyncio
+import base64
 import json
 import logging
 import socket
@@ -14,6 +15,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, Optional
+
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
 
 
 class SeestarState(Enum):
@@ -86,11 +91,30 @@ class SeestarClient:
         await client.disconnect()
     """
 
-    DEFAULT_PORT = 4700  # Port 4700 for firmware v5.x (was 5555 for v4.x)
+    DEFAULT_PORT = 4700  # Port 4700 for firmware v6.x JSON-RPC
     UDP_DISCOVERY_PORT = 4720
     CONNECTION_TIMEOUT = 10.0
     COMMAND_TIMEOUT = 10.0
     RECEIVE_BUFFER_SIZE = 4096
+
+    # RSA private key for firmware 6.45+ authentication
+    # This key is embedded in the Seestar app's native library and used for signing challenges
+    SEESTAR_RSA_KEY_REMOVED_FROM_HISTORY = """-----BEGIN PRIVATE KEY-----
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+-----END PRIVATE KEY-----"""
 
     def __init__(self, logger: Optional[logging.Logger] = None):
         """Initialize Seestar client.
@@ -152,6 +176,77 @@ class SeestarClient:
             except Exception as e:
                 self.logger.error(f"Error in status callback: {e}")
 
+    def _sign_challenge(self, challenge_str: str) -> str:
+        """Sign authentication challenge using RSA private key.
+
+        This implements the authentication mechanism required by firmware 6.45+.
+        The challenge is signed (not encrypted) using RSA-SHA1.
+
+        Args:
+            challenge_str: Challenge string from get_verify_str
+
+        Returns:
+            Base64-encoded signature
+        """
+        # Load the private key
+        private_key = serialization.load_pem_private_key(
+            self.SEESTAR_RSA_KEY_REMOVED_FROM_HISTORY.encode(),
+            password=None,
+            backend=default_backend()
+        )
+
+        # Sign the challenge using RSA-SHA1
+        signature = private_key.sign(
+            challenge_str.encode('utf-8'),
+            padding.PKCS1v15(),
+            hashes.SHA1()
+        )
+
+        # Return base64-encoded signature
+        return base64.b64encode(signature).decode('utf-8')
+
+    async def _authenticate(self) -> None:
+        """Perform 2-step authentication for firmware 6.45+.
+
+        Step 1: Request challenge string via get_verify_str
+        Step 2: Sign challenge and send via verify_client
+
+        Raises:
+            ConnectionError: If authentication fails
+        """
+        try:
+            # Step 1: Get challenge string
+            self.logger.info("Requesting authentication challenge...")
+            challenge_response = await self._send_command("get_verify_str")
+
+            challenge_str = challenge_response.get("result", {}).get("str", "")
+            if not challenge_str:
+                raise ConnectionError(f"No challenge string in response: {challenge_response}")
+
+            self.logger.debug(f"Received challenge: {challenge_str}")
+
+            # Step 2: Sign challenge and send verification
+            self.logger.info("Signing challenge and authenticating...")
+            signed_challenge = self._sign_challenge(challenge_str)
+
+            verify_params = {
+                "sign": signed_challenge,
+                "data": challenge_str
+            }
+
+            verify_response = await self._send_command("verify_client", verify_params)
+
+            # Check result
+            result_code = verify_response.get("result", verify_response.get("code", -1))
+            if result_code != 0:
+                error = verify_response.get("error", "unknown error")
+                raise ConnectionError(f"Authentication failed: {error} (code {result_code})")
+
+            self.logger.info("Authentication successful")
+
+        except Exception as e:
+            raise ConnectionError(f"Authentication error: {e}")
+
     async def _send_udp_discovery(self) -> None:
         """Send UDP discovery broadcast for guest mode."""
         try:
@@ -160,8 +255,14 @@ class SeestarClient:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.settimeout(1.0)
 
-            # Send discovery message
-            message = {"id": 1, "method": "scan_iscope", "params": ""}
+            # Send discovery message with app version for firmware 6.45 compatibility
+            message = {
+                "id": 1,
+                "method": "scan_iscope",
+                "params": "",
+                "app_version": "3.0.0",  # Pretend to be latest app version
+                "protocol_version": "6.45"  # Match firmware version exactly
+            }
             message_bytes = json.dumps(message).encode()
 
             addr = (self._host, self.UDP_DISCOVERY_PORT)
@@ -218,6 +319,13 @@ class SeestarClient:
             self._receive_task = asyncio.create_task(self._receive_loop())
 
             self.logger.info("Connected to Seestar S50")
+
+            # Authenticate for firmware 6.45+
+            try:
+                await self._authenticate()
+            except Exception as e:
+                await self.disconnect()
+                raise ConnectionError(f"Authentication failed: {e}")
 
             # Query initial status
             try:
@@ -336,8 +444,12 @@ class SeestarClient:
         cmd_id = self._command_id
         self._command_id += 1
 
-        # Build message
-        message = {"method": method, "id": cmd_id}
+        # Build message with version info for firmware 6.x compatibility
+        message = {
+            "method": method,
+            "id": cmd_id,
+            "jsonrpc": "2.0"  # Add JSON-RPC version
+        }
         if params is not None:
             message["params"] = params
 
