@@ -29,3 +29,7 @@ websockets==12.0
 Pillow>=10.0.0  # For image processing and export
 scikit-image>=0.21.0  # For advanced image processing
 cupy-cuda12x>=13.0.0; platform_system == "Linux"  # GPU-accelerated array operations (CUDA 12.x/13.x compatible, Linux only)
+
+# Fuzzy string matching for target name normalization
+thefuzz>=0.20.0  # Fuzzy string matching for catalog target names
+python-Levenshtein>=0.20.0  # Faster fuzzy matching backend for thefuzz
