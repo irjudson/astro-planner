@@ -117,3 +117,23 @@ class FileScannerService:
         except Exception:
             # Return None if file cannot be read
             return None
+
+    def _calculate_quality_metrics(self, file_path: str) -> Dict[str, Any]:
+        """
+        Calculate quality metrics for an image file.
+
+        Placeholder implementation that returns None for metrics pending future work.
+
+        Args:
+            file_path: Path to image file
+
+        Returns:
+            Dict with keys: fwhm, star_count
+            Both values are None until implemented
+        """
+        # TODO: Implement actual FWHM calculation using photometry algorithms
+        # TODO: Implement star detection and counting
+        return {
+            "fwhm": None,
+            "star_count": None,
+        }

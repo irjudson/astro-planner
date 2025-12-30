@@ -146,3 +146,23 @@ class TestFitsMetadataExtraction:
         result = file_scanner_service._extract_fits_metadata("/path/to/nonexistent.fits")
 
         assert result is None
+
+
+class TestQualityMetrics:
+    """Test quality metrics calculation placeholder."""
+
+    def test_calculate_quality_metrics_placeholder(self, file_scanner_service):
+        """Test quality metrics returns placeholder None values."""
+        result = file_scanner_service._calculate_quality_metrics("/path/to/file.fits")
+
+        assert result is not None
+        assert result["fwhm"] is None
+        assert result["star_count"] is None
+
+    def test_calculate_quality_metrics_returns_dict(self, file_scanner_service):
+        """Test quality metrics returns dict with expected keys."""
+        result = file_scanner_service._calculate_quality_metrics("/path/to/file.fits")
+
+        assert isinstance(result, dict)
+        assert "fwhm" in result
+        assert "star_count" in result
