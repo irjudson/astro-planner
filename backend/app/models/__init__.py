@@ -29,6 +29,7 @@ from .models import (
     WeatherForecast,
 )
 from .processing_models import ProcessingFile, ProcessingJob, ProcessingPipeline
+from .capture_models import CaptureHistory
 
 __all__ = [
     "Location",
@@ -65,4 +66,6 @@ __all__ = [
     "ProcessingFile",
     "ProcessingPipeline",
     "ProcessingJob",
+    # Capture history models
+    "CaptureHistory",
 ]
