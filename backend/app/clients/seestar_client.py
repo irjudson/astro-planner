@@ -678,3 +678,670 @@ class SeestarClient:
 
         self.logger.info(f"Configure dither response: {response}")
         return response.get("result") == 0
+
+    # ========================================================================
+    # Phase 1: Real-Time Observation & Tracking
+    # ========================================================================
+
+    async def get_current_coordinates(self) -> Dict[str, float]:
+        """Get current telescope RA/Dec coordinates.
+
+        Returns:
+            Dict with 'ra' (hours) and 'dec' (degrees)
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("scope_get_equ_coord", {})
+
+        result = response.get("result", {})
+
+        # Update internal status
+        if "ra" in result and "dec" in result:
+            self._update_status(current_ra_hours=result["ra"], current_dec_degrees=result["dec"])
+
+        return {"ra": result.get("ra", 0.0), "dec": result.get("dec", 0.0)}
+
+    async def get_app_state(self) -> Dict[str, Any]:
+        """Get current application/operation state.
+
+        Returns detailed state including:
+        - stage: Current operation stage (AutoGoto, AutoFocus, Stack, etc.)
+        - state: Current state within stage
+        - progress: Operation progress information
+        - frame_count: Number of frames captured
+        - etc.
+
+        Returns:
+            Application state dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("iscope_get_app_state", {})
+
+        result = response.get("result", {})
+
+        # Update internal status based on stage
+        stage = result.get("stage")
+        if stage == "AutoGoto":
+            self._update_status(state=SeestarState.SLEWING)
+        elif stage == "AutoFocus":
+            self._update_status(state=SeestarState.FOCUSING)
+        elif stage == "Stack":
+            self._update_status(state=SeestarState.IMAGING)
+        elif stage == "Idle":
+            self._update_status(state=SeestarState.TRACKING)
+
+        return result
+
+    async def check_stacking_complete(self) -> bool:
+        """Check if stacking is complete.
+
+        Returns:
+            True if stacking has finished
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("is_stacked", {})
+
+        return response.get("result", {}).get("is_stacked", False)
+
+    async def get_plate_solve_result(self) -> Dict[str, Any]:
+        """Get plate solving result.
+
+        Returns plate solve information including:
+        - Actual solved RA/Dec
+        - Field rotation
+        - Solve status
+        - Error information if solve failed
+
+        Returns:
+            Plate solve result dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("get_solve_result", {})
+
+        return response.get("result", {})
+
+    async def get_field_annotations(self) -> Dict[str, Any]:
+        """Get annotations for objects in current field of view.
+
+        Returns information about identified objects including:
+        - Catalog objects (stars, galaxies, nebulae)
+        - Object coordinates
+        - Object names and identifiers
+
+        Returns:
+            Annotation results dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("get_annotate_result", {})
+
+        return response.get("result", {})
+
+    # ========================================================================
+    # Phase 2: View Plans & Automated Sequences
+    # ========================================================================
+
+    async def start_view_plan(self, plan_config: Dict[str, Any]) -> bool:
+        """Execute an automated observation plan.
+
+        Starts a multi-target imaging sequence based on plan configuration.
+
+        Args:
+            plan_config: Plan configuration dict with targets, exposures, etc.
+
+        Returns:
+            True if plan started successfully
+
+        Raises:
+            CommandError: If plan start fails
+        """
+        self.logger.info(f"Starting view plan: {plan_config}")
+
+        response = await self._send_command("start_view_plan", plan_config)
+
+        self.logger.info(f"Start view plan response: {response}")
+        return response.get("result") == 0
+
+    async def stop_view_plan(self) -> bool:
+        """Stop/cancel running observation plan.
+
+        Returns:
+            True if plan stopped successfully
+
+        Raises:
+            CommandError: If stop fails
+        """
+        self.logger.info("Stopping view plan")
+
+        response = await self._send_command("stop_view_plan", {})
+
+        self.logger.info(f"Stop view plan response: {response}")
+        return response.get("result") == 0
+
+    async def get_view_plan_state(self) -> Dict[str, Any]:
+        """Get current view plan execution state.
+
+        Returns plan progress information including:
+        - Current target
+        - Targets completed
+        - Overall progress
+        - Estimated time remaining
+
+        Returns:
+            View plan state dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("get_view_plan_state", {})
+
+        return response.get("result", {})
+
+    # ========================================================================
+    # Phase 3: Planetary Observation Mode
+    # ========================================================================
+
+    async def start_planet_scan(self, planet_name: str, exposure_ms: int = 30, gain: float = 100.0) -> bool:
+        """Start planetary imaging mode.
+
+        Uses specialized stacking optimized for planetary imaging.
+
+        Args:
+            planet_name: Name of planet to image
+            exposure_ms: Exposure time in milliseconds (shorter for planets)
+            gain: Camera gain (higher for planets)
+
+        Returns:
+            True if planetary mode started successfully
+
+        Raises:
+            CommandError: If start fails
+        """
+        self.logger.info(f"Starting planet scan: {planet_name}, exp={exposure_ms}ms, gain={gain}")
+
+        params = {
+            "planet": planet_name,
+            "exposure_ms": exposure_ms,
+            "gain": gain,
+        }
+
+        response = await self._send_command("start_scan_planet", params)
+
+        self.logger.info(f"Start planet scan response: {response}")
+        return response.get("result") == 0
+
+    async def configure_planetary_imaging(
+        self,
+        frame_count: int = 1000,
+        save_frames: bool = True,
+        denoise: bool = True,
+    ) -> bool:
+        """Configure settings for planetary imaging.
+
+        Args:
+            frame_count: Number of frames to capture
+            save_frames: Save individual frames for stacking
+            denoise: Apply denoising to planetary images
+
+        Returns:
+            True if settings applied successfully
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(f"Configuring planetary imaging: frames={frame_count}, save={save_frames}, denoise={denoise}")
+
+        params = {
+            "stack": {
+                "capt_type": "planet",
+                "capt_num": frame_count,
+                "save_discrete_frame": save_frames,
+                "wide_denoise": denoise,
+            }
+        }
+
+        response = await self._send_command("set_setting", params)
+
+        self.logger.info(f"Configure planetary imaging response: {response}")
+        return response.get("result") == 0
+
+    # ========================================================================
+    # Phase 4: Enhanced Control
+    # ========================================================================
+
+    async def slew_to_coordinates(self, ra_hours: float, dec_degrees: float) -> bool:
+        """Slew telescope to specific RA/Dec coordinates.
+
+        Direct mount movement command (lower level than goto_target).
+
+        Args:
+            ra_hours: Right ascension in hours
+            dec_degrees: Declination in degrees
+
+        Returns:
+            True if slew initiated successfully
+
+        Raises:
+            CommandError: If slew command fails
+        """
+        self.logger.info(f"Slewing to RA={ra_hours}h, Dec={dec_degrees}°")
+
+        params = {"action": "slew", "ra": ra_hours, "dec": dec_degrees}
+
+        self._update_status(state=SeestarState.SLEWING)
+
+        response = await self._send_command("scope_move", params)
+
+        self.logger.info(f"Slew response: {response}")
+        return response.get("result") == 0
+
+    async def stop_telescope_movement(self) -> bool:
+        """Stop any telescope movement immediately.
+
+        Emergency stop for mount movement.
+
+        Returns:
+            True if stop successful
+
+        Raises:
+            CommandError: If stop fails
+        """
+        self.logger.info("Stopping telescope movement")
+
+        params = {"action": "stop"}
+
+        response = await self._send_command("scope_move", params)
+
+        self.logger.info(f"Stop movement response: {response}")
+        return response.get("result") == 0
+
+    async def move_focuser_to_position(self, position: int) -> bool:
+        """Move focuser to specific position.
+
+        Args:
+            position: Focuser position (0 to max_step, typically 0-2600)
+
+        Returns:
+            True if move initiated successfully
+
+        Raises:
+            CommandError: If move fails
+        """
+        self.logger.info(f"Moving focuser to position {position}")
+
+        params = {"step": position}
+
+        self._update_status(state=SeestarState.FOCUSING)
+
+        response = await self._send_command("move_focuser", params)
+
+        self.logger.info(f"Move focuser response: {response}")
+        return response.get("result") == 0
+
+    async def move_focuser_relative(self, offset: int) -> bool:
+        """Move focuser by relative offset.
+
+        Args:
+            offset: Steps to move (positive = out, negative = in)
+
+        Returns:
+            True if move initiated successfully
+
+        Raises:
+            CommandError: If move fails
+        """
+        self.logger.info(f"Moving focuser by offset {offset}")
+
+        params = {"offset": offset}
+
+        self._update_status(state=SeestarState.FOCUSING)
+
+        response = await self._send_command("move_focuser", params)
+
+        self.logger.info(f"Move focuser response: {response}")
+        return response.get("result") == 0
+
+    async def stop_autofocus(self) -> bool:
+        """Stop autofocus operation.
+
+        Returns:
+            True if stop successful
+
+        Raises:
+            CommandError: If stop fails
+        """
+        self.logger.info("Stopping autofocus")
+
+        response = await self._send_command("stop_auto_focuse", {})
+
+        self.logger.info(f"Stop autofocus response: {response}")
+        return response.get("result") == 0
+
+    async def configure_advanced_stacking(
+        self,
+        dark_background_extraction: bool = False,
+        star_correction: bool = True,
+        airplane_removal: bool = False,
+        drizzle_2x: bool = False,
+    ) -> bool:
+        """Configure advanced stacking options.
+
+        Args:
+            dark_background_extraction: Enable DBE for light pollution removal
+            star_correction: Enable star shape correction
+            airplane_removal: Remove satellite/airplane trails
+            drizzle_2x: Enable 2x drizzle upsampling
+
+        Returns:
+            True if settings applied successfully
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(
+            f"Configuring advanced stacking: dbe={dark_background_extraction}, "
+            f"star_corr={star_correction}, airplane={airplane_removal}, drizzle={drizzle_2x}"
+        )
+
+        params = {
+            "stack": {
+                "dbe": dark_background_extraction,
+                "star_correction": star_correction,
+                "airplane_line_removal": airplane_removal,
+                "drizzle2x": drizzle_2x,
+            }
+        }
+
+        response = await self._send_command("set_setting", params)
+
+        self.logger.info(f"Configure advanced stacking response: {response}")
+        return response.get("result") == 0
+
+    async def set_manual_exposure(self, exposure_ms: float, gain: float) -> bool:
+        """Set manual exposure and gain.
+
+        Args:
+            exposure_ms: Exposure time in milliseconds
+            gain: Camera gain
+
+        Returns:
+            True if settings applied successfully
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(f"Setting manual exposure: {exposure_ms}ms, gain={gain}")
+
+        params = {
+            "manual_exp": True,
+            "isp_exp_ms": exposure_ms,
+            "isp_gain": gain,
+        }
+
+        response = await self._send_command("set_setting", params)
+
+        self.logger.info(f"Set manual exposure response: {response}")
+        return response.get("result") == 0
+
+    async def set_auto_exposure(self, brightness_target: float = 50.0) -> bool:
+        """Enable auto exposure with brightness target.
+
+        Args:
+            brightness_target: Target brightness percentage (0-100)
+
+        Returns:
+            True if settings applied successfully
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(f"Setting auto exposure: brightness={brightness_target}%")
+
+        params = {
+            "manual_exp": False,
+            "ae_bri_percent": brightness_target,
+        }
+
+        response = await self._send_command("set_setting", params)
+
+        self.logger.info(f"Set auto exposure response: {response}")
+        return response.get("result") == 0
+
+    # ========================================================================
+    # Phase 5+: System Management & Utilities
+    # ========================================================================
+
+    async def shutdown_telescope(self) -> bool:
+        """Safely shutdown the telescope.
+
+        Returns:
+            True if shutdown initiated successfully
+
+        Raises:
+            CommandError: If shutdown fails
+        """
+        self.logger.info("Initiating telescope shutdown")
+
+        response = await self._send_command("pi_shutdown", {})
+
+        self.logger.info(f"Shutdown response: {response}")
+        return response.get("result") == 0
+
+    async def reboot_telescope(self) -> bool:
+        """Reboot the telescope.
+
+        Returns:
+            True if reboot initiated successfully
+
+        Raises:
+            CommandError: If reboot fails
+        """
+        self.logger.info("Initiating telescope reboot")
+
+        response = await self._send_command("pi_reboot", {})
+
+        self.logger.info(f"Reboot response: {response}")
+        return response.get("result") == 0
+
+    async def play_notification_sound(self, volume: str = "backyard") -> bool:
+        """Play notification sound on telescope.
+
+        Args:
+            volume: Volume level ("silent", "backyard", "outdoor")
+
+        Returns:
+            True if sound played successfully
+
+        Raises:
+            CommandError: If play fails
+        """
+        self.logger.info(f"Playing notification sound at volume: {volume}")
+
+        params = {"volume": volume}
+
+        response = await self._send_command("play_sound", params)
+
+        self.logger.info(f"Play sound response: {response}")
+        return response.get("result") == 0
+
+    async def get_image_file_info(self, file_path: str = "") -> Dict[str, Any]:
+        """Get information about captured image files.
+
+        Args:
+            file_path: Optional specific file path to query
+
+        Returns:
+            File information dict
+
+        Raises:
+            CommandError: If query fails
+        """
+        params = {"path": file_path} if file_path else {}
+
+        response = await self._send_command("get_img_file_info", params)
+
+        return response.get("result", {})
+
+    async def cancel_current_operation(self) -> bool:
+        """Cancel current view/operation.
+
+        Alternative to stop commands.
+
+        Returns:
+            True if cancel successful
+
+        Raises:
+            CommandError: If cancel fails
+        """
+        self.logger.info("Canceling current operation")
+
+        response = await self._send_command("iscope_cancel_view", {})
+
+        self.logger.info(f"Cancel operation response: {response}")
+        return response.get("result") == 0
+
+    async def set_location(self, longitude: float, latitude: float) -> bool:
+        """Set user location for telescope calculations.
+
+        Args:
+            longitude: Longitude in degrees (-180 to 180, west is negative)
+            latitude: Latitude in degrees (-90 to 90)
+
+        Returns:
+            True if location set successfully
+
+        Raises:
+            CommandError: If setting fails
+        """
+        self.logger.info(f"Setting location: lon={longitude}, lat={latitude}")
+
+        params = {"lon_lat": [longitude, latitude]}
+
+        response = await self._send_command("set_user_location", params)
+
+        self.logger.info(f"Set location response: {response}")
+        return response.get("result") == 0
+
+    async def move_to_horizon(self, azimuth: float, altitude: float) -> bool:
+        """Move telescope to horizon coordinates.
+
+        Args:
+            azimuth: Azimuth in degrees (0-360)
+            altitude: Altitude in degrees (0-90)
+
+        Returns:
+            True if move initiated successfully
+
+        Raises:
+            CommandError: If move fails
+        """
+        self.logger.info(f"Moving to horizon: az={azimuth}°, alt={altitude}°")
+
+        params = {"azimuth": azimuth, "altitude": altitude}
+
+        self._update_status(state=SeestarState.SLEWING)
+
+        response = await self._send_command("scope_move_to_horizon", params)
+
+        self.logger.info(f"Move to horizon response: {response}")
+        return response.get("result") == 0
+
+    async def reset_focuser_to_factory(self) -> bool:
+        """Reset focuser to factory default position.
+
+        Returns:
+            True if reset successful
+
+        Raises:
+            CommandError: If reset fails
+        """
+        self.logger.info("Resetting focuser to factory position")
+
+        response = await self._send_command("reset_factory_focal_pos", {})
+
+        self.logger.info(f"Reset focuser response: {response}")
+        return response.get("result") == 0
+
+    async def check_polar_alignment(self) -> Dict[str, Any]:
+        """Check polar alignment quality.
+
+        Returns polar alignment information including error in arc-minutes.
+
+        Returns:
+            Polar alignment status dict
+
+        Raises:
+            CommandError: If check fails
+        """
+        response = await self._send_command("check_pa_alt", {})
+
+        return response.get("result", {})
+
+    async def clear_polar_alignment(self) -> bool:
+        """Clear polar alignment calibration.
+
+        Returns:
+            True if clear successful
+
+        Raises:
+            CommandError: If clear fails
+        """
+        self.logger.info("Clearing polar alignment")
+
+        response = await self._send_command("clear_polar_align", {})
+
+        self.logger.info(f"Clear polar alignment response: {response}")
+        return response.get("result") == 0
+
+    async def start_compass_calibration(self) -> bool:
+        """Start compass calibration procedure.
+
+        Returns:
+            True if calibration started successfully
+
+        Raises:
+            CommandError: If start fails
+        """
+        self.logger.info("Starting compass calibration")
+
+        response = await self._send_command("start_compass_calibration", {})
+
+        self.logger.info(f"Start compass calibration response: {response}")
+        return response.get("result") == 0
+
+    async def stop_compass_calibration(self) -> bool:
+        """Stop compass calibration procedure.
+
+        Returns:
+            True if stop successful
+
+        Raises:
+            CommandError: If stop fails
+        """
+        self.logger.info("Stopping compass calibration")
+
+        response = await self._send_command("stop_compass_calibration", {})
+
+        self.logger.info(f"Stop compass calibration response: {response}")
+        return response.get("result") == 0
+
+    async def get_compass_state(self) -> Dict[str, Any]:
+        """Get compass heading and calibration state.
+
+        Returns:
+            Compass state dict with heading and calibration status
+
+        Raises:
+            CommandError: If query fails
+        """
+        response = await self._send_command("get_compass_state", {})
+
+        return response.get("result", {})
