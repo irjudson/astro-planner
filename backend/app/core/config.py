@@ -1,6 +1,7 @@
 """Configuration management for the application."""
 
 from functools import lru_cache
+from typing import List
 
 from pydantic_settings import BaseSettings
 
@@ -53,6 +54,19 @@ class Settings(BaseSettings):
 
     # Seestar Authentication
     seestar_private_key_path: str = "./secrets/seestar_private_key.pem"  # Path to Seestar RSA private key
+
+    # Output directory for capture files
+    output_directory: str = "/mnt/synology/shared/Astronomy"
+    auto_transfer_files: bool = True
+    auto_delete_after_transfer: bool = True
+
+    # Capture thresholds for status suggestions
+    capture_complete_hours: float = 3.0
+    capture_needs_more_hours: float = 1.0
+
+    # File scanner settings
+    file_scan_on_startup: bool = False
+    file_scan_extensions: List[str] = ['.fit', '.fits', '.jpg', '.png', '.tiff', '.avi']
 
     class Config:
         env_file = ".env"
