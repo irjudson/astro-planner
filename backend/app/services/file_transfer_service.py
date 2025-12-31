@@ -1,6 +1,7 @@
 """File transfer service for downloading Seestar S50 captures."""
 
 import logging
+import shutil
 from pathlib import Path
 from typing import List, Optional
 from datetime import datetime
@@ -47,3 +48,71 @@ class FileTransferService:
         except (OSError, IOError, PermissionError) as e:
             self.logger.error(f"Error listing files from Seestar mount: {e}")
             return []
+
+    def _get_destination_path(
+        self,
+        source_file: Path,
+        target_name: str,
+        observation_date: datetime
+    ) -> Path:
+        """
+        Generate organized destination path.
+
+        Organization: {output_directory}/{target_name}/{YYYY-MM-DD}/{filename}
+
+        Args:
+            source_file: Original file path
+            target_name: Catalog target name (e.g., "M31")
+            observation_date: Observation datetime
+
+        Returns:
+            Organized destination path
+        """
+        date_str = observation_date.strftime("%Y-%m-%d")
+        dest_dir = self.output_directory / target_name / date_str
+        return dest_dir / source_file.name
+
+    def transfer_file(
+        self,
+        source_file: Path,
+        target_name: str,
+        observation_date: datetime,
+        delete_source: bool = False
+    ) -> Path:
+        """
+        Transfer file to organized destination.
+
+        Args:
+            source_file: Source file path
+            target_name: Catalog target name
+            observation_date: Observation datetime
+            delete_source: Delete source after successful transfer
+
+        Returns:
+            Destination file path
+        """
+        dest_path = self._get_destination_path(source_file, target_name, observation_date)
+
+        # Skip if file already exists
+        if dest_path.exists():
+            self.logger.debug(f"File already exists, skipping: {dest_path}")
+            return dest_path
+
+        # Create destination directory
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Copy file
+            shutil.copy2(source_file, dest_path)
+            self.logger.info(f"Transferred: {source_file.name} -> {dest_path}")
+
+            # Delete source if requested
+            if delete_source:
+                source_file.unlink()
+                self.logger.debug(f"Deleted source file: {source_file}")
+
+            return dest_path
+
+        except Exception as e:
+            self.logger.error(f"Error transferring file {source_file}: {e}")
+            raise

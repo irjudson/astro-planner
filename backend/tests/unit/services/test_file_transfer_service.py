@@ -2,6 +2,7 @@
 
 import pytest
 from pathlib import Path
+from datetime import datetime
 from app.services.file_transfer_service import FileTransferService
 
 
@@ -53,3 +54,65 @@ def test_list_files_mount_not_available():
     files = service.list_available_files()
 
     assert files == []
+
+
+def test_organize_file_path():
+    """Test generating organized destination path for file."""
+    service = FileTransferService()
+    service.output_directory = Path("/output")
+
+    source_file = Path("/seestar/M31_2025-12-30_001.fit")
+
+    dest_path = service._get_destination_path(
+        source_file,
+        target_name="M31",
+        observation_date=datetime(2025, 12, 30, 21, 45)
+    )
+
+    # Should organize as: /output/M31/2025-12-30/M31_2025-12-30_001.fit
+    assert "M31" in str(dest_path)
+    assert "2025-12-30" in str(dest_path)
+    assert dest_path.name == "M31_2025-12-30_001.fit"
+
+
+def test_transfer_file(mock_mount_path, tmp_path):
+    """Test transferring single file with organization."""
+    service = FileTransferService()
+    service.output_directory = tmp_path / "output"
+    service.seestar_mount_path = mock_mount_path / "Seestar" / "IMG"
+
+    source = mock_mount_path / "Seestar" / "IMG" / "M31_2025-12-30_001.fit"
+
+    transferred_path = service.transfer_file(
+        source,
+        target_name="M31",
+        observation_date=datetime(2025, 12, 30, 21, 45)
+    )
+
+    assert transferred_path.exists()
+    assert "M31" in str(transferred_path)
+    assert "2025-12-30" in str(transferred_path)
+
+
+def test_transfer_file_already_exists(mock_mount_path, tmp_path):
+    """Test skipping file that already exists at destination."""
+    service = FileTransferService()
+    service.output_directory = tmp_path / "output"
+
+    # Create existing file
+    dest_dir = service.output_directory / "M31" / "2025-12-30"
+    dest_dir.mkdir(parents=True)
+    existing = dest_dir / "M31_2025-12-30_001.fit"
+    existing.write_text("existing data")
+
+    source = mock_mount_path / "Seestar" / "IMG" / "M31_2025-12-30_001.fit"
+
+    # Should skip and return existing path
+    result = service.transfer_file(
+        source,
+        target_name="M31",
+        observation_date=datetime(2025, 12, 30, 21, 45)
+    )
+
+    assert result == existing
+    assert existing.read_text() == "existing data"  # Not overwritten
