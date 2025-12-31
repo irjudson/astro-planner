@@ -163,13 +163,10 @@ class FileTransferService:
 
         self.logger.info(f"Found {len(available_files)} files to process")
 
-        transferred_files = []
-
-        # Transfer each file
+        # Transfer and scan each file
         for source_file in available_files:
             try:
                 # Extract metadata to get target name and date
-                # For now, parse from filename (format: TARGETNAME_YYYY-MM-DD_NNN.ext)
                 metadata = self.scanner._extract_fits_metadata(str(source_file))
 
                 if not metadata or not metadata.get('target_name'):
@@ -188,18 +185,17 @@ class FileTransferService:
                     delete_source=self.auto_delete
                 )
 
-                transferred_files.append(dest_path)
                 results['transferred'] += 1
+
+                # Scan the single transferred file's directory (parent)
+                # This ensures we only scan newly transferred files, not entire output directory
+                scan_count = self.scanner.scan_files(str(dest_path.parent), db)
+                if scan_count > 0:
+                    results['scanned'] += 1
 
             except Exception as e:
                 self.logger.error(f"Error processing {source_file}: {e}")
                 results['errors'] += 1
-
-        # Scan all transferred files to create OutputFile records
-        if transferred_files:
-            # Get the parent directory (output_directory)
-            scan_count = self.scanner.scan_files(str(self.output_directory), db)
-            results['scanned'] = scan_count
 
         self.logger.info(f"Transfer complete: {results}")
         return results

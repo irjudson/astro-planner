@@ -215,3 +215,30 @@ def test_transfer_and_scan_with_errors(mock_mount_path, tmp_path, mock_db_sessio
     # The bad file will be skipped due to metadata extraction failure (returns None)
     # So we'll still have 2 transferred from the good files
     assert results['transferred'] == 2  # Original 2 good FITS files
+
+
+def test_transfer_and_scan_idempotent(mock_mount_path, tmp_path, mock_db_session):
+    """Test running transfer twice doesn't create duplicates."""
+    service = FileTransferService()
+    service.output_directory = tmp_path / "output"
+    service.seestar_mount_path = mock_mount_path / "Seestar" / "IMG"
+
+    # Run first transfer
+    results1 = service.transfer_and_scan_all(db=mock_db_session)
+
+    # Files are still on mount (not deleted by default)
+    # Run transfer again - should skip existing files
+    results2 = service.transfer_and_scan_all(db=mock_db_session)
+
+    # First run should transfer 2 valid FITS files (JPG skipped due to no metadata)
+    assert results1['transferred'] == 2
+    assert results1['scanned'] == 2
+    assert results1['errors'] == 0
+    assert results1['skipped'] == 1  # JPG file skipped
+
+    # Second run should skip FITS files that already exist at destination
+    # JPG is still skipped due to metadata extraction failure
+    assert results2['transferred'] == 0
+    assert results2['skipped'] == 1  # JPG skipped again (already exists at destination)
+    assert results2['errors'] == 0
+    assert results2['scanned'] == 0
