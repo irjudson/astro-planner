@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.api.asteroids import router as asteroid_router
 from app.api.astronomy import router as astronomy_router
+from app.api.captures import router as captures_router
 
 # Import comet, asteroid, planet, processing, plans, astronomy, and settings routers
 from app.api.comets import router as comet_router
@@ -37,6 +38,7 @@ router.include_router(processing_router)
 router.include_router(plans_router)
 router.include_router(astronomy_router)
 router.include_router(settings_router)
+router.include_router(captures_router)
 
 # Telescope control (singleton instances)
 seestar_client = SeestarClient()
