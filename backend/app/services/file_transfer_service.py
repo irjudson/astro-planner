@@ -19,9 +19,9 @@ class FileTransferService:
         self.auto_transfer = settings.auto_transfer_files
         self.auto_delete = settings.auto_delete_after_transfer
 
-        # Seestar mount path (from device settings or config)
-        # Typical: /mnt/seestar or network mount
-        self.seestar_mount_path = Path("/mnt/seestar/Seestar/IMG")
+        # Seestar mount path from config
+        self.seestar_mount_path = Path(settings.seestar_mount_path)
+        self.scan_extensions = settings.file_scan_extensions
 
     def list_available_files(self) -> List[Path]:
         """
@@ -36,14 +36,14 @@ class FileTransferService:
             return []
 
         try:
-            # Get all files recursively
+            # Get all files recursively using configured extensions
             files = []
-            for ext in ['.fit', '.fits', '.jpg', '.png', '.tiff', '.avi']:
+            for ext in self.scan_extensions:
                 files.extend(self.seestar_mount_path.glob(f"**/*{ext}"))
 
             self.logger.info(f"Found {len(files)} files in {self.seestar_mount_path}")
             return files
 
-        except Exception as e:
+        except (OSError, IOError, PermissionError) as e:
             self.logger.error(f"Error listing files from Seestar mount: {e}")
             return []

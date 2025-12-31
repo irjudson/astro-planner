@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     auto_transfer_files: bool = True
     auto_delete_after_transfer: bool = True
 
+    # Seestar mount path
+    seestar_mount_path: str = "/mnt/seestar/Seestar/IMG"
+
     # Capture thresholds for status suggestions
     capture_complete_hours: float = 3.0
     capture_needs_more_hours: float = 1.0

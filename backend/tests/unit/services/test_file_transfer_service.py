@@ -2,7 +2,6 @@
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
 from app.services.file_transfer_service import FileTransferService
 
 
