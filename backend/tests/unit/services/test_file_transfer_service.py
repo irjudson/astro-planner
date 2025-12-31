@@ -3,7 +3,12 @@
 import pytest
 from pathlib import Path
 from datetime import datetime
+from unittest.mock import MagicMock
+import numpy as np
+from astropy.io import fits
 from app.services.file_transfer_service import FileTransferService
+from app.services.file_scanner_service import FileScannerService
+from app.models.capture_models import OutputFile
 
 
 def test_file_transfer_service_init():
@@ -11,6 +16,20 @@ def test_file_transfer_service_init():
     service = FileTransferService()
     assert service is not None
     assert service.output_directory is not None
+
+
+def _create_test_fits_file(file_path: Path, target_name: str):
+    """Helper to create a minimal valid FITS file for testing."""
+    # Create minimal FITS file with required metadata
+    data = np.zeros((10, 10), dtype=np.uint16)
+    hdu = fits.PrimaryHDU(data)
+    hdu.header['OBJECT'] = target_name
+    hdu.header['EXPTIME'] = 30.0
+    hdu.header['FILTER'] = 'Luminance'
+    hdu.header['CCD-TEMP'] = -10.5
+    hdu.header['GAIN'] = 100
+    hdu.header['DATE-OBS'] = '2025-12-30T20:30:00'
+    hdu.writeto(file_path, overwrite=True)
 
 
 @pytest.fixture
@@ -24,10 +43,10 @@ def mock_mount_path(tmp_path):
     img_dir = mount / "Seestar" / "IMG"
     img_dir.mkdir(parents=True)
 
-    # Create some test files
-    (img_dir / "M31_2025-12-30_001.fit").write_text("fake fits data")
+    # Create proper FITS files with metadata
+    _create_test_fits_file(img_dir / "M31_2025-12-30_001.fit", "M31")
     (img_dir / "M31_2025-12-30_001.jpg").write_text("fake jpg data")
-    (img_dir / "M42_2025-12-30_002.fit").write_text("fake fits data")
+    _create_test_fits_file(img_dir / "M42_2025-12-30_002.fit", "M42")
 
     return mount
 
@@ -156,3 +175,43 @@ def test_transfer_file_with_delete_source(mock_mount_path, tmp_path):
 
     # Verify source was deleted
     assert not source.exists()
+
+
+@pytest.fixture
+def mock_db_session():
+    """Create mock database session."""
+    return MagicMock()
+
+
+def test_transfer_and_scan_batch(mock_mount_path, tmp_path, mock_db_session):
+    """Test transferring batch of files and scanning them."""
+    service = FileTransferService()
+    service.output_directory = tmp_path / "output"
+    service.seestar_mount_path = mock_mount_path / "Seestar" / "IMG"
+
+    # Transfer and scan all files
+    results = service.transfer_and_scan_all(db=mock_db_session)
+
+    # Should transfer 2 FITS files (JPG is skipped because it has no FITS metadata)
+    assert results['transferred'] == 2
+    assert results['scanned'] == 2
+    assert results['errors'] == 0
+
+
+def test_transfer_and_scan_with_errors(mock_mount_path, tmp_path, mock_db_session):
+    """Test batch transfer handles errors gracefully."""
+    service = FileTransferService()
+    service.output_directory = tmp_path / "output"
+    service.seestar_mount_path = mock_mount_path / "Seestar" / "IMG"
+
+    # Add a file that will cause error (permission denied)
+    bad_file = mock_mount_path / "Seestar" / "IMG" / "bad.fit"
+    bad_file.write_text("data")
+    bad_file.chmod(0o000)  # No permissions
+
+    results = service.transfer_and_scan_all(db=mock_db_session)
+
+    # Should handle error and continue with other files
+    # The bad file will be skipped due to metadata extraction failure (returns None)
+    # So we'll still have 2 transferred from the good files
+    assert results['transferred'] == 2  # Original 2 good FITS files

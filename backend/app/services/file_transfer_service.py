@@ -3,10 +3,12 @@
 import logging
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.services.file_scanner_service import FileScannerService
 
 
 class FileTransferService:
@@ -23,6 +25,9 @@ class FileTransferService:
         # Seestar mount path from config
         self.seestar_mount_path = Path(settings.seestar_mount_path)
         self.scan_extensions = settings.file_scan_extensions
+
+        # Scanner will be initialized when needed with a DB session
+        self.scanner = None
 
     def list_available_files(self) -> List[Path]:
         """
@@ -123,3 +128,78 @@ class FileTransferService:
         except Exception as e:
             self.logger.error(f"Error transferring file {source_file}: {e}")
             raise
+
+    def transfer_and_scan_all(self, db: Session) -> Dict[str, Any]:
+        """
+        Transfer all files from Seestar and scan them.
+
+        This is the main orchestration method that:
+        1. Lists available files from Seestar
+        2. Extracts metadata to determine target/date
+        3. Transfers files to organized structure
+        4. Scans transferred files with FileScannerService
+
+        Args:
+            db: Database session for creating OutputFile records
+
+        Returns:
+            Dict with counts: transferred, scanned, errors
+        """
+        results = {
+            'transferred': 0,
+            'scanned': 0,
+            'errors': 0,
+            'skipped': 0
+        }
+
+        # Initialize scanner with DB session
+        self.scanner = FileScannerService(db)
+
+        # Get all available files
+        available_files = self.list_available_files()
+        if not available_files:
+            self.logger.info("No files available for transfer")
+            return results
+
+        self.logger.info(f"Found {len(available_files)} files to process")
+
+        transferred_files = []
+
+        # Transfer each file
+        for source_file in available_files:
+            try:
+                # Extract metadata to get target name and date
+                # For now, parse from filename (format: TARGETNAME_YYYY-MM-DD_NNN.ext)
+                metadata = self.scanner._extract_fits_metadata(str(source_file))
+
+                if not metadata or not metadata.get('target_name'):
+                    self.logger.warning(f"Could not extract metadata from {source_file.name}, skipping")
+                    results['skipped'] += 1
+                    continue
+
+                target_name = metadata['target_name']
+                observation_date = metadata.get('observation_date') or datetime.now()
+
+                # Transfer file
+                dest_path = self.transfer_file(
+                    source_file,
+                    target_name,
+                    observation_date,
+                    delete_source=self.auto_delete
+                )
+
+                transferred_files.append(dest_path)
+                results['transferred'] += 1
+
+            except Exception as e:
+                self.logger.error(f"Error processing {source_file}: {e}")
+                results['errors'] += 1
+
+        # Scan all transferred files to create OutputFile records
+        if transferred_files:
+            # Get the parent directory (output_directory)
+            scan_count = self.scanner.scan_files(str(self.output_directory), db)
+            results['scanned'] = scan_count
+
+        self.logger.info(f"Transfer complete: {results}")
+        return results
