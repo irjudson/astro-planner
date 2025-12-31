@@ -116,3 +116,43 @@ def test_transfer_file_already_exists(mock_mount_path, tmp_path):
 
     assert result == existing
     assert existing.read_text() == "existing data"  # Not overwritten
+
+
+def test_transfer_file_path_traversal_protection(mock_mount_path, tmp_path):
+    """Test protection against path traversal attacks in target_name."""
+    service = FileTransferService()
+    service.output_directory = tmp_path / "output"
+
+    source = mock_mount_path / "Seestar" / "IMG" / "M31_2025-12-30_001.fit"
+
+    # Attempt path traversal attack
+    with pytest.raises(ValueError, match="Invalid target name"):
+        service.transfer_file(
+            source,
+            target_name="../../../tmp/evil",
+            observation_date=datetime(2025, 12, 30, 21, 45)
+        )
+
+
+def test_transfer_file_with_delete_source(mock_mount_path, tmp_path):
+    """Test file transfer with source deletion."""
+    service = FileTransferService()
+    service.output_directory = tmp_path / "output"
+
+    source = mock_mount_path / "Seestar" / "IMG" / "M31_2025-12-30_001.fit"
+
+    # Verify source exists before transfer
+    assert source.exists()
+
+    transferred_path = service.transfer_file(
+        source,
+        target_name="M31",
+        observation_date=datetime(2025, 12, 30, 21, 45),
+        delete_source=True
+    )
+
+    # Verify transfer succeeded
+    assert transferred_path.exists()
+
+    # Verify source was deleted
+    assert not source.exists()

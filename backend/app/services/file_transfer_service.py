@@ -67,7 +67,14 @@ class FileTransferService:
 
         Returns:
             Organized destination path
+
+        Raises:
+            ValueError: If target_name contains path traversal sequences
         """
+        # Validate target_name for security
+        if ".." in target_name or "/" in target_name or "\\" in target_name:
+            raise ValueError(f"Invalid target name (path traversal detected): {target_name}")
+
         date_str = observation_date.strftime("%Y-%m-%d")
         dest_dir = self.output_directory / target_name / date_str
         return dest_dir / source_file.name
