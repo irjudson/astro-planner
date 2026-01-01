@@ -2232,6 +2232,105 @@
                 </main>
 
               </div>
+
+              <!-- Bottom Drawer -->
+              <aside id="bottom-drawer" class="bottom-drawer">
+                <header class="drawer-header" onclick="toggleDrawer()">
+                  <span id="drawer-toggle-text">⬆ Advanced Controls</span>
+                  <span class="text-xs text-secondary" id="drawer-last-tab">
+                    Last: Advanced Stacking
+                  </span>
+                </header>
+
+                <div id="drawer-content" class="drawer-content hidden">
+
+                  <!-- Drawer Tabs -->
+                  <nav class="tab-container">
+                    <button class="tab active" onclick="showDrawerTab('stacking')">
+                      Advanced Stacking
+                    </button>
+                    <button class="tab" onclick="showDrawerTab('system')">
+                      System
+                    </button>
+                    <button class="tab" onclick="showDrawerTab('wifi')">
+                      WiFi
+                    </button>
+                    <button class="tab" onclick="showDrawerTab('calibration')">
+                      Calibration
+                    </button>
+                    <button class="tab" onclick="showDrawerTab('hardware')">
+                      Hardware
+                    </button>
+                  </nav>
+
+                  <!-- Stacking Tab -->
+                  <div id="stacking-drawer-content" class="drawer-tab-content">
+                    <h3>Advanced Stacking Settings</h3>
+                    <div class="form-row">
+                      <label>
+                        <input type="checkbox" id="adv-dbe" />
+                        Dark Background Extraction
+                      </label>
+                    </div>
+                    <div class="form-row">
+                      <label>
+                        <input type="checkbox" id="adv-star-correction" checked />
+                        Star Correction
+                      </label>
+                    </div>
+                    <div class="form-row">
+                      <label>
+                        <input type="checkbox" id="adv-airplane" />
+                        Airplane/Satellite Removal
+                      </label>
+                    </div>
+                    <div class="form-row">
+                      <label>
+                        <input type="checkbox" id="adv-drizzle" />
+                        Drizzle 2x
+                      </label>
+                    </div>
+                    <button class="btn btn-primary" onclick="applyAdvancedStacking()">
+                      Apply Settings
+                    </button>
+                  </div>
+
+                  <!-- System Tab -->
+                  <div id="system-drawer-content" class="drawer-tab-content hidden">
+                    <h3>System Management</h3>
+                    <div class="mb-md">
+                      <h4>Power Management</h4>
+                      <button class="btn btn-danger" onclick="handleShutdown()">
+                        🔌 Shutdown Telescope
+                      </button>
+                      <button class="btn btn-secondary" onclick="handleReboot()">
+                        🔄 Reboot Telescope
+                      </button>
+                      <p class="text-xs text-secondary">⚠️ Warning: Will interrupt any active imaging</p>
+                    </div>
+                  </div>
+
+                  <!-- WiFi Tab -->
+                  <div id="wifi-drawer-content" class="drawer-tab-content hidden">
+                    <h3>WiFi Management</h3>
+                    <p class="text-secondary">WiFi configuration coming soon</p>
+                  </div>
+
+                  <!-- Calibration Tab -->
+                  <div id="calibration-drawer-content" class="drawer-tab-content hidden">
+                    <h3>Calibration Tools</h3>
+                    <p class="text-secondary">Calibration tools coming soon</p>
+                  </div>
+
+                  <!-- Hardware Tab -->
+                  <div id="hardware-drawer-content" class="drawer-tab-content hidden">
+                    <h3>Hardware Configuration</h3>
+                    <p class="text-secondary">Hardware configuration coming soon</p>
+                  </div>
+
+                </div>
+              </aside>
+
             </div>
             <!-- End Observe Tab -->
 
@@ -7093,6 +7192,7 @@
     <script src="js/observe-library.js"></script>
     <script src="js/observe-telemetry.js"></script>
     <script src="js/observe-errors.js"></script>
+    <script src="js/observe-drawer.js"></script>
     <script>
       /**
        * Initialize Observe View
