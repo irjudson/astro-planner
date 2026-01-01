@@ -7,6 +7,9 @@ import pytest
 
 from app.models.capture_models import CaptureHistory, OutputFile
 
+# Mark all tests in this module as integration tests (require database)
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def sample_capture_history(override_get_db):
