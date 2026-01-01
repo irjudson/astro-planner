@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Observe View Test Suite</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            background: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+        }
+        h1 {
+            color: #58a6ff;
+            border-bottom: 1px solid #21262d;
+            padding-bottom: 10px;
+        }
+        .test-suite {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .test-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+        .test-card:hover {
+            border-color: #58a6ff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        .test-card h2 {
+            margin-top: 0;
+            color: #58a6ff;
+            font-size: 1.2em;
+        }
+        .test-card p {
+            color: #8b949e;
+            line-height: 1.6;
+        }
+        .test-card a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #238636;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        .test-card a:hover {
+            background: #2ea043;
+        }
+        .instructions {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-left: 4px solid #f85149;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+        }
+        .instructions h2 {
+            margin-top: 0;
+            color: #f85149;
+        }
+        .instructions code {
+            background: #0d1117;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #79c0ff;
+        }
+        .instructions ol {
+            line-height: 2;
+        }
+        .run-all {
+            background: #58a6ff;
+            color: #0d1117;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 20px 0;
+        }
+        .run-all:hover {
+            background: #79c0ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Observe View Test Suite</h1>
+
+    <div class="instructions">
+        <h2>📋 How to Run Tests</h2>
+        <ol>
+            <li>Click on individual test links below to run specific test suites</li>
+            <li>Each test suite will open in a new window/tab</li>
+            <li>Green (✓) indicates passing tests, Red (✗) indicates failures</li>
+            <li>Check browser console for detailed error messages</li>
+            <li>Tests verify:
+                <ul>
+                    <li>State management and deep merge functionality</li>
+                    <li>XSS prevention and security measures</li>
+                    <li>UI component behavior and event handling</li>
+                    <li>Error handling and toast notifications</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <button class="run-all" onclick="runAllTests()">🚀 Run All Tests</button>
+
+    <div class="test-suite">
+        <div class="test-card">
+            <h2>🔧 State Management Tests</h2>
+            <p>
+                Tests for the global state management system including:
+                <ul>
+                    <li>Initial state structure validation</li>
+                    <li>State updates and deep merge</li>
+                    <li>Change listener notifications</li>
+                    <li>Nested object preservation</li>
+                </ul>
+            </p>
+            <a href="observe-state.test.html" target="_blank">Run State Tests →</a>
+        </div>
+
+        <div class="test-card">
+            <h2>⚠️ Error Handling Tests</h2>
+            <p>
+                Tests for error handling and security:
+                <ul>
+                    <li>XSS prevention in error messages</li>
+                    <li>Toast notification creation</li>
+                    <li>Error banner display</li>
+                    <li>HTML escaping utilities</li>
+                </ul>
+            </p>
+            <a href="observe-errors.test.html" target="_blank">Run Error Tests →</a>
+        </div>
+
+        <div class="test-card">
+            <h2>🗂️ Drawer Component Tests</h2>
+            <p>
+                Tests for the bottom drawer UI component:
+                <ul>
+                    <li>Drawer open/close toggling</li>
+                    <li>Tab switching functionality</li>
+                    <li>State synchronization</li>
+                    <li>Event parameter handling</li>
+                </ul>
+            </p>
+            <a href="observe-drawer.test.html" target="_blank">Run Drawer Tests →</a>
+        </div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px;">
+        <h2 style="color: #58a6ff;">📊 Test Coverage</h2>
+        <p>Current test coverage for Observe View modules:</p>
+        <ul>
+            <li><strong>observe-state.js</strong>: State management, deep merge, listeners</li>
+            <li><strong>observe-errors.js</strong>: Error handling, XSS prevention, toast/banner</li>
+            <li><strong>observe-drawer.js</strong>: Drawer toggling, tab switching</li>
+        </ul>
+        <p style="color: #8b949e; margin-top: 20px;">
+            <strong>Note:</strong> These are integration tests that run in the browser.
+            For API integration tests, start the backend server and test through the main UI.
+        </p>
+    </div>
+
+    <script>
+        function runAllTests() {
+            const tests = [
+                'observe-state.test.html',
+                'observe-errors.test.html',
+                'observe-drawer.test.html'
+            ];
+
+            tests.forEach((test, index) => {
+                setTimeout(() => {
+                    window.open(test, `test-window-${index}`);
+                }, index * 500);
+            });
+        }
+    </script>
+</body>
+</html>
