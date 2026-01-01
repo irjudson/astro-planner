@@ -40,30 +40,45 @@ function toggleSidebarSection(sectionName) {
 /**
  * Show main tab
  * @param {string} tabName - Name of tab to show (execution, library, telemetry, live)
+ * @param {Event} event - Click event object
  */
-function showMainTab(tabName) {
+function showMainTab(tabName, event) {
   // Update tab buttons
   document.querySelectorAll('.tab-container .tab').forEach(tab => {
     tab.classList.remove('active');
   });
-  event.target.classList.add('active');
+
+  // Add active to clicked tab with fallback
+  if (event && event.target) {
+    event.target.classList.add('active');
+  }
 
   // Update tab content
   document.querySelectorAll('.tab-content-main').forEach(content => {
     content.classList.add('hidden');
   });
-  document.getElementById(`${tabName}-content`).classList.remove('hidden');
+
+  const tabContent = document.getElementById(`${tabName}-content`);
+  if (tabContent) {
+    tabContent.classList.remove('hidden');
+  } else {
+    console.error(`Tab content not found: ${tabName}-content`);
+  }
 
   // Update state
   updateState('ui', { activeMainTab: tabName });
 
-  // Load tab-specific data
+  // Load tab-specific data (with defensive checks)
   switch (tabName) {
     case 'library':
-      loadCaptureLibrary();
+      if (typeof loadCaptureLibrary === 'function') {
+        loadCaptureLibrary();
+      }
       break;
     case 'telemetry':
-      updateTelemetryDisplay();
+      if (typeof updateTelemetryDisplay === 'function') {
+        updateTelemetryDisplay();
+      }
       break;
   }
 }
@@ -78,6 +93,11 @@ function updateConnectionUI() {
   const firmwareDiv = document.getElementById('firmware-version');
   const firmwareText = document.getElementById('firmware-text');
 
+  // Early return if essential elements don't exist yet
+  if (!statusIndicator || !statusText || !connectBtn) {
+    return;  // Silently skip - elements will be added in later tasks
+  }
+
   const { status, firmware, error } = observeState.connection;
 
   // Update status indicator
@@ -91,13 +111,14 @@ function updateConnectionUI() {
       connectBtn.classList.add('btn-secondary');
 
       // Show firmware
-      if (firmware) {
+      if (firmware && firmwareDiv && firmwareText) {
         firmwareText.textContent = firmware;
         firmwareDiv.classList.remove('hidden');
       }
 
-      // Enable execution controls
-      document.getElementById('park-btn').disabled = false;
+      // Enable execution controls (with null checks)
+      const parkBtn = document.getElementById('park-btn');
+      if (parkBtn) parkBtn.disabled = false;
       break;
 
     case 'connecting':
@@ -113,11 +134,16 @@ function updateConnectionUI() {
       connectBtn.classList.add('btn-primary');
       connectBtn.classList.remove('btn-secondary');
       connectBtn.disabled = false;
-      firmwareDiv.classList.add('hidden');
 
-      // Disable execution controls
-      document.getElementById('execute-btn').disabled = true;
-      document.getElementById('park-btn').disabled = true;
+      if (firmwareDiv) {
+        firmwareDiv.classList.add('hidden');
+      }
+
+      // Disable execution controls (with null checks)
+      const executeBtn = document.getElementById('execute-btn');
+      const parkBtn2 = document.getElementById('park-btn');
+      if (executeBtn) executeBtn.disabled = true;
+      if (parkBtn2) parkBtn2.disabled = true;
       break;
 
     case 'error':
