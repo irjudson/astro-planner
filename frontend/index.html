@@ -4295,6 +4295,11 @@
             const planInfo = document.getElementById('current-plan-info');
             const executeBtn = document.getElementById('execute-btn-main');
 
+            // Defensive check - these elements don't exist in new Observe tab design
+            if (!liveCard || !loadCard || !createCard) {
+                return;
+            }
+
             // Remove all active states
             liveCard.classList.remove('active');
             loadCard.classList.remove('active');
