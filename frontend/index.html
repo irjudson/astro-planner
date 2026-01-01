@@ -1967,209 +1967,271 @@
 
             <!-- Observe Tab -->
             <div id="observe-tab" class="tab-content">
-                <div class="section">
-                    <h2>🔭 Observe</h2>
-                    <p style="margin-bottom: 20px; color: #666;">
-                        Real-time observation plan execution monitoring and telescope control
-                    </p>
-                </div>
+              <!-- Three-Zone Layout -->
+              <div class="observe-layout">
 
-                <!-- Plan Selection Section -->
-                <div class="plan-selection-container">
-                    <div class="plan-selection-title">Choose Your Observation Plan</div>
-                    <div class="plan-selection-subtitle">Select how you want to start your observing session</div>
+                <!-- Left Sidebar -->
+                <aside class="observe-sidebar">
 
-                    <div class="plan-option-grid">
-                        <!-- Option 1: Start Live Session -->
-                        <div class="plan-option-card" id="plan-option-live" onclick="startLiveSession()">
-                            <span class="plan-option-icon">▶️</span>
-                            <div class="plan-option-title">Start Live Session</div>
-                            <div class="plan-option-description">
-                                Execute the current plan from the Planner tab immediately
-                            </div>
-                        </div>
-
-                        <!-- Option 2: Load Saved Plan -->
-                        <div class="plan-option-card" id="plan-option-load" onclick="showLoadPlanModal()">
-                            <span class="plan-option-icon">📂</span>
-                            <div class="plan-option-title">Load Saved Plan</div>
-                            <div class="plan-option-description">
-                                Browse and select from your previously saved observation plans
-                            </div>
-                        </div>
-
-                        <!-- Option 3: Create New Plan -->
-                        <div class="plan-option-card" id="plan-option-create" onclick="goToPlanner()">
-                            <span class="plan-option-icon">✨</span>
-                            <div class="plan-option-title">Create New Plan</div>
-                            <div class="plan-option-description">
-                                Navigate to the Planner to design a new observing session
-                            </div>
-                        </div>
+                  <!-- Connection Section -->
+                  <section class="panel panel-collapsible" id="connection-panel">
+                    <header class="panel-header" onclick="toggleSidebarSection('connection')">
+                      <h3>🔌 Connection</h3>
+                      <span class="collapse-icon">▼</span>
+                    </header>
+                    <div class="panel-body" id="connection-panel-body">
+                      <div class="form-row">
+                        <label for="telescope-host">IP Address</label>
+                        <input type="text" id="telescope-host" value="192.168.2.47" />
+                      </div>
+                      <div class="form-row">
+                        <label for="telescope-port">Port</label>
+                        <input type="number" id="telescope-port" value="4700" />
+                      </div>
+                      <button id="connect-btn" class="btn btn-primary" onclick="handleConnect()">
+                        Connect
+                      </button>
+                      <div id="connection-status" class="text-sm mb-sm">
+                        <span class="status-indicator status-disconnected"></span>
+                        <span id="connection-status-text">Disconnected</span>
+                      </div>
+                      <div id="firmware-version" class="text-xs text-secondary hidden">
+                        Firmware: <span id="firmware-text">--</span>
+                      </div>
                     </div>
+                  </section>
 
-                    <!-- Current Plan Info Banner -->
-                    <div class="plan-info-banner" id="current-plan-info" style="display: none;">
-                        <strong>Current Plan:</strong> <span id="current-plan-name">-</span>
-                        <span style="margin-left: 20px; color: #666;">
-                            <strong>Targets:</strong> <span id="current-plan-target-count">0</span>
-                        </span>
-                        <span style="margin-left: 20px; color: #666;">
-                            <strong>Location:</strong> <span id="current-plan-location">-</span>
-                        </span>
+                  <!-- Execution Section -->
+                  <section class="panel panel-collapsible" id="execution-panel">
+                    <header class="panel-header" onclick="toggleSidebarSection('execution')">
+                      <h3>⚡ Execution</h3>
+                      <span class="collapse-icon">▼</span>
+                    </header>
+                    <div class="panel-body" id="execution-panel-body">
+                      <div id="current-plan-info" class="mb-md">
+                        <div class="text-sm text-secondary">Current Plan:</div>
+                        <div id="plan-name" class="text-sm">No plan loaded</div>
+                        <div id="plan-summary" class="text-xs text-tertiary">--</div>
+                      </div>
+                      <button id="execute-btn" class="btn btn-primary mb-sm" onclick="handleExecute()" disabled>
+                        ▶ Execute Plan
+                      </button>
+                      <button id="abort-btn" class="btn btn-danger mb-sm" onclick="handleAbort()" disabled>
+                        ⏹ Abort
+                      </button>
+                      <button id="park-btn" class="btn btn-secondary" onclick="handlePark()" disabled>
+                        🏠 Park
+                      </button>
+                      <div id="execution-status" class="text-xs text-secondary mb-sm">
+                        Status: <span id="execution-status-text">Ready</span>
+                      </div>
                     </div>
-                </div>
+                  </section>
 
-                <!-- Main layout: sidebar + content -->
-                <div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
-                    <!-- Sidebar: Connection & Control -->
-                    <div style="display: flex; flex-direction: column; gap: 15px;">
-                        <!-- Connection Panel -->
-                        <div class="telescope-panel">
-                            <h3 style="font-size: 1em; margin-bottom: 12px;">🔌 Connection</h3>
-                            <input type="text" id="telescope-host-main" placeholder="IP Address" value="192.168.2.47" style="width: 100%; font-size: 0.9em; padding: 8px; margin-bottom: 8px; box-sizing: border-box;">
-                            <button class="telescope-btn" id="connect-btn-main" onclick="connectTelescopeMain()" style="width: 100%; padding: 10px; font-size: 0.95em;">Connect</button>
-                            <div style="margin-top: 10px; font-size: 0.9em;">
-                                <span class="status-indicator status-disconnected" id="status-indicator-main"></span>
-                                <span id="connection-status-main">Disconnected</span>
-                            </div>
-                            <div style="margin-top: 8px; font-size: 0.85em; opacity: 0.8;" id="firmware-version-main"></div>
-                        </div>
-
-                        <!-- Execution Control Panel -->
-                        <div class="telescope-panel">
-                            <h3 style="font-size: 1em; margin-bottom: 12px;">⚡ Control</h3>
-                            <button class="telescope-btn primary" id="execute-btn-main" onclick="executePlanMain()" disabled style="padding: 10px; font-size: 0.95em; margin-top: 8px;">
-                                ▶️ Execute Plan
-                            </button>
-                            <button class="telescope-btn danger" id="abort-btn-main" onclick="abortExecutionMain()" disabled style="padding: 10px; font-size: 0.95em; margin-top: 8px;">
-                                ⏹️ Abort
-                            </button>
-                            <button class="telescope-btn" id="park-btn-main" onclick="parkTelescopeMain()" disabled style="padding: 10px; font-size: 0.95em; margin-top: 8px;">
-                                🏠 Park
-                            </button>
-                        </div>
-
-                        <!-- Quick Info -->
-                        <div class="telescope-panel" style="font-size: 0.85em;">
-                            <h3 style="font-size: 1em; margin-bottom: 10px;">ℹ️ Quick Start</h3>
-                            <ol style="margin-left: 18px; line-height: 1.6; opacity: 0.9;">
-                                <li>Choose a plan option above</li>
-                                <li>Connect to telescope</li>
-                                <li>Click <strong>Execute Plan</strong></li>
-                                <li>Monitor progress below</li>
-                            </ol>
-                        </div>
-
-                        <!-- Current Conditions Widget -->
-                        <div class="telescope-panel" style="font-size: 0.85em;">
-                            <h3 style="font-size: 1em; margin-bottom: 10px;">🌌 Current Conditions</h3>
-                            <div id="observe-conditions-content" style="line-height: 1.6;">
-                                <div style="text-align: center; padding: 10px; opacity: 0.6;">
-                                    Click "Refresh" to load conditions
-                                </div>
-                            </div>
-                            <button class="telescope-btn" onclick="refreshObserveConditions()" style="width: 100%; padding: 8px; font-size: 0.9em; margin-top: 10px;">
-                                🔄 Refresh
-                            </button>
-                        </div>
+                  <!-- Imaging Controls Section -->
+                  <section class="panel panel-collapsible" id="imaging-panel">
+                    <header class="panel-header" onclick="toggleSidebarSection('imaging')">
+                      <h3>📷 Imaging</h3>
+                      <span class="collapse-icon">▶</span>
+                    </header>
+                    <div class="panel-body collapsed" id="imaging-panel-body">
+                      <div class="mb-sm">
+                        <button class="btn btn-success" onclick="handleStartImaging()">▶ Start</button>
+                        <button class="btn btn-danger" onclick="handleStopImaging()">⏹ Stop</button>
+                      </div>
+                      <div class="form-row">
+                        <label for="stack-exposure">Stack (sec)</label>
+                        <input type="number" id="stack-exposure" value="10" min="1" max="600" />
+                      </div>
+                      <div class="form-row">
+                        <label for="preview-exposure">Preview (sec)</label>
+                        <input type="number" id="preview-exposure" value="0.5" min="0.1" max="10" step="0.1" />
+                      </div>
+                      <div class="form-row">
+                        <label>
+                          <input type="checkbox" id="dither-enabled" checked />
+                          Dither
+                        </label>
+                      </div>
+                      <div class="form-row">
+                        <label for="dither-pixels">Pixels</label>
+                        <input type="number" id="dither-pixels" value="50" min="10" max="200" />
+                      </div>
+                      <div class="form-row">
+                        <label for="dither-interval">Interval</label>
+                        <input type="number" id="dither-interval" value="10" min="1" max="100" />
+                      </div>
                     </div>
+                  </section>
 
-                    <!-- Main Content: Status & Progress -->
-                    <div style="display: flex; flex-direction: column; gap: 20px;">
-                        <!-- Large Execution Status Banner -->
-                        <div id="execution-status-banner" style="display: none; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);">
-                            <div style="display: flex; align-items: center; gap: 20px;">
-                                <div style="font-size: 3em; animation: pulse 2s ease-in-out infinite;">🔭</div>
-                                <div style="flex: 1;">
-                                    <div style="font-size: 1.8em; font-weight: bold; color: white; margin-bottom: 8px;">
-                                        <span id="execution-state-text">EXECUTING PLAN</span>
-                                    </div>
-                                    <div style="font-size: 1.1em; color: rgba(255,255,255,0.95); margin-bottom: 4px;" id="execution-status-detail">
-                                        Preparing telescope...
-                                    </div>
-                                    <div style="font-size: 0.95em; color: rgba(255,255,255,0.8);" id="execution-targets-summary">
-                                        Target <span id="execution-target-number">1</span> of <span id="execution-total-targets">5</span>
-                                    </div>
-                                </div>
-                                <div style="text-align: right; color: white;">
-                                    <div style="font-size: 3em; font-weight: bold; line-height: 1;" id="execution-progress-number">0%</div>
-                                    <div style="font-size: 1em; opacity: 0.9; margin-top: 8px;" id="execution-time-display">00:00</div>
-                                </div>
-                            </div>
+                  <!-- Telescope Controls Section -->
+                  <section class="panel panel-collapsible" id="telescope-panel">
+                    <header class="panel-header" onclick="toggleSidebarSection('telescope')">
+                      <h3>🔭 Telescope</h3>
+                      <span class="collapse-icon">▶</span>
+                    </header>
+                    <div class="panel-body collapsed" id="telescope-panel-body">
+                      <div class="mb-md">
+                        <h4 class="text-sm mb-sm">Quick Actions</h4>
+                        <button class="btn btn-primary mb-sm" onclick="handleAutoFocus()">Auto Focus</button>
+                        <button class="btn btn-danger mb-sm" onclick="handleStopSlew()">Stop Slew</button>
+                        <button class="btn btn-danger" onclick="handleEmergencyStop()">Emergency Stop</button>
+                      </div>
+                      <div class="mb-md">
+                        <h4 class="text-sm mb-sm">Manual Goto</h4>
+                        <div class="form-row">
+                          <label for="goto-ra">RA (h)</label>
+                          <input type="number" id="goto-ra" value="0" min="0" max="24" step="0.1" />
                         </div>
-
-                        <!-- Detailed Progress Panel -->
-                        <div class="telescope-panel progress-panel" id="progress-panel-main" style="display: none;">
-                            <h3 style="margin-bottom: 15px;">📊 Execution Progress</h3>
-
-                            <div class="progress-info">
-                                <div class="progress-item">
-                                    <label>Current Target</label>
-                                    <value id="current-target-main">-</value>
-                                </div>
-                                <div class="progress-item">
-                                    <label>Phase</label>
-                                    <value id="current-phase-main">-</value>
-                                </div>
-                                <div class="progress-item">
-                                    <label>Completed</label>
-                                    <value id="targets-completed-main">0 / 0</value>
-                                </div>
-                                <div class="progress-item">
-                                    <label>Elapsed Time</label>
-                                    <value id="elapsed-time-main">-</value>
-                                </div>
-                                <div class="progress-item">
-                                    <label>Estimated Remaining</label>
-                                    <value id="estimated-remaining-main">-</value>
-                                </div>
-                            </div>
-
-                            <div class="progress-bar-container">
-                                <div class="progress-bar" id="progress-bar-main" style="width: 0%">0%</div>
-                            </div>
-
-                            <div id="error-panel-main" style="display: none;">
-                                <h4 style="margin-top: 15px; margin-bottom: 10px;">⚠️ Errors</h4>
-                                <div class="error-list" id="error-list-main"></div>
-                            </div>
+                        <div class="form-row">
+                          <label for="goto-dec">Dec (°)</label>
+                          <input type="number" id="goto-dec" value="0" min="-90" max="90" step="0.1" />
                         </div>
-
-                        <!-- Collapsible Live View -->
-                        <div class="telescope-panel">
-                            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleLiveViewEmbed()">
-                                <h3 style="margin: 0;">📹 Telescope Live View</h3>
-                                <span id="liveview-toggle-icon" style="font-size: 1.2em; transition: transform 0.3s;">▼</span>
-                            </div>
-                            <div id="liveview-embed-container" style="display: none; margin-top: 15px;">
-                                <p style="text-align: center; color: #888; margin-bottom: 15px;">
-                                    Click below to open the full telescope camera feed in a dedicated tab
-                                </p>
-                                <button onclick="showTab('liveview'); event.stopPropagation();" class="telescope-btn" style="width: 100%; padding: 12px; font-size: 0.95em;">
-                                    📹 Open Live View Tab →
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Idle Status Info (shown when not executing) -->
-                        <div class="telescope-panel" id="status-info-panel">
-                            <h3>ℹ️ Ready to Observe</h3>
-                            <div style="background: rgba(0,0,0,0.1); padding: 20px; border-radius: 6px;">
-                                <p style="margin-bottom: 15px; font-size: 1.05em;">
-                                    <strong>No execution in progress</strong>
-                                </p>
-                                <p style="line-height: 1.6; opacity: 0.9;">
-                                    Connect your telescope using the panel on the left, then click <strong>Execute Plan</strong> to begin automated imaging.
-                                    The real-time status will appear here during execution.
-                                </p>
-                                <p style="margin-top: 15px; font-size: 0.9em; opacity: 0.8; padding: 10px; background: rgba(102, 126, 234, 0.1); border-left: 3px solid #667eea; border-radius: 4px;">
-                                    💡 <strong>Tip:</strong> Generate an observation plan in the Planner tab first. The Live View tab shows your telescope's camera feed in real-time.
-                                </p>
-                            </div>
-                        </div>
+                        <button class="btn btn-primary" onclick="handleGoto()">Slew</button>
+                      </div>
                     </div>
-                </div>
+                  </section>
+
+                  <!-- Hardware Section -->
+                  <section class="panel panel-collapsible" id="hardware-panel">
+                    <header class="panel-header" onclick="toggleSidebarSection('hardware')">
+                      <h3>🔧 Hardware</h3>
+                      <span class="collapse-icon">▶</span>
+                    </header>
+                    <div class="panel-body collapsed" id="hardware-panel-body">
+                      <div class="mb-md">
+                        <h4 class="text-sm mb-sm">Dew Heater</h4>
+                        <div class="form-row">
+                          <label>
+                            <input type="checkbox" id="dew-heater-enabled" onchange="handleDewHeater()" />
+                            Enabled
+                          </label>
+                        </div>
+                        <div class="form-row">
+                          <label for="dew-heater-power">Power (%)</label>
+                          <input type="number" id="dew-heater-power" value="90" min="0" max="100" />
+                        </div>
+                      </div>
+                      <div class="mb-md">
+                        <h4 class="text-sm mb-sm">Focuser</h4>
+                        <div id="focus-position" class="text-xs text-secondary mb-sm">
+                          Position: <span id="focus-pos-text">0</span> / 2600
+                        </div>
+                        <button class="btn btn-secondary" onclick="handleFocusMove(-100)">-100</button>
+                        <button class="btn btn-secondary" onclick="handleFocusMove(-10)">-10</button>
+                        <button class="btn btn-secondary" onclick="handleFocusMove(10)">+10</button>
+                        <button class="btn btn-secondary" onclick="handleFocusMove(100)">+100</button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Quick Info Section -->
+                  <section class="panel panel-collapsible" id="info-panel">
+                    <header class="panel-header" onclick="toggleSidebarSection('info')">
+                      <h3>ℹ️ Info</h3>
+                      <span class="collapse-icon">▶</span>
+                    </header>
+                    <div class="panel-body collapsed" id="info-panel-body">
+                      <div class="text-xs">
+                        <div class="mb-sm">
+                          <span class="text-secondary">Target:</span>
+                          <span id="info-target">--</span>
+                        </div>
+                        <div class="mb-sm">
+                          <span class="text-secondary">RA/Dec:</span>
+                          <span id="info-coords">-- / --</span>
+                        </div>
+                        <div class="mb-sm">
+                          <span class="text-secondary">Altitude:</span>
+                          <span id="info-altitude">--</span>
+                        </div>
+                        <div class="mb-sm">
+                          <span class="text-secondary">Frames:</span>
+                          <span id="info-frames">-- / --</span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                </aside>
+
+                <!-- Right Main Area -->
+                <main class="observe-main">
+
+                  <!-- Tab Navigation -->
+                  <nav class="tab-container">
+                    <button class="tab active" onclick="showMainTab('execution')">Execution</button>
+                    <button class="tab" onclick="showMainTab('library')">Library</button>
+                    <button class="tab" onclick="showMainTab('telemetry')">Telemetry</button>
+                    <button class="tab" onclick="showMainTab('live')">Live View</button>
+                  </nav>
+
+                  <!-- Execution Tab Content -->
+                  <div id="execution-content" class="tab-content-main">
+                    <div id="execution-banner" class="hidden">
+                      <h2>🔭 EXECUTING PLAN</h2>
+                      <p id="execution-current-target">Current: --</p>
+                      <p id="execution-progress-text">Progress: 0%</p>
+                    </div>
+                    <div id="execution-timeline" class="hidden">
+                      <h3>Timeline</h3>
+                      <div id="timeline-content">--</div>
+                    </div>
+                    <div id="execution-details">
+                      <h3>Current Target Details</h3>
+                      <div id="target-details-content">
+                        <p class="text-secondary">No active execution</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Library Tab Content -->
+                  <div id="library-content" class="tab-content-main hidden">
+                    <div id="library-toolbar" class="mb-md">
+                      <input type="text" id="library-search" placeholder="Search targets..." />
+                      <select id="library-filter">
+                        <option value="all">All</option>
+                        <option value="complete">Complete</option>
+                        <option value="needs_more">Needs More Data</option>
+                        <option value="new">New</option>
+                      </select>
+                      <select id="library-sort">
+                        <option value="recent">Most Recent</option>
+                        <option value="name">Name</option>
+                        <option value="exposure">Total Exposure</option>
+                        <option value="quality">Quality</option>
+                      </select>
+                      <button class="btn btn-primary" onclick="handleTransferFiles()">Transfer from Seestar</button>
+                    </div>
+                    <div id="library-grid">
+                      <p class="text-secondary">No capture history available</p>
+                    </div>
+                  </div>
+
+                  <!-- Telemetry Tab Content -->
+                  <div id="telemetry-content" class="tab-content-main hidden">
+                    <h3>Current Position</h3>
+                    <div id="telemetry-position">
+                      <p>RA: <span id="telem-ra">--</span></p>
+                      <p>Dec: <span id="telem-dec">--</span></p>
+                      <p>Alt: <span id="telem-alt">--</span></p>
+                      <p>Az: <span id="telem-az">--</span></p>
+                    </div>
+                    <h3>Device Status</h3>
+                    <div id="telemetry-device">
+                      <p class="text-secondary">Not connected</p>
+                    </div>
+                  </div>
+
+                  <!-- Live View Tab Content -->
+                  <div id="live-content" class="tab-content-main hidden">
+                    <h3>Live View</h3>
+                    <p class="text-secondary">Live view integration coming soon</p>
+                  </div>
+
+                </main>
+
+              </div>
             </div>
             <!-- End Observe Tab -->
 
