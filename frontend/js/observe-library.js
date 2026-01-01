@@ -8,6 +8,16 @@
 const API_BASE = '';
 
 /**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
  * Load capture library from backend
  */
 async function loadCaptureLibrary() {
@@ -19,12 +29,11 @@ async function loadCaptureLibrary() {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    const data = await response.json();
-    const targets = data.captures || [];
+    const data = await response.json();  // Backend returns array directly
 
     updateState('library', {
-      targets: targets,
-      filteredTargets: targets,
+      targets: data,  // Not data.captures
+      filteredTargets: data,  // Initialize with all targets
       loading: false
     });
 
@@ -52,14 +61,11 @@ function applyLibraryFilters() {
   const { targets, filters } = observeState.library;
   let filtered = [...targets];
 
-  // Apply search
+  // Apply search (catalog_id only, backend doesn't provide common_name)
   if (filters.search) {
-    const searchLower = filters.search.toLowerCase();
-    filtered = filtered.filter(target => {
-      const name = target.catalog_id?.toLowerCase() || '';
-      const common = target.common_name?.toLowerCase() || '';
-      return name.includes(searchLower) || common.includes(searchLower);
-    });
+    filtered = filtered.filter(t =>
+      t.catalog_id?.toLowerCase().includes(filters.search.toLowerCase())
+    );
   }
 
   // Apply status filter
@@ -70,7 +76,11 @@ function applyLibraryFilters() {
   // Apply sort
   switch (filters.sortBy) {
     case 'recent':
-      filtered.sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated));
+      filtered.sort((a, b) => {
+        const dateB = b.last_captured_at ? new Date(b.last_captured_at) : new Date(0);
+        const dateA = a.last_captured_at ? new Date(a.last_captured_at) : new Date(0);
+        return dateB - dateA;
+      });
       break;
     case 'name':
       filtered.sort((a, b) => {
@@ -112,21 +122,27 @@ function renderLibraryGrid() {
 
   // Render target cards
   grid.innerHTML = filteredTargets.map(target => `
-    <div class="panel target-card" onclick="viewTargetDetails('${target.catalog_id}')">
-      <h4>${target.catalog_id}</h4>
-      ${target.common_name ? `<p class="text-sm text-secondary mb-sm">${target.common_name}</p>` : ''}
+    <div class="panel target-card" data-catalog-id="${escapeHtml(target.catalog_id)}">
+      <h4>${escapeHtml(target.catalog_id)}</h4>
       <div class="mb-sm">
         <span class="status-badge status-${target.status}">
           ${getStatusIcon(target.status)} ${formatStatus(target.status)}
         </span>
       </div>
       <p class="text-sm text-secondary">
-        ${target.frames_completed || 0} frames &bull; ${formatExposureTime(target.total_exposure_seconds || 0)}
+        ${target.total_frames || 0} frames &bull; ${formatExposureTime(target.total_exposure_seconds || 0)}
       </p>
-      ${target.quality_score ? `<p class="text-sm text-secondary">Quality: ${Math.round(target.quality_score)}/100</p>` : ''}
-      <p class="text-xs text-tertiary">${formatDate(target.last_updated)}</p>
+      <p class="text-xs text-tertiary">${formatDate(target.last_captured_at)}</p>
     </div>
   `).join('');
+
+  // Add event delegation for card clicks
+  grid.addEventListener('click', (e) => {
+    const card = e.target.closest('.target-card');
+    if (card) {
+      viewTargetDetails(card.dataset.catalogId);
+    }
+  });
 }
 
 /**
@@ -262,13 +278,13 @@ async function handleTransferFiles() {
       transferStatus: {
         inProgress: false,
         currentFile: null,
-        filesCompleted: result.files_transferred || 0,
-        filesTotal: result.files_transferred || 0,
+        filesCompleted: result.transferred || 0,
+        filesTotal: result.transferred || 0,  // Backend doesn't provide separate total
         lastSyncTime: new Date().toISOString()
       }
     });
 
-    alert(`Transfer complete: ${result.files_transferred || 0} files transferred`);
+    alert(`Transfer complete: ${result.transferred || 0} files transferred, ${result.errors || 0} errors`);
 
     // Reload library
     loadCaptureLibrary();
