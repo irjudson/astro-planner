@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.services.file_scanner_service import FileScannerService
+from app.services.capture_stats_service import CaptureStatsService
 
 
 class FileTransferService:
@@ -196,6 +197,12 @@ class FileTransferService:
             except Exception as e:
                 self.logger.error(f"Error processing {source_file}: {e}")
                 results['errors'] += 1
+
+        # After scanning, update capture statistics
+        if results['scanned'] > 0:
+            stats_service = CaptureStatsService(db)
+            updated_count = stats_service.update_all_capture_histories()
+            results['updated_histories'] = updated_count
 
         self.logger.info(f"Transfer complete: {results}")
         return results
