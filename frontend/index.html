@@ -7092,5 +7092,53 @@
     <script src="js/observe-controls.js"></script>
     <script src="js/observe-library.js"></script>
     <script src="js/observe-telemetry.js"></script>
+    <script>
+      /**
+       * Initialize Observe View
+       */
+      function initializeObserveView() {
+        // Restore saved connection settings from localStorage
+        const savedHost = localStorage.getItem('telescope_host');
+        const savedPort = localStorage.getItem('telescope_port');
+
+        const hostInput = document.getElementById('telescope-host');
+        const portInput = document.getElementById('telescope-port');
+
+        if (savedHost && hostInput) {
+          hostInput.value = savedHost;
+          updateState('connection', { host: savedHost });
+        }
+
+        if (savedPort && portInput) {
+          portInput.value = savedPort;
+          updateState('connection', { port: parseInt(savedPort) });
+        }
+
+        // Initialize UI state
+        if (typeof updateConnectionUI === 'function') {
+          updateConnectionUI();
+        }
+
+        // Set up input persistence
+        if (hostInput) {
+          hostInput.addEventListener('change', (e) => {
+            localStorage.setItem('telescope_host', e.target.value);
+          });
+        }
+
+        if (portInput) {
+          portInput.addEventListener('change', (e) => {
+            localStorage.setItem('telescope_port', e.target.value);
+          });
+        }
+      }
+
+      // Initialize when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeObserveView);
+      } else {
+        initializeObserveView();
+      }
+    </script>
 </body>
 </html>
