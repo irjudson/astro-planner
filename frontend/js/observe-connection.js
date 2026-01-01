@@ -12,22 +12,44 @@ const API_BASE = '';  // Same origin
 async function handleConnect() {
   const { status } = observeState.connection;
 
-  // If already connected, disconnect
+  // Handle each state explicitly
+  if (status === 'connecting') {
+    return;  // Ignore clicks while connecting
+  }
+
   if (status === 'connected') {
     await disconnectTelescope();
     return;
   }
 
-  // Connect
-  await connectTelescope();
+  if (status === 'disconnected' || status === 'error') {
+    await connectTelescope();
+  }
 }
 
 /**
  * Connect to telescope
  */
 async function connectTelescope() {
-  const host = document.getElementById('telescope-host').value;
+  const host = document.getElementById('telescope-host').value.trim();
   const port = parseInt(document.getElementById('telescope-port').value);
+
+  // Validate inputs
+  if (!host) {
+    updateState('connection', {
+      status: 'error',
+      error: 'Host address is required'
+    });
+    return;
+  }
+
+  if (isNaN(port) || port < 1 || port > 65535) {
+    updateState('connection', {
+      status: 'error',
+      error: 'Port must be between 1 and 65535'
+    });
+    return;
+  }
 
   // Update state to connecting
   updateState('connection', {
@@ -62,6 +84,7 @@ async function connectTelescope() {
 
   } catch (error) {
     console.error('Connection failed:', error);
+    stopTelemetryPolling();  // Clean up polling on error
     updateState('connection', {
       status: 'error',
       error: error.message
@@ -99,8 +122,9 @@ async function disconnectTelescope() {
 let telemetryPollInterval = null;
 
 function startTelemetryPolling() {
-  if (telemetryPollInterval) {
-    clearInterval(telemetryPollInterval);
+  // Only start if not already polling
+  if (telemetryPollInterval !== null) {
+    return;
   }
 
   telemetryPollInterval = setInterval(async () => {
@@ -124,24 +148,4 @@ function stopTelemetryPolling() {
     clearInterval(telemetryPollInterval);
     telemetryPollInterval = null;
   }
-}
-
-/**
- * Send telescope command
- * @param {string} command - Command name
- * @param {object} params - Command parameters
- * @returns {Promise<any>} Command response
- */
-async function sendTelescopeCommand(command, params = {}) {
-  const response = await fetch(`${API_BASE}/api/telescope/command/${command}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Command failed: ${response.statusText}`);
-  }
-
-  return response.json();
 }
