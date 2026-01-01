@@ -1,9 +1,11 @@
 """Tests for capture statistics service."""
 
-import pytest
 from datetime import datetime
-from app.services.capture_stats_service import CaptureStatsService
+
+import pytest
+
 from app.models.capture_models import CaptureHistory, OutputFile
+from app.services.capture_stats_service import CaptureStatsService
 
 
 @pytest.fixture

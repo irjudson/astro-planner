@@ -1,14 +1,16 @@
 """Tests for file transfer service."""
 
-import pytest
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import MagicMock
+
 import numpy as np
+import pytest
 from astropy.io import fits
-from app.services.file_transfer_service import FileTransferService
-from app.services.file_scanner_service import FileScannerService
+
 from app.models.capture_models import OutputFile
+from app.services.file_scanner_service import FileScannerService
+from app.services.file_transfer_service import FileTransferService
 
 
 def test_file_transfer_service_init():

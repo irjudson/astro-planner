@@ -1,7 +1,8 @@
 """Tests for file scanner service."""
 
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
 from sqlalchemy.orm import Session
 

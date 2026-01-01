@@ -1,9 +1,11 @@
 """Tests for captures API endpoints."""
 
-import pytest
-from unittest.mock import patch, MagicMock
-from app.models.capture_models import CaptureHistory, OutputFile
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from app.models.capture_models import CaptureHistory, OutputFile
 
 
 @pytest.fixture

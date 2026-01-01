@@ -1,7 +1,9 @@
 """Tests for capture history models."""
 
-import pytest
 from datetime import datetime
+
+import pytest
+
 from app.models.capture_models import CaptureHistory, OutputFile
 
 

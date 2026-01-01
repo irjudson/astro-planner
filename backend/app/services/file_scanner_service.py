@@ -1,11 +1,12 @@
 """File scanner service for discovering and processing image files."""
 
 import os
-from typing import Optional, Tuple, Dict, Any
 from datetime import datetime
-from thefuzz import fuzz
-from sqlalchemy.orm import Session
+from typing import Any, Dict, Optional, Tuple
+
 from astropy.io import fits
+from sqlalchemy.orm import Session
+from thefuzz import fuzz
 
 from app.core.config import get_settings
 from app.models.capture_models import OutputFile

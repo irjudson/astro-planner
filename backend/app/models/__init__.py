@@ -1,5 +1,6 @@
 """Models package."""
 
+from .capture_models import CaptureHistory, OutputFile
 from .catalog_models import AsteroidCatalog, CometCatalog, ConstellationName, DSOCatalog
 from .models import (
     AsteroidEphemeris,
@@ -29,7 +30,6 @@ from .models import (
     WeatherForecast,
 )
 from .processing_models import ProcessingFile, ProcessingJob, ProcessingPipeline
-from .capture_models import CaptureHistory, OutputFile
 
 __all__ = [
     "Location",

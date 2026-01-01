@@ -1,13 +1,14 @@
 """Service for aggregating capture statistics."""
 
 import logging
-from typing import Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 from datetime import datetime
+from typing import Optional
 
-from app.models.capture_models import CaptureHistory, OutputFile
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
 from app.core.config import get_settings
+from app.models.capture_models import CaptureHistory, OutputFile
 
 
 class CaptureStatsService:

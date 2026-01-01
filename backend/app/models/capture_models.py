@@ -1,8 +1,10 @@
 """Capture history database models."""
 
-from sqlalchemy import Column, Integer, String, Float, BigInteger, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
 from datetime import datetime
+
+from sqlalchemy import BigInteger, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
