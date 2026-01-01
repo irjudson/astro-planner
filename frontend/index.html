@@ -30,10 +30,14 @@
             if (targetTab) targetTab.classList.add('active');
             if (targetBtn) targetBtn.classList.add('active');
 
-            // Load catalog stats when switching to catalog tab
+            // Load catalog stats when switching to catalog tab (only if not already loaded)
             if (tabName === 'catalog' && typeof loadCatalogStats === 'function') {
-                loadCatalogStats();
-                loadCatalogObjects();
+                const grid = document.getElementById('catalog-grid');
+                // Only load if grid is empty or showing error state
+                if (!grid || grid.children.length === 0 || grid.querySelector('.empty-state')) {
+                    loadCatalogStats();
+                    loadCatalogObjects();
+                }
             }
 
             // Update plan selection UI when switching to observe tab
