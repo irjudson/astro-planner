@@ -104,6 +104,20 @@ async function handleStopStack() {
 }
 
 /**
+ * Start imaging (wrapper for handleStartStack)
+ */
+async function handleStartImaging() {
+  await handleStartStack();
+}
+
+/**
+ * Stop imaging (wrapper for handleStopStack)
+ */
+async function handleStopImaging() {
+  await handleStopStack();
+}
+
+/**
  * Update imaging settings from UI controls
  */
 function handleUpdateImagingSettings() {
@@ -125,7 +139,7 @@ function handleUpdateImagingSettings() {
 /**
  * Start autofocus
  */
-async function handleAutofocus() {
+async function handleAutoFocus() {
   if (observeState.connection.status !== 'connected') {
     alert('Not connected to telescope');
     return;
@@ -142,14 +156,14 @@ async function handleAutofocus() {
 
 /**
  * Manual focus adjustment
- * @param {number} steps - Focus steps (positive = out, negative = in)
+ * @param {number} offset - Focus offset (positive = out, negative = in)
  */
-async function handleManualFocus(steps) {
+async function handleFocusMove(offset) {
   if (observeState.connection.status !== 'connected') return;
 
   try {
-    await sendTelescopeCommand('focus_move', { steps });
-    console.log(`Focus moved ${steps} steps`);
+    await sendTelescopeCommand('focus_move', { steps: offset });
+    console.log(`Focus moved ${offset} steps`);
   } catch (error) {
     console.error('Failed to move focus:', error);
     alert('Failed to move focus: ' + error.message);
@@ -217,7 +231,7 @@ async function handleGotoTarget() {
 /**
  * Stop slew/tracking
  */
-async function handleStop() {
+async function handleStopSlew() {
   if (observeState.connection.status !== 'connected') return;
 
   try {
@@ -226,6 +240,34 @@ async function handleStop() {
   } catch (error) {
     console.error('Failed to stop slew:', error);
     alert('Failed to stop slew: ' + error.message);
+  }
+}
+
+/**
+ * Park telescope
+ */
+async function handlePark() {
+  try {
+    await sendTelescopeCommand('park');
+    alert('Telescope parked');
+  } catch (error) {
+    alert(`Failed to park: ${error.message}`);
+  }
+}
+
+/**
+ * Emergency stop
+ */
+async function handleEmergencyStop() {
+  if (!confirm('Emergency stop all telescope movement?')) {
+    return;
+  }
+
+  try {
+    await sendTelescopeCommand('stop_telescope_movement');
+    alert('Telescope stopped');
+  } catch (error) {
+    alert(`Failed to stop telescope: ${error.message}`);
   }
 }
 
@@ -268,7 +310,7 @@ function parseCoordinate(coord, type) {
 /**
  * Toggle dew heater
  */
-async function handleToggleDewHeater() {
+async function handleDewHeater() {
   if (observeState.connection.status !== 'connected') return;
 
   try {
@@ -312,6 +354,18 @@ async function handleUpdateDewHeaterPower() {
 // ============================================================================
 // Plan Execution
 // ============================================================================
+
+/**
+ * Execute current plan
+ */
+async function handleExecute() {
+  if (!observeState.execution.currentPlan) {
+    alert('No plan loaded');
+    return;
+  }
+
+  await handleExecutePlan(observeState.execution.currentPlan);
+}
 
 /**
  * Start plan execution
@@ -366,7 +420,7 @@ async function handleExecutePlan(plan) {
 /**
  * Stop plan execution
  */
-async function handleStopExecution() {
+async function handleAbort() {
   if (!observeState.execution.isExecuting) return;
 
   if (!confirm('Are you sure you want to stop the current plan execution?')) {
