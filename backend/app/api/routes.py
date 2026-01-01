@@ -1017,6 +1017,49 @@ async def download_telescope_preview(path: str = Query(..., description="Relativ
         raise HTTPException(status_code=500, detail=f"Failed to download preview: {str(e)}")
 
 
+@router.post("/telescope/command/{command}")
+async def execute_telescope_command(command: str, params: Optional[Dict[str, Any]] = None):
+    """
+    Generic telescope command proxy.
+
+    Forwards commands to the SeestarClient. This allows the frontend to call
+    any SeestarClient method without requiring individual backend endpoints.
+
+    Args:
+        command: The SeestarClient method name (e.g., 'start_imaging', 'auto_focus')
+        params: Optional parameters to pass to the command
+
+    Returns:
+        Command result from SeestarClient
+    """
+    service = get_telescope_service()
+    client = service.client
+
+    if not client or not client.is_connected():
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    # Get the method from the client
+    if not hasattr(client, command):
+        raise HTTPException(status_code=400, detail=f"Unknown command: {command}")
+
+    method = getattr(client, command)
+    if not callable(method):
+        raise HTTPException(status_code=400, detail=f"Invalid command: {command}")
+
+    try:
+        # Call the method with params if provided
+        if params:
+            result = await method(**params)
+        else:
+            result = await method()
+
+        return {"success": True, "result": result}
+    except TypeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid parameters: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Command failed: {str(e)}")
+
+
 @router.get("/sky-quality/{lat}/{lon}")
 async def get_sky_quality(lat: float, lon: float, location_name: str = Query("Unknown Location")):
     """
