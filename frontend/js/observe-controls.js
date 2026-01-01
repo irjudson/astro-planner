@@ -2,30 +2,9 @@
  * Observe View Telescope Controls
  *
  * Handles telescope control actions: imaging, focus, goto, execution monitoring.
+ *
+ * Note: sendTelescopeCommand() is defined in observe-connection.js
  */
-
-const API_BASE = '';  // Same origin
-
-/**
- * Send telescope command
- * @param {string} command - Command name
- * @param {object} params - Command parameters
- * @returns {Promise<any>} Command response
- */
-async function sendTelescopeCommand(command, params = {}) {
-  const response = await fetch(`${API_BASE}/api/telescope/command/${command}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params)
-  });
-
-  if (!response.ok) {
-    throw new Error(`Command failed: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.result;
-}
 
 // ============================================================================
 // Imaging Controls

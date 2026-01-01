@@ -26,12 +26,17 @@ function toggleDrawer() {
 /**
  * Show drawer tab
  */
-function showDrawerTab(tabName) {
+function showDrawerTab(tabName, evt) {
+  if (!evt || !evt.target) {
+    console.error('Event object required for showDrawerTab');
+    return;
+  }
+
   // Update tab buttons
   document.querySelectorAll('#bottom-drawer .tab').forEach(tab => {
     tab.classList.remove('active');
   });
-  event.target.classList.add('active');
+  evt.target.classList.add('active');
 
   // Update tab content
   document.querySelectorAll('.drawer-tab-content').forEach(content => {
@@ -44,7 +49,7 @@ function showDrawerTab(tabName) {
 
   // Update last tab text
   document.getElementById('drawer-last-tab').textContent =
-    `Last: ${event.target.textContent.trim()}`;
+    `Last: ${evt.target.textContent.trim()}`;
 }
 
 /**

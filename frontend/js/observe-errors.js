@@ -25,6 +25,16 @@ function showToast(message, type = 'info', duration = 5000) {
 }
 
 /**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
  * Show error banner
  * @param {object} options - Banner options
  */
@@ -33,18 +43,37 @@ function showErrorBanner(options) {
 
   const banner = document.createElement('div');
   banner.className = 'error-banner';
-  banner.innerHTML = `
-    <div>
-      <strong>${title}</strong>
-      <div class="text-sm">${message}</div>
-      ${code ? `<div class="text-xs">Code: ${code}</div>` : ''}
-    </div>
-    <div>
-      ${actions.map(action => `
-        <button onclick="${action.action}">${action.label}</button>
-      `).join('')}
-    </div>
-  `;
+
+  // Create content div
+  const contentDiv = document.createElement('div');
+
+  const titleStrong = document.createElement('strong');
+  titleStrong.textContent = title;
+  contentDiv.appendChild(titleStrong);
+
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'text-sm';
+  messageDiv.textContent = message;
+  contentDiv.appendChild(messageDiv);
+
+  if (code) {
+    const codeDiv = document.createElement('div');
+    codeDiv.className = 'text-xs';
+    codeDiv.textContent = `Code: ${code}`;
+    contentDiv.appendChild(codeDiv);
+  }
+
+  banner.appendChild(contentDiv);
+
+  // Create actions div
+  const actionsDiv = document.createElement('div');
+  actions.forEach(action => {
+    const button = document.createElement('button');
+    button.textContent = action.label;
+    button.onclick = new Function(action.action);
+    actionsDiv.appendChild(button);
+  });
+  banner.appendChild(actionsDiv);
 
   const main = document.querySelector('.observe-main');
   if (main) {
