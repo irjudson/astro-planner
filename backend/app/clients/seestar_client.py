@@ -109,23 +109,14 @@ class SeestarClient:
         """
         self.logger = logger or logging.getLogger(__name__)
 
-        # Load RSA private key for firmware 6.45+ authentication
+        # Store key path for lazy loading (only load when actually connecting)
         settings = get_settings()
-        key_path = Path(private_key_path or settings.seestar_private_key_path)
-        if not key_path.is_absolute():
+        self._private_key_path = Path(private_key_path or settings.seestar_private_key_path)
+        if not self._private_key_path.is_absolute():
             # Make relative paths relative to backend directory
-            key_path = Path(__file__).parent.parent.parent / key_path
+            self._private_key_path = Path(__file__).parent.parent.parent / self._private_key_path
 
-        try:
-            with open(key_path, "rb") as f:
-                self._private_key_pem = f.read()
-            self.logger.debug(f"Loaded Seestar private key from {key_path}")
-        except FileNotFoundError:
-            self.logger.error(f"Seestar private key not found at {key_path}")
-            raise ConnectionError(
-                f"Seestar authentication key not found at {key_path}. "
-                "Please ensure the key file exists or set SEESTAR_PRIVATE_KEY_PATH environment variable."
-            )
+        self._private_key_pem: Optional[bytes] = None
 
         # Connection state
         self._socket: Optional[socket.socket] = None
@@ -178,6 +169,28 @@ class SeestarClient:
                 self._status_callback(self._status)
             except Exception as e:
                 self.logger.error(f"Error in status callback: {e}")
+
+    def _load_private_key(self) -> None:
+        """Load RSA private key for authentication.
+
+        Only called when actually connecting to telescope.
+
+        Raises:
+            ConnectionError: If key file not found
+        """
+        if self._private_key_pem is not None:
+            return  # Already loaded
+
+        try:
+            with open(self._private_key_path, "rb") as f:
+                self._private_key_pem = f.read()
+            self.logger.debug(f"Loaded Seestar private key from {self._private_key_path}")
+        except FileNotFoundError:
+            self.logger.error(f"Seestar private key not found at {self._private_key_path}")
+            raise ConnectionError(
+                f"Seestar authentication key not found at {self._private_key_path}. "
+                "Please ensure the key file exists or set SEESTAR_PRIVATE_KEY_PATH environment variable."
+            )
 
     def _sign_challenge(self, challenge_str: str) -> str:
         """Sign authentication challenge using RSA private key.
@@ -315,8 +328,9 @@ class SeestarClient:
 
             self.logger.info("Connected to Seestar S50")
 
-            # Authenticate for firmware 6.45+
+            # Load private key and authenticate for firmware 6.45+
             try:
+                self._load_private_key()
                 await self._authenticate()
             except Exception as e:
                 await self.disconnect()
