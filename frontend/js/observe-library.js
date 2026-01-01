@@ -2,10 +2,9 @@
  * Observe View Library Tab
  *
  * Manages the capture library display with search, filter, and sort.
+ *
+ * Note: API_BASE is defined in observe-connection.js
  */
-
-// API base URL
-const API_BASE = '';
 
 /**
  * Escape HTML to prevent XSS
