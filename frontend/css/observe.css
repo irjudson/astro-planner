@@ -47,53 +47,54 @@
 
 /* Layout */
 .observe-layout {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: var(--spacing-lg);
-  min-height: 600px;
+  display: grid !important;
+  grid-template-columns: 320px 1fr !important;
+  gap: var(--spacing-lg) !important;
+  min-height: 600px !important;
 }
 
 /* Sidebar */
 .observe-sidebar {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-md);
-  overflow-y: auto;
-  max-height: calc(100vh - 200px);
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--border-radius) !important;
+  padding: var(--spacing-md) !important;
+  overflow-y: auto !important;
+  max-height: calc(100vh - 200px) !important;
 }
 
 /* Main Area */
 .observe-main {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-lg);
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--border-radius) !important;
+  padding: var(--spacing-lg) !important;
 }
 
 /* Panels */
 .panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-lg);
-  margin-bottom: var(--spacing-md);
-  transition: box-shadow 200ms ease;
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: var(--border-radius) !important;
+  padding: var(--spacing-lg) !important;
+  margin-bottom: var(--spacing-md) !important;
+  transition: box-shadow 200ms ease !important;
 }
 
 .panel:hover {
-  box-shadow: var(--shadow-small);
+  box-shadow: var(--shadow-small) !important;
 }
 
 .panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--border-color);
-  cursor: pointer;
-  user-select: none;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: var(--spacing-md) !important;
+  padding-bottom: var(--spacing-sm) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  border-radius: 0 !important;
 }
 
 .panel-collapsible .panel-header:hover {
