@@ -125,10 +125,17 @@ async function disconnectTelescope() {
     // Stop polling
     stopTelemetryPolling();
 
-    // Update state
+    // Update connection state
     updateState('connection', {
       status: 'disconnected',
       firmware: null,
+      lastUpdate: null
+    });
+
+    // Clear telemetry state
+    updateState('telemetry', {
+      position: { ra: 0, dec: 0, alt: 0, az: 0 },
+      deviceState: {},
       lastUpdate: null
     });
 

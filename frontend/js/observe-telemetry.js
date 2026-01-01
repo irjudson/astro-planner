@@ -5,19 +5,40 @@
  */
 
 /**
+ * Safely format number with fallback
+ */
+function safeFormatNumber(value, decimals = 1) {
+  if (value === null || value === undefined || isNaN(value)) {
+    return '--';
+  }
+  return value.toFixed(decimals);
+}
+
+/**
  * Update telemetry display
  */
 function updateTelemetryDisplay() {
   const { position, deviceState, lastUpdate } = observeState.telemetry;
 
+  // Guard against missing DOM elements
+  const raEl = document.getElementById('telem-ra');
+  const decEl = document.getElementById('telem-dec');
+  const altEl = document.getElementById('telem-alt');
+  const azEl = document.getElementById('telem-az');
+  const deviceDiv = document.getElementById('telemetry-device');
+
+  if (!raEl || !decEl || !altEl || !azEl || !deviceDiv) {
+    console.warn('Telemetry DOM elements not found');
+    return;
+  }
+
   // Update position display
-  document.getElementById('telem-ra').textContent = formatRA(position.ra);
-  document.getElementById('telem-dec').textContent = formatDec(position.dec);
-  document.getElementById('telem-alt').textContent = `${position.alt.toFixed(1)}°`;
-  document.getElementById('telem-az').textContent = `${position.az.toFixed(1)}°`;
+  raEl.textContent = formatRA(position.ra);
+  decEl.textContent = formatDec(position.dec);
+  altEl.textContent = `${safeFormatNumber(position.alt)}°`;
+  azEl.textContent = `${safeFormatNumber(position.az)}°`;
 
   // Update device status
-  const deviceDiv = document.getElementById('telemetry-device');
 
   if (observeState.connection.status !== 'connected') {
     deviceDiv.innerHTML = '<p class="text-secondary">Not connected</p>';
@@ -55,6 +76,13 @@ function updateTelemetryDisplay() {
  * Format RA (hours to HMS)
  */
 function formatRA(hours) {
+  if (hours === null || hours === undefined || isNaN(hours)) {
+    return '--:--:--';
+  }
+
+  // Normalize to 0-24 range
+  hours = ((hours % 24) + 24) % 24;
+
   const h = Math.floor(hours);
   const m = Math.floor((hours - h) * 60);
   const s = Math.floor(((hours - h) * 60 - m) * 60);
@@ -65,6 +93,13 @@ function formatRA(hours) {
  * Format Dec (degrees to DMS)
  */
 function formatDec(degrees) {
+  if (degrees === null || degrees === undefined || isNaN(degrees)) {
+    return '--°--\'--"';
+  }
+
+  // Clamp to valid range
+  degrees = Math.max(-90, Math.min(90, degrees));
+
   const sign = degrees >= 0 ? '+' : '-';
   const absDeg = Math.abs(degrees);
   const d = Math.floor(absDeg);
