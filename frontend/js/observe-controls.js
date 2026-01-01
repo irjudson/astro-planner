@@ -4,6 +4,8 @@
  * Handles telescope control actions: imaging, focus, goto, execution monitoring.
  */
 
+const API_BASE = '';  // Same origin
+
 /**
  * Send telescope command
  * @param {string} command - Command name
@@ -11,7 +13,6 @@
  * @returns {Promise<any>} Command response
  */
 async function sendTelescopeCommand(command, params = {}) {
-  const API_BASE = '';  // Same origin
   const response = await fetch(`${API_BASE}/api/telescope/command/${command}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -247,6 +248,12 @@ async function handleStopSlew() {
  * Park telescope
  */
 async function handlePark() {
+  // Check connection status
+  if (observeState.connection.status !== 'connected') {
+    alert('Please connect to telescope first');
+    return;
+  }
+
   try {
     await sendTelescopeCommand('park');
     alert('Telescope parked');
@@ -259,6 +266,12 @@ async function handlePark() {
  * Emergency stop
  */
 async function handleEmergencyStop() {
+  // Check connection status
+  if (observeState.connection.status !== 'connected') {
+    alert('Please connect to telescope first');
+    return;
+  }
+
   if (!confirm('Emergency stop all telescope movement?')) {
     return;
   }
@@ -311,20 +324,28 @@ function parseCoordinate(coord, type) {
  * Toggle dew heater
  */
 async function handleDewHeater() {
-  if (observeState.connection.status !== 'connected') return;
+  // Check connection status
+  if (observeState.connection.status !== 'connected') {
+    alert('Please connect to telescope first');
+    return;
+  }
+
+  const enabled = document.getElementById('dew-heater-enabled')?.checked || false;
+  const powerInput = document.getElementById('dew-heater-power');
+  const power = powerInput ? parseInt(powerInput.value) : 0;
 
   try {
-    const enabled = !observeState.controls.dewHeater.enabled;
-    const power = observeState.controls.dewHeater.power;
+    await sendTelescopeCommand('set_dew_heater', {
+      enabled,
+      power_level: power
+    });
 
-    await sendTelescopeCommand('set_dew_heater', { enabled, power });
+    // Only update state after successful command
     updateState('controls', {
       dewHeater: { enabled, power }
     });
-    console.log(`Dew heater ${enabled ? 'enabled' : 'disabled'}`);
   } catch (error) {
-    console.error('Failed to toggle dew heater:', error);
-    alert('Failed to toggle dew heater: ' + error.message);
+    alert(`Failed to set dew heater: ${error.message}`);
   }
 }
 
@@ -332,22 +353,26 @@ async function handleDewHeater() {
  * Update dew heater power
  */
 async function handleUpdateDewHeaterPower() {
-  if (observeState.connection.status !== 'connected') return;
+  // Check connection status
+  if (observeState.connection.status !== 'connected') {
+    return;  // Silently ignore if not connected
+  }
+
+  const powerInput = document.getElementById('dew-heater-power');
+  const power = powerInput ? parseInt(powerInput.value) : 0;
 
   try {
-    const power = parseInt(document.getElementById('dew-heater-power').value);
-    const enabled = observeState.controls.dewHeater.enabled;
+    await sendTelescopeCommand('set_dew_heater', {
+      enabled: observeState.controls.dewHeater.enabled,
+      power_level: power
+    });
 
-    if (enabled) {
-      await sendTelescopeCommand('set_dew_heater', { enabled: true, power });
-    }
-
+    // Only update state after successful command
     updateState('controls', {
       dewHeater: { power }
     });
   } catch (error) {
     console.error('Failed to update dew heater power:', error);
-    alert('Failed to update dew heater power: ' + error.message);
   }
 }
 
