@@ -73,6 +73,7 @@ class DSOTarget(BaseModel):
     description: Optional[str] = Field(default=None, description="Object description")
     image_url: Optional[str] = Field(default=None, description="Preview image URL (relative path)")
     visibility: Optional["TargetVisibility"] = Field(None, description="Real-time visibility info (if calculated)")
+    capture_history: Optional[Dict[str, Any]] = Field(None, description="Capture history for this target (if available)")
 
 
 class TargetVisibility(BaseModel):

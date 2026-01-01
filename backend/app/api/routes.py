@@ -229,6 +229,51 @@ async def list_targets(
                     # If visibility fails, continue without it
                     print(f"Warning: Could not calculate visibility: {e}")
 
+        # Add capture history for all paginated targets (single efficient query)
+        try:
+            from app.models.capture_models import CaptureHistory
+
+            # Extract catalog IDs from paginated targets
+            catalog_ids = [target.catalog_id for target in paginated]
+
+            # Fetch all capture history in ONE query (not N+1)
+            if catalog_ids:
+                try:
+                    capture_histories = db.query(CaptureHistory).filter(
+                        CaptureHistory.catalog_id.in_(catalog_ids)
+                    ).all()
+
+                    # Create a dictionary mapping catalog_id -> capture history data
+                    capture_dict = {
+                        ch.catalog_id: {
+                            "total_exposure_seconds": ch.total_exposure_seconds,
+                            "total_frames": ch.total_frames,
+                            "total_sessions": ch.total_sessions,
+                            "first_captured_at": ch.first_captured_at.isoformat() if ch.first_captured_at else None,
+                            "last_captured_at": ch.last_captured_at.isoformat() if ch.last_captured_at else None,
+                            "status": ch.status,
+                            "suggested_status": ch.suggested_status,
+                            "best_fwhm": ch.best_fwhm,
+                            "best_star_count": ch.best_star_count,
+                        }
+                        for ch in capture_histories
+                    }
+
+                    # Merge capture history into each target using model_copy for immutability
+                    paginated = [
+                        target.model_copy(update={"capture_history": capture_dict[target.catalog_id]})
+                        if target.catalog_id in capture_dict
+                        else target
+                        for target in paginated
+                    ]
+                except Exception as query_error:
+                    # If session is in failed transaction, just continue without capture history
+                    # This can happen if visibility calculation fails first
+                    print(f"Warning: Could not fetch capture history: {query_error}")
+        except Exception as e:
+            # Outer exception handler
+            print(f"Warning: Capture history processing failed: {e}")
+
         return paginated
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching targets: {str(e)}")

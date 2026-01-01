@@ -8,6 +8,8 @@ from datetime import datetime
 
 import pytest
 
+from app.models.capture_models import CaptureHistory
+
 # Mark all tests in this file as integration tests
 pytestmark = pytest.mark.integration
 
@@ -88,6 +90,43 @@ class TestTargetEndpoints:
         """Test getting a target that doesn't exist."""
         response = client.get("/api/targets/NONEXISTENT")
         assert response.status_code == 404
+
+    def test_targets_include_capture_history(self, client, override_get_db):
+        """Test that targets endpoint includes capture history."""
+        db_session = override_get_db
+        # Create capture history for M31
+        capture = CaptureHistory(
+            catalog_id="M31",
+            total_exposure_seconds=7200,
+            total_frames=720,
+            total_sessions=3
+        )
+        db_session.add(capture)
+        db_session.commit()
+
+        response = client.get("/api/targets?limit=20")
+        assert response.status_code == 200
+
+        targets = response.json()
+        m31 = next((t for t in targets if t['catalog_id'] == 'M31'), None)
+
+        assert m31 is not None
+        assert 'capture_history' in m31
+        assert m31['capture_history']['total_exposure_seconds'] == 7200
+        assert m31['capture_history']['total_sessions'] == 3
+
+    def test_targets_without_capture_history(self, client):
+        """Test targets without capture history show null."""
+        response = client.get("/api/targets?limit=20")
+        assert response.status_code == 200
+
+        targets = response.json()
+        # Most targets won't have capture history
+        target_without_history = next(
+            (t for t in targets if t.get('capture_history') is None),
+            None
+        )
+        assert target_without_history is not None
 
 
 class TestTwilightEndpoint:
