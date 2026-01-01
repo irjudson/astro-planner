@@ -13,4 +13,4 @@ def test_capture_settings_defaults():
     assert settings.auto_delete_after_transfer is True
     assert settings.capture_complete_hours == 3.0
     assert settings.capture_needs_more_hours == 1.0
-    assert settings.file_scan_extensions == ['.fit', '.fits', '.jpg', '.png', '.tiff', '.avi']
+    assert settings.file_scan_extensions == [".fit", ".fits", ".jpg", ".png", ".tiff", ".avi"]

@@ -23,12 +23,12 @@ def _create_test_fits_file(file_path: Path, target_name: str):
     # Create minimal FITS file with required metadata
     data = np.zeros((10, 10), dtype=np.uint16)
     hdu = fits.PrimaryHDU(data)
-    hdu.header['OBJECT'] = target_name
-    hdu.header['EXPTIME'] = 30.0
-    hdu.header['FILTER'] = 'Luminance'
-    hdu.header['CCD-TEMP'] = -10.5
-    hdu.header['GAIN'] = 100
-    hdu.header['DATE-OBS'] = '2025-12-30T20:30:00'
+    hdu.header["OBJECT"] = target_name
+    hdu.header["EXPTIME"] = 30.0
+    hdu.header["FILTER"] = "Luminance"
+    hdu.header["CCD-TEMP"] = -10.5
+    hdu.header["GAIN"] = 100
+    hdu.header["DATE-OBS"] = "2025-12-30T20:30:00"
     hdu.writeto(file_path, overwrite=True)
 
 
@@ -83,9 +83,7 @@ def test_organize_file_path():
     source_file = Path("/seestar/M31_2025-12-30_001.fit")
 
     dest_path = service._get_destination_path(
-        source_file,
-        target_name="M31",
-        observation_date=datetime(2025, 12, 30, 21, 45)
+        source_file, target_name="M31", observation_date=datetime(2025, 12, 30, 21, 45)
     )
 
     # Should organize as: /output/M31/2025-12-30/M31_2025-12-30_001.fit
@@ -102,11 +100,7 @@ def test_transfer_file(mock_mount_path, tmp_path):
 
     source = mock_mount_path / "Seestar" / "IMG" / "M31_2025-12-30_001.fit"
 
-    transferred_path = service.transfer_file(
-        source,
-        target_name="M31",
-        observation_date=datetime(2025, 12, 30, 21, 45)
-    )
+    transferred_path = service.transfer_file(source, target_name="M31", observation_date=datetime(2025, 12, 30, 21, 45))
 
     assert transferred_path.exists()
     assert "M31" in str(transferred_path)
@@ -127,11 +121,7 @@ def test_transfer_file_already_exists(mock_mount_path, tmp_path):
     source = mock_mount_path / "Seestar" / "IMG" / "M31_2025-12-30_001.fit"
 
     # Should skip and return existing path
-    result = service.transfer_file(
-        source,
-        target_name="M31",
-        observation_date=datetime(2025, 12, 30, 21, 45)
-    )
+    result = service.transfer_file(source, target_name="M31", observation_date=datetime(2025, 12, 30, 21, 45))
 
     assert result == existing
     assert existing.read_text() == "existing data"  # Not overwritten
@@ -146,11 +136,7 @@ def test_transfer_file_path_traversal_protection(mock_mount_path, tmp_path):
 
     # Attempt path traversal attack
     with pytest.raises(ValueError, match="Invalid target name"):
-        service.transfer_file(
-            source,
-            target_name="../../../tmp/evil",
-            observation_date=datetime(2025, 12, 30, 21, 45)
-        )
+        service.transfer_file(source, target_name="../../../tmp/evil", observation_date=datetime(2025, 12, 30, 21, 45))
 
 
 def test_transfer_file_with_delete_source(mock_mount_path, tmp_path):
@@ -164,10 +150,7 @@ def test_transfer_file_with_delete_source(mock_mount_path, tmp_path):
     assert source.exists()
 
     transferred_path = service.transfer_file(
-        source,
-        target_name="M31",
-        observation_date=datetime(2025, 12, 30, 21, 45),
-        delete_source=True
+        source, target_name="M31", observation_date=datetime(2025, 12, 30, 21, 45), delete_source=True
     )
 
     # Verify transfer succeeded
@@ -193,9 +176,9 @@ def test_transfer_and_scan_batch(mock_mount_path, tmp_path, mock_db_session):
     results = service.transfer_and_scan_all(db=mock_db_session)
 
     # Should transfer 2 FITS files (JPG is skipped because it has no FITS metadata)
-    assert results['transferred'] == 2
-    assert results['scanned'] == 2
-    assert results['errors'] == 0
+    assert results["transferred"] == 2
+    assert results["scanned"] == 2
+    assert results["errors"] == 0
 
 
 def test_transfer_and_scan_with_errors(mock_mount_path, tmp_path, mock_db_session):
@@ -214,7 +197,7 @@ def test_transfer_and_scan_with_errors(mock_mount_path, tmp_path, mock_db_sessio
     # Should handle error and continue with other files
     # The bad file will be skipped due to metadata extraction failure (returns None)
     # So we'll still have 2 transferred from the good files
-    assert results['transferred'] == 2  # Original 2 good FITS files
+    assert results["transferred"] == 2  # Original 2 good FITS files
 
 
 def test_transfer_and_scan_idempotent(mock_mount_path, tmp_path, mock_db_session):
@@ -231,14 +214,14 @@ def test_transfer_and_scan_idempotent(mock_mount_path, tmp_path, mock_db_session
     results2 = service.transfer_and_scan_all(db=mock_db_session)
 
     # First run should transfer 2 valid FITS files (JPG skipped due to no metadata)
-    assert results1['transferred'] == 2
-    assert results1['scanned'] == 2
-    assert results1['errors'] == 0
-    assert results1['skipped'] == 1  # JPG file skipped
+    assert results1["transferred"] == 2
+    assert results1["scanned"] == 2
+    assert results1["errors"] == 0
+    assert results1["skipped"] == 1  # JPG file skipped
 
     # Second run should skip FITS files that already exist at destination
     # JPG is still skipped due to metadata extraction failure
-    assert results2['transferred'] == 0
-    assert results2['skipped'] == 1  # JPG skipped again (already exists at destination)
-    assert results2['errors'] == 0
-    assert results2['scanned'] == 0
+    assert results2["transferred"] == 0
+    assert results2["skipped"] == 1  # JPG skipped again (already exists at destination)
+    assert results2["errors"] == 0
+    assert results2["scanned"] == 0

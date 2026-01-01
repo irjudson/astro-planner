@@ -69,7 +69,7 @@ class Settings(BaseSettings):
 
     # File scanner settings
     file_scan_on_startup: bool = False
-    file_scan_extensions: List[str] = ['.fit', '.fits', '.jpg', '.png', '.tiff', '.avi']
+    file_scan_extensions: List[str] = [".fit", ".fits", ".jpg", ".png", ".tiff", ".avi"]
 
     class Config:
         env_file = ".env"

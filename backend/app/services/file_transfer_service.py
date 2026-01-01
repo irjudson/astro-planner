@@ -55,12 +55,7 @@ class FileTransferService:
             self.logger.error(f"Error listing files from Seestar mount: {e}")
             return []
 
-    def _get_destination_path(
-        self,
-        source_file: Path,
-        target_name: str,
-        observation_date: datetime
-    ) -> Path:
+    def _get_destination_path(self, source_file: Path, target_name: str, observation_date: datetime) -> Path:
         """
         Generate organized destination path.
 
@@ -86,11 +81,7 @@ class FileTransferService:
         return dest_dir / source_file.name
 
     def transfer_file(
-        self,
-        source_file: Path,
-        target_name: str,
-        observation_date: datetime,
-        delete_source: bool = False
+        self, source_file: Path, target_name: str, observation_date: datetime, delete_source: bool = False
     ) -> Path:
         """
         Transfer file to organized destination.
@@ -146,12 +137,7 @@ class FileTransferService:
         Returns:
             Dict with counts: transferred, scanned, errors
         """
-        results = {
-            'transferred': 0,
-            'scanned': 0,
-            'errors': 0,
-            'skipped': 0
-        }
+        results = {"transferred": 0, "scanned": 0, "errors": 0, "skipped": 0}
 
         # Initialize scanner with DB session
         self.scanner = FileScannerService(db)
@@ -170,39 +156,36 @@ class FileTransferService:
                 # Extract metadata to get target name and date
                 metadata = self.scanner._extract_fits_metadata(str(source_file))
 
-                if not metadata or not metadata.get('target_name'):
+                if not metadata or not metadata.get("target_name"):
                     self.logger.warning(f"Could not extract metadata from {source_file.name}, skipping")
-                    results['skipped'] += 1
+                    results["skipped"] += 1
                     continue
 
-                target_name = metadata['target_name']
-                observation_date = metadata.get('observation_date') or datetime.now()
+                target_name = metadata["target_name"]
+                observation_date = metadata.get("observation_date") or datetime.now()
 
                 # Transfer file
                 dest_path = self.transfer_file(
-                    source_file,
-                    target_name,
-                    observation_date,
-                    delete_source=self.auto_delete
+                    source_file, target_name, observation_date, delete_source=self.auto_delete
                 )
 
-                results['transferred'] += 1
+                results["transferred"] += 1
 
                 # Scan the single transferred file's directory (parent)
                 # This ensures we only scan newly transferred files, not entire output directory
                 scan_count = self.scanner.scan_files(str(dest_path.parent), db)
                 if scan_count > 0:
-                    results['scanned'] += 1
+                    results["scanned"] += 1
 
             except Exception as e:
                 self.logger.error(f"Error processing {source_file}: {e}")
-                results['errors'] += 1
+                results["errors"] += 1
 
         # After scanning, update capture statistics
-        if results['scanned'] > 0:
+        if results["scanned"] > 0:
             stats_service = CaptureStatsService(db)
             updated_count = stats_service.update_all_capture_histories()
-            results['updated_histories'] = updated_count
+            results["updated_histories"] = updated_count
 
         self.logger.info(f"Transfer complete: {results}")
         return results

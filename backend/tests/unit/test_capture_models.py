@@ -17,7 +17,7 @@ def test_capture_history_creation():
         status="needs_more_data",
         suggested_status="needs_more_data",
         best_fwhm=2.3,
-        best_star_count=2847
+        best_star_count=2847,
     )
 
     assert capture.catalog_id == "M31"
@@ -42,7 +42,7 @@ def test_output_file_creation():
         gain=80,
         fwhm=2.3,
         star_count=2847,
-        observation_date=datetime(2025, 12, 29, 21, 45)
+        observation_date=datetime(2025, 12, 29, 21, 45),
     )
 
     assert output_file.file_path == "/mnt/astronomy/M31/2025-12-29/M31_stacked.fit"

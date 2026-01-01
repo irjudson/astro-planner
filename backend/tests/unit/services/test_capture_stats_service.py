@@ -17,7 +17,7 @@ def sample_output_files(override_get_db):
             catalog_id="M31",
             catalog_id_confidence=1.0,
             exposure_seconds=10,
-            observation_date=datetime(2025, 12, 30, 21, 0)
+            observation_date=datetime(2025, 12, 30, 21, 0),
         ),
         OutputFile(
             file_path="/output/M31/2025-12-30/file2.fit",
@@ -26,7 +26,7 @@ def sample_output_files(override_get_db):
             catalog_id="M31",
             catalog_id_confidence=1.0,
             exposure_seconds=10,
-            observation_date=datetime(2025, 12, 30, 22, 0)
+            observation_date=datetime(2025, 12, 30, 22, 0),
         ),
         OutputFile(
             file_path="/output/M31/2025-12-31/file3.fit",
@@ -35,7 +35,7 @@ def sample_output_files(override_get_db):
             catalog_id="M31",
             catalog_id_confidence=1.0,
             exposure_seconds=10,
-            observation_date=datetime(2025, 12, 31, 20, 0)
+            observation_date=datetime(2025, 12, 31, 20, 0),
         ),
     ]
 
@@ -52,9 +52,7 @@ def test_aggregate_capture_history(override_get_db, sample_output_files):
 
     service.update_capture_history("M31")
 
-    capture = override_get_db.query(CaptureHistory).filter(
-        CaptureHistory.catalog_id == "M31"
-    ).first()
+    capture = override_get_db.query(CaptureHistory).filter(CaptureHistory.catalog_id == "M31").first()
 
     assert capture is not None
     assert capture.total_frames == 3
@@ -70,9 +68,7 @@ def test_update_suggested_status(override_get_db, sample_output_files):
 
     service.update_capture_history("M31")
 
-    capture = override_get_db.query(CaptureHistory).filter(
-        CaptureHistory.catalog_id == "M31"
-    ).first()
+    capture = override_get_db.query(CaptureHistory).filter(CaptureHistory.catalog_id == "M31").first()
 
     # With 30 seconds total (0.008 hours), should not suggest any status
     # (below the 1.0 hour threshold for "needs_more_data")

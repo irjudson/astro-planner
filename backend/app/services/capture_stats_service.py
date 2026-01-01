@@ -40,9 +40,7 @@ class CaptureStatsService:
             Updated or created CaptureHistory record
         """
         # Get all files for this target
-        files = self.db.query(OutputFile).filter(
-            OutputFile.catalog_id == catalog_id
-        ).all()
+        files = self.db.query(OutputFile).filter(OutputFile.catalog_id == catalog_id).all()
 
         if not files:
             self.logger.debug(f"No files found for {catalog_id}")
@@ -79,9 +77,7 @@ class CaptureStatsService:
             suggested_status = None  # Not enough data yet
 
         # Update or create capture history
-        capture = self.db.query(CaptureHistory).filter(
-            CaptureHistory.catalog_id == catalog_id
-        ).first()
+        capture = self.db.query(CaptureHistory).filter(CaptureHistory.catalog_id == catalog_id).first()
 
         if capture:
             # Update existing
@@ -104,7 +100,7 @@ class CaptureStatsService:
                 last_captured_at=last_captured,
                 best_fwhm=best_fwhm,
                 best_star_count=best_star_count,
-                suggested_status=suggested_status
+                suggested_status=suggested_status,
             )
             self.db.add(capture)
 

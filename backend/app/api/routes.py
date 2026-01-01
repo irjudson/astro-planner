@@ -239,9 +239,9 @@ async def list_targets(
             # Fetch all capture history in ONE query (not N+1)
             if catalog_ids:
                 try:
-                    capture_histories = db.query(CaptureHistory).filter(
-                        CaptureHistory.catalog_id.in_(catalog_ids)
-                    ).all()
+                    capture_histories = (
+                        db.query(CaptureHistory).filter(CaptureHistory.catalog_id.in_(catalog_ids)).all()
+                    )
 
                     # Create a dictionary mapping catalog_id -> capture history data
                     capture_dict = {
@@ -261,9 +261,11 @@ async def list_targets(
 
                     # Merge capture history into each target using model_copy for immutability
                     paginated = [
-                        target.model_copy(update={"capture_history": capture_dict[target.catalog_id]})
-                        if target.catalog_id in capture_dict
-                        else target
+                        (
+                            target.model_copy(update={"capture_history": capture_dict[target.catalog_id]})
+                            if target.catalog_id in capture_dict
+                            else target
+                        )
                         for target in paginated
                     ]
                 except Exception as query_error:

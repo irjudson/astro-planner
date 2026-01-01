@@ -228,17 +228,17 @@ async def trigger_file_transfer(db: Session = Depends(get_db)):
         results = transfer_service.transfer_and_scan_all(db)
 
         message = f"Transferred {results['transferred']} files"
-        if results['errors'] > 0:
+        if results["errors"] > 0:
             message += f" with {results['errors']} errors"
-        if results['skipped'] > 0:
+        if results["skipped"] > 0:
             message += f" ({results['skipped']} skipped)"
 
         return TransferResultResponse(
-            transferred=results['transferred'],
-            scanned=results['scanned'],
-            errors=results['errors'],
-            skipped=results['skipped'],
-            message=message
+            transferred=results["transferred"],
+            scanned=results["scanned"],
+            errors=results["errors"],
+            skipped=results["skipped"],
+            message=message,
         )
 
     except Exception as e:

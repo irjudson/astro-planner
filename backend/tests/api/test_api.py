@@ -95,12 +95,7 @@ class TestTargetEndpoints:
         """Test that targets endpoint includes capture history."""
         db_session = override_get_db
         # Create capture history for M31
-        capture = CaptureHistory(
-            catalog_id="M31",
-            total_exposure_seconds=7200,
-            total_frames=720,
-            total_sessions=3
-        )
+        capture = CaptureHistory(catalog_id="M31", total_exposure_seconds=7200, total_frames=720, total_sessions=3)
         db_session.add(capture)
         db_session.commit()
 
@@ -108,12 +103,12 @@ class TestTargetEndpoints:
         assert response.status_code == 200
 
         targets = response.json()
-        m31 = next((t for t in targets if t['catalog_id'] == 'M31'), None)
+        m31 = next((t for t in targets if t["catalog_id"] == "M31"), None)
 
         assert m31 is not None
-        assert 'capture_history' in m31
-        assert m31['capture_history']['total_exposure_seconds'] == 7200
-        assert m31['capture_history']['total_sessions'] == 3
+        assert "capture_history" in m31
+        assert m31["capture_history"]["total_exposure_seconds"] == 7200
+        assert m31["capture_history"]["total_sessions"] == 3
 
     def test_targets_without_capture_history(self, client):
         """Test targets without capture history show null."""
@@ -122,10 +117,7 @@ class TestTargetEndpoints:
 
         targets = response.json()
         # Most targets won't have capture history
-        target_without_history = next(
-            (t for t in targets if t.get('capture_history') is None),
-            None
-        )
+        target_without_history = next((t for t in targets if t.get("capture_history") is None), None)
         assert target_without_history is not None
 
 
