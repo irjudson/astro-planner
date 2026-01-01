@@ -165,7 +165,7 @@ class FileScannerService:
         file_count = 0
 
         # Walk through directory
-        for root, dirs, files in os.walk(directory):
+        for root, _dirs, files in os.walk(directory):
             for filename in files:
                 # Check if file has matching extension
                 file_ext = os.path.splitext(filename)[1].lower()

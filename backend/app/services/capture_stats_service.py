@@ -1,10 +1,7 @@
 """Service for aggregating capture statistics."""
 
 import logging
-from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
