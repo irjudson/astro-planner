@@ -110,6 +110,7 @@ async function connectTelescope() {
       status: 'error',
       error: error.message
     });
+    handleConnectionError(error);
   }
 }
 
