@@ -1,6 +1,7 @@
 """Tests for captures API endpoints."""
 
 import pytest
+from unittest.mock import patch, MagicMock
 from app.models.capture_models import CaptureHistory, OutputFile
 from datetime import datetime
 
@@ -56,3 +57,42 @@ def test_get_capture_not_found(client):
     """Test getting non-existent capture."""
     response = client.get("/api/captures/NGC9999")
     assert response.status_code == 404
+
+
+def test_trigger_file_transfer(client):
+    """Test triggering file transfer from Seestar."""
+    with patch('app.api.captures.FileTransferService') as MockService:
+        mock_service = MagicMock()
+        mock_service.transfer_and_scan_all.return_value = {
+            'transferred': 5,
+            'scanned': 5,
+            'errors': 0,
+            'skipped': 0
+        }
+        MockService.return_value = mock_service
+
+        response = client.post("/api/captures/transfer")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['transferred'] == 5
+        assert data['scanned'] == 5
+
+
+def test_trigger_file_transfer_with_errors(client):
+    """Test file transfer handles errors."""
+    with patch('app.api.captures.FileTransferService') as MockService:
+        mock_service = MagicMock()
+        mock_service.transfer_and_scan_all.return_value = {
+            'transferred': 3,
+            'scanned': 3,
+            'errors': 2,
+            'skipped': 1
+        }
+        MockService.return_value = mock_service
+
+        response = client.post("/api/captures/transfer")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['errors'] == 2

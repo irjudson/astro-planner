@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.capture_models import CaptureHistory, OutputFile
+from app.services.file_transfer_service import FileTransferService
 
 router = APIRouter(prefix="/captures", tags=["captures"])
 
@@ -55,6 +56,16 @@ class OutputFileResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TransferResultResponse(BaseModel):
+    """Response model for file transfer results."""
+
+    transferred: int
+    scanned: int
+    errors: int
+    skipped: int
+    message: str
 
 
 @router.get("", response_model=List[CaptureHistoryResponse])
@@ -196,3 +207,39 @@ async def list_all_output_files(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing output files: {str(e)}")
+
+
+@router.post("/transfer", response_model=TransferResultResponse)
+async def trigger_file_transfer(db: Session = Depends(get_db)):
+    """
+    Trigger file transfer from Seestar.
+
+    This endpoint:
+    1. Lists all files from Seestar mount
+    2. Transfers them to organized directory structure
+    3. Scans transferred files to create OutputFile records
+    4. Updates CaptureHistory aggregates
+
+    Returns:
+        Results with counts of transferred, scanned, errors, skipped
+    """
+    try:
+        transfer_service = FileTransferService()
+        results = transfer_service.transfer_and_scan_all(db)
+
+        message = f"Transferred {results['transferred']} files"
+        if results['errors'] > 0:
+            message += f" with {results['errors']} errors"
+        if results['skipped'] > 0:
+            message += f" ({results['skipped']} skipped)"
+
+        return TransferResultResponse(
+            transferred=results['transferred'],
+            scanned=results['scanned'],
+            errors=results['errors'],
+            skipped=results['skipped'],
+            message=message
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transfer failed: {str(e)}")
