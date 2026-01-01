@@ -157,6 +157,28 @@ function notifyStateChange(section) {
 }
 
 /**
+ * Deep merge helper for nested objects
+ * @param {object} target - Target object
+ * @param {object} source - Source object with updates
+ * @returns {object} Merged object
+ */
+function deepMerge(target, source) {
+  const result = { ...target };
+
+  Object.keys(source).forEach(key => {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      // Recursively merge nested objects
+      result[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      // Replace primitives and arrays
+      result[key] = source[key];
+    }
+  });
+
+  return result;
+}
+
+/**
  * Update state and notify listeners
  * @param {string} section - State section to update
  * @param {object} updates - Object with updates to merge
@@ -168,7 +190,7 @@ function updateState(section, updates) {
   }
 
   // Deep merge updates
-  Object.assign(observeState[section], updates);
+  observeState[section] = deepMerge(observeState[section], updates);
 
   // Notify listeners
   notifyStateChange(section);
