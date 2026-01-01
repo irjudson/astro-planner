@@ -288,3 +288,51 @@ input:disabled {
 .hidden {
   display: none !important;
 }
+
+/* Library Grid */
+#library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.target-card {
+  padding: var(--spacing-md);
+}
+
+.target-card h4 {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-primary);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--border-radius-small);
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.status-badge.status-complete {
+  background: var(--success-green);
+  color: white;
+}
+
+.status-badge.status-needs_more {
+  background: var(--warning-yellow);
+  color: white;
+}
+
+.status-badge.status-new {
+  background: var(--text-tertiary);
+  color: white;
+}
+
+/* Library Toolbar */
+#library-toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
