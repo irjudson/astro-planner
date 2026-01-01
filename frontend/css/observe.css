@@ -1,41 +1,41 @@
-/* Observe View Styles */
+/* Observe View Styles - TRON Theme Compatible */
 
 :root {
-  /* Primary Colors */
-  --primary-blue: #667eea;
-  --primary-purple: #764ba2;
-  --success-green: #10b981;
-  --warning-yellow: #f59e0b;
-  --danger-red: #ef4444;
-  --info-blue: #3b82f6;
+  /* Inherit TRON theme colors */
+  --primary-blue: var(--tron-cyan, #00d9ff);
+  --primary-purple: var(--tron-purple, #8b5cf6);
+  --success-green: var(--tron-green, #10b981);
+  --warning-yellow: var(--tron-orange, #f97316);
+  --danger-red: var(--tron-red, #ef4444);
+  --info-blue: var(--tron-blue, #0ea5e9);
 
   /* Status Colors */
-  --status-complete: #10b981;
-  --status-partial: #f59e0b;
-  --status-new: #6b7280;
-  --status-executing: #3b82f6;
+  --status-complete: var(--tron-green, #10b981);
+  --status-partial: var(--tron-orange, #f97316);
+  --status-new: var(--tron-text-muted, #94a3b8);
+  --status-executing: var(--tron-cyan, #00d9ff);
 
-  /* Backgrounds */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --bg-panel: #ffffff;
-  --bg-hover: #f3f4f6;
-  --bg-drawer: #f9fafb;
+  /* Backgrounds - Use TRON theme */
+  --bg-primary: var(--tron-bg-card, #1e293b);
+  --bg-secondary: var(--tron-bg-secondary, #0f172a);
+  --bg-panel: var(--tron-bg-card, #1e293b);
+  --bg-hover: rgba(0, 217, 255, 0.1);
+  --bg-drawer: var(--tron-bg-secondary, #0f172a);
 
   /* Borders */
-  --border-color: #e5e7eb;
+  --border-color: var(--tron-border, #475569);
   --border-radius: 8px;
   --border-radius-small: 4px;
 
-  /* Shadows */
-  --shadow-small: 0 1px 3px rgba(0,0,0,0.1);
-  --shadow-medium: 0 4px 6px rgba(0,0,0,0.1);
-  --shadow-large: 0 10px 25px rgba(0,0,0,0.15);
+  /* Shadows with TRON glow */
+  --shadow-small: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-large: 0 0 20px rgba(0, 217, 255, 0.3);
 
-  /* Text */
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-tertiary: #9ca3af;
+  /* Text - Use TRON theme */
+  --text-primary: var(--tron-text-primary, #f1f5f9);
+  --text-secondary: var(--tron-text-secondary, #cbd5e1);
+  --text-tertiary: var(--tron-text-muted, #94a3b8);
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -130,13 +130,14 @@
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-blue), var(--primary-purple));
   color: white;
-  box-shadow: var(--shadow-small);
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.5);
+  border: 1px solid var(--primary-blue);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-medium);
-  filter: brightness(110%);
+  box-shadow: 0 0 25px rgba(0, 217, 255, 0.8);
+  filter: brightness(120%);
 }
 
 .btn-primary:active {
@@ -177,23 +178,24 @@
 
 .status-connected {
   background: var(--success-green);
-  box-shadow: 0 0 8px var(--success-green);
+  box-shadow: 0 0 12px var(--success-green), 0 0 20px var(--success-green);
   animation: pulse 2s ease-in-out infinite;
 }
 
 .status-connecting {
   background: var(--warning-yellow);
-  box-shadow: 0 0 8px var(--warning-yellow);
+  box-shadow: 0 0 12px var(--warning-yellow), 0 0 20px var(--warning-yellow);
   animation: pulse 1s ease-in-out infinite;
 }
 
 .status-disconnected {
   background: var(--text-tertiary);
+  opacity: 0.5;
 }
 
 .status-error {
   background: var(--danger-red);
-  box-shadow: 0 0 8px var(--danger-red);
+  box-shadow: 0 0 12px var(--danger-red), 0 0 20px var(--danger-red);
   animation: pulse 1s ease-in-out infinite;
 }
 
