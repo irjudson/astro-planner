@@ -7,6 +7,27 @@
 const API_BASE = '';  // Same origin
 
 /**
+ * Send telescope command
+ * @param {string} command - Command name
+ * @param {object} params - Command parameters
+ * @returns {Promise<any>} Command response
+ */
+async function sendTelescopeCommand(command, params = {}) {
+  const response = await fetch(`${API_BASE}/api/telescope/command/${command}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Command failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.result;
+}
+
+/**
  * Connect to telescope
  */
 async function handleConnect() {
@@ -129,13 +150,19 @@ function startTelemetryPolling() {
 
   telemetryPollInterval = setInterval(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/telescope/status`);
-      if (response.ok) {
-        const data = await response.json();
+      // Get device state
+      const statusResponse = await fetch(`${API_BASE}/api/telescope/status`);
+      if (statusResponse.ok) {
+        const data = await statusResponse.json();
         updateState('telemetry', {
           deviceState: data,
           lastUpdate: Date.now()
         });
+      }
+
+      // Get position (if connected)
+      if (observeState.connection.status === 'connected') {
+        await updateTelemetryPosition();
       }
     } catch (error) {
       console.error('Telemetry update failed:', error);
@@ -147,5 +174,25 @@ function stopTelemetryPolling() {
   if (telemetryPollInterval) {
     clearInterval(telemetryPollInterval);
     telemetryPollInterval = null;
+  }
+}
+
+/**
+ * Update telemetry with position data
+ */
+async function updateTelemetryPosition() {
+  try {
+    const response = await sendTelescopeCommand('get_current_coordinates');
+
+    updateState('telemetry', {
+      position: {
+        ra: response.ra || 0,
+        dec: response.dec || 0,
+        alt: response.alt || 0,
+        az: response.az || 0
+      }
+    });
+  } catch (error) {
+    console.error('Failed to update position:', error);
   }
 }
