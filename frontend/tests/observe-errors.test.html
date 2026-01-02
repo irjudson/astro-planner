@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Observe Error Handling Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #1a4d1a;
+            border-left: 4px solid #00ff00;
+        }
+        .fail {
+            background: #4d1a1a;
+            border-left: 4px solid #ff0000;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Observe Error Handling Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <!-- Mock observe-main div for error banner tests -->
+    <div class="observe-main" style="display: none;"></div>
+
+    <script src="../js/observe-errors.js"></script>
+    <script>
+        const results = [];
+        const resultsDiv = document.getElementById('results');
+        const summaryDiv = document.getElementById('summary');
+
+        function assert(condition, testName) {
+            const passed = condition;
+            results.push({ testName, passed });
+
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.textContent = `${passed ? '✓' : '✗'} ${testName}`;
+            resultsDiv.appendChild(div);
+
+            if (!passed) {
+                console.error(`Test failed: ${testName}`);
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function runTests() {
+            // Test 1: escapeHtml exists
+            assert(
+                typeof escapeHtml === 'function',
+                'escapeHtml function exists'
+            );
+
+            // Test 2: escapeHtml prevents XSS
+            const maliciousInput = '<script>alert("XSS")</script>';
+            const escaped = escapeHtml(maliciousInput);
+            assert(
+                !escaped.includes('<script>'),
+                'escapeHtml neutralizes script tags'
+            );
+
+            // Test 3: escapeHtml handles null/undefined
+            assert(
+                escapeHtml(null) === '',
+                'escapeHtml handles null input'
+            );
+            assert(
+                escapeHtml(undefined) === '',
+                'escapeHtml handles undefined input'
+            );
+
+            // Test 4: showToast function exists
+            assert(
+                typeof showToast === 'function',
+                'showToast function exists'
+            );
+
+            // Test 5: showToast creates toast element
+            showToast('Test message', 'info', 100);
+            await sleep(50);
+            const toast = document.querySelector('.info-toast');
+            assert(
+                toast !== null,
+                'showToast creates toast element'
+            );
+            assert(
+                toast.textContent === 'Test message',
+                'Toast displays correct message'
+            );
+
+            // Test 6: showErrorBanner creates banner safely
+            const main = document.querySelector('.observe-main');
+            showErrorBanner({
+                title: 'Test Error',
+                message: 'Test Message',
+                code: 'ERR001',
+                actions: [
+                    { label: 'Retry', action: 'console.log("retry")' }
+                ]
+            });
+
+            const banner = main.querySelector('.error-banner');
+            assert(
+                banner !== null,
+                'showErrorBanner creates banner element'
+            );
+
+            // Test 7: Error banner prevents XSS in title
+            main.innerHTML = '';
+            showErrorBanner({
+                title: '<script>alert("XSS")</script>',
+                message: 'Safe message',
+                actions: []
+            });
+            const bannerWithXSS = main.querySelector('.error-banner');
+            const bannerHTML = bannerWithXSS.innerHTML;
+            assert(
+                !bannerHTML.includes('<script'),
+                'Error banner prevents XSS in title'
+            );
+
+            // Test 8: Error banner prevents XSS in message
+            main.innerHTML = '';
+            showErrorBanner({
+                title: 'Safe title',
+                message: '<img src=x onerror=alert("XSS")>',
+                actions: []
+            });
+            const bannerHTML2 = main.innerHTML;
+            assert(
+                !bannerHTML2.includes('onerror='),
+                'Error banner prevents XSS in message'
+            );
+
+            // Test 9: Error banner handles actions with Function()
+            main.innerHTML = '';
+            let actionExecuted = false;
+            window.testAction = () => { actionExecuted = true; };
+
+            showErrorBanner({
+                title: 'Test',
+                message: 'Test',
+                actions: [
+                    { label: 'Test Action', action: 'testAction()' }
+                ]
+            });
+
+            const actionButton = main.querySelector('button');
+            assert(
+                actionButton !== null,
+                'Action button is created'
+            );
+            assert(
+                actionButton.textContent === 'Test Action',
+                'Action button has correct label'
+            );
+
+            actionButton.click();
+            assert(
+                actionExecuted,
+                'Action button executes function correctly'
+            );
+
+            // Test 10: sleep utility works
+            const start = Date.now();
+            await sleep(100);
+            const elapsed = Date.now() - start;
+            assert(
+                elapsed >= 90 && elapsed < 150,
+                'sleep utility works correctly'
+            );
+
+            // Display summary
+            const passed = results.filter(r => r.passed).length;
+            const failed = results.filter(r => !r.passed).length;
+            const total = results.length;
+
+            summaryDiv.innerHTML = `
+                <strong>Test Summary:</strong><br>
+                Total: ${total}<br>
+                Passed: <span style="color: #00ff00">${passed}</span><br>
+                Failed: <span style="color: #ff0000">${failed}</span><br>
+                Success Rate: ${((passed / total) * 100).toFixed(1)}%
+            `;
+        }
+
+        // Run tests after page load
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

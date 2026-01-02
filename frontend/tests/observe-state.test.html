@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Observe State Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #1a4d1a;
+            border-left: 4px solid #00ff00;
+        }
+        .fail {
+            background: #4d1a1a;
+            border-left: 4px solid #ff0000;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Observe State Management Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <script src="../js/observe-state.js"></script>
+    <script>
+        const results = [];
+        const resultsDiv = document.getElementById('results');
+        const summaryDiv = document.getElementById('summary');
+
+        function assert(condition, testName) {
+            const passed = condition;
+            results.push({ testName, passed });
+
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.textContent = `${passed ? '✓' : '✗'} ${testName}`;
+            resultsDiv.appendChild(div);
+
+            if (!passed) {
+                console.error(`Test failed: ${testName}`);
+            }
+        }
+
+        function assertEquals(actual, expected, testName) {
+            const passed = JSON.stringify(actual) === JSON.stringify(expected);
+            assert(passed, `${testName} (expected: ${JSON.stringify(expected)}, got: ${JSON.stringify(actual)})`);
+        }
+
+        function runTests() {
+            // Test 1: Initial state structure
+            assert(
+                observeState.connection && observeState.controls && observeState.library && observeState.telemetry && observeState.ui,
+                'Initial state has all required sections'
+            );
+
+            // Test 2: Connection state defaults
+            assertEquals(
+                observeState.connection.status,
+                'disconnected',
+                'Initial connection status is disconnected'
+            );
+
+            // Test 3: Update state shallow
+            updateState('connection', { status: 'connecting' });
+            assertEquals(
+                observeState.connection.status,
+                'connecting',
+                'UpdateState changes connection status'
+            );
+
+            // Test 4: Deep merge preserves nested data
+            updateState('connection', { host: '192.168.1.100' });
+            assertEquals(
+                observeState.connection.status,
+                'connecting',
+                'Deep merge preserves existing connection status'
+            );
+            assertEquals(
+                observeState.connection.host,
+                '192.168.1.100',
+                'Deep merge adds new connection host'
+            );
+
+            // Test 5: State change listeners
+            let listenerCalled = false;
+            let receivedData = null;
+            onStateChange('connection', (data) => {
+                listenerCalled = true;
+                receivedData = data;
+            });
+
+            updateState('connection', { port: 4700 });
+            assert(listenerCalled, 'State change listener is called');
+            assert(receivedData.port === 4700, 'Listener receives updated data');
+
+            // Test 6: Deep merge with nested objects
+            updateState('telemetry', {
+                position: { ra: 10.5, dec: 20.3 }
+            });
+            updateState('telemetry', {
+                position: { alt: 45.0 }
+            });
+            assert(
+                observeState.telemetry.position.ra === 10.5 &&
+                observeState.telemetry.position.alt === 45.0,
+                'Deep merge preserves nested telemetry position data'
+            );
+
+            // Test 7: Library state structure
+            assert(
+                Array.isArray(observeState.library.captures),
+                'Library captures is an array'
+            );
+            assertEquals(
+                observeState.library.filterStatus,
+                'all',
+                'Initial library filter status is all'
+            );
+
+            // Test 8: Controls state structure
+            assert(
+                observeState.controls.imaging && observeState.controls.focus && observeState.controls.goto,
+                'Controls state has imaging, focus, and goto sections'
+            );
+
+            // Display summary
+            const passed = results.filter(r => r.passed).length;
+            const failed = results.filter(r => !r.passed).length;
+            const total = results.length;
+
+            summaryDiv.innerHTML = `
+                <strong>Test Summary:</strong><br>
+                Total: ${total}<br>
+                Passed: <span style="color: #00ff00">${passed}</span><br>
+                Failed: <span style="color: #ff0000">${failed}</span><br>
+                Success Rate: ${((passed / total) * 100).toFixed(1)}%
+            `;
+        }
+
+        // Run tests after page load
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>
