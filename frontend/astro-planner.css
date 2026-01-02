@@ -1061,9 +1061,8 @@ select {
 
 #observe-tab .panel-collapsible .panel-header:hover {
   background: rgba(0, 217, 255, 0.1);
-  margin: -8px;
-  padding: 8px;
-  border-radius: 4px !important;
+  /* No margin/padding changes to prevent content shift */
+  /* Border-radius stays as defined above (8px 8px 0 0, or 8px when collapsed) */
 }
 
 #observe-tab .panel-body {
