@@ -214,6 +214,9 @@ data/
 logs/
 *.pid
 
+# Seestar device data
+Seestar/
+
 # PostgreSQL data directory
 pg_data/
 
