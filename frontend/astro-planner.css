@@ -1036,6 +1036,12 @@ select {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Collapsible panels need rounded corners */
+#observe-tab .panel-collapsible {
+  border-radius: 8px !important;
+  overflow: hidden; /* Ensures children respect border-radius */
+}
+
 #observe-tab .panel-header {
   display: flex;
   justify-content: space-between;
@@ -1045,13 +1051,19 @@ select {
   border-bottom: 1px solid var(--tron-border, #475569);
   cursor: pointer;
   user-select: none;
+  border-radius: 8px 8px 0 0 !important; /* Rounded top corners */
+}
+
+/* When panel is collapsed, header gets all corners rounded */
+#observe-tab .panel-collapsible:has(.panel-body.collapsed) .panel-header {
+  border-radius: 8px !important;
 }
 
 #observe-tab .panel-collapsible .panel-header:hover {
   background: rgba(0, 217, 255, 0.1);
   margin: -8px;
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 4px !important;
 }
 
 #observe-tab .panel-body {
@@ -1059,6 +1071,8 @@ select {
   overflow: hidden;
   transition: max-height 300ms ease-in-out, opacity 200ms ease;
   opacity: 1;
+  border-radius: 0 0 8px 8px !important; /* Rounded bottom corners */
+  padding-bottom: 8px;
 }
 
 #observe-tab .panel-body.collapsed {
