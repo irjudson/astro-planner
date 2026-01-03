@@ -1087,6 +1087,7 @@ html, body {
     overflow-y: auto;
     flex: 1;
     color: white;
+    background: #0a0e27;
 }
 
 .modal-footer {
@@ -1101,6 +1102,7 @@ html, body {
 /* Weather Modal */
 .weather-current {
     margin-bottom: 24px;
+    background: transparent;
 }
 
 .weather-main {
@@ -1108,6 +1110,7 @@ html, body {
     align-items: center;
     gap: 16px;
     margin-bottom: 16px;
+    background: transparent;
 }
 
 .weather-icon-large {
@@ -1144,8 +1147,9 @@ html, body {
 }
 
 .weather-forecast {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(0, 217, 255, 0.2);
     padding-top: 16px;
+    background: transparent;
 }
 
 .weather-forecast h4 {
@@ -1159,8 +1163,8 @@ html, body {
     align-items: center;
     gap: 12px;
     padding: 8px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 217, 255, 0.2);
     border-radius: 4px;
     font-size: 13px;
     margin-bottom: 8px;
