@@ -740,3 +740,102 @@
     font-size: 14px;
     margin: 0;
 }
+
+/* ==========================================
+   PLANNING PANELS
+   ========================================== */
+
+/* Checkbox Labels */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+    font-size: 13px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+/* Mosaic Visualization */
+.mosaic-visualization {
+    margin: 16px 0;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 4px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visualization-placeholder {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+}
+
+/* Info Display */
+.info-display {
+    padding: 8px 12px;
+    background: rgba(0, 217, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 4px;
+    color: #00d9ff;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+/* Plan Summary */
+.plan-summary-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.plan-summary-header h4 {
+    margin: 0 0 4px 0;
+    color: #00d9ff;
+    font-size: 16px;
+}
+
+.plan-date {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+}
+
+.plan-summary-body {
+    margin-bottom: 16px;
+}
+
+.plan-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+}
+
+.plan-stat-label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.plan-stat-value {
+    color: white;
+    font-weight: 600;
+}
+
+/* Plan Export Actions */
+.plan-export-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.plan-export-actions .btn {
+    flex: 1;
+    min-width: 80px;
+}

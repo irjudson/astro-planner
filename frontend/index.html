@@ -143,7 +143,191 @@
                         <span class="workflow-chevron">▶</span>
                     </div>
                     <div class="workflow-content">
-                        <p>Planning panels will go here</p>
+                        <!-- Location & Device Panel -->
+                        <div class="panel panel-collapsible" id="location-device-panel">
+                            <div class="panel-header">
+                                <h3>Location & Device</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <!-- Location Inputs -->
+                                <div class="form-group">
+                                    <label for="plan-latitude">Latitude</label>
+                                    <input type="number" id="plan-latitude" class="form-control" placeholder="e.g. 40.7128" step="0.0001">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="plan-longitude">Longitude</label>
+                                    <input type="number" id="plan-longitude" class="form-control" placeholder="e.g. -74.0060" step="0.0001">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="plan-elevation">Elevation (m)</label>
+                                    <input type="number" id="plan-elevation" class="form-control" placeholder="e.g. 10" step="1">
+                                </div>
+
+                                <!-- Device Selection -->
+                                <div class="form-group">
+                                    <label for="plan-device">Device</label>
+                                    <select id="plan-device" class="form-control">
+                                        <option value="">Select device...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Observing Preferences Panel -->
+                        <div class="panel panel-collapsible collapsed" id="observing-preferences-panel">
+                            <div class="panel-header">
+                                <h3>Observing Preferences</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <!-- Date/Time Selection -->
+                                <div class="form-group">
+                                    <label for="plan-date">Observation Date</label>
+                                    <input type="date" id="plan-date" class="form-control">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="plan-start-time">Start Time</label>
+                                    <input type="time" id="plan-start-time" class="form-control">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="plan-end-time">End Time</label>
+                                    <input type="time" id="plan-end-time" class="form-control">
+                                </div>
+
+                                <!-- Constraints -->
+                                <div class="form-group">
+                                    <label for="min-altitude">Minimum Altitude (°)</label>
+                                    <input type="number" id="min-altitude" class="form-control" placeholder="e.g. 30" min="0" max="90" value="30">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="max-moon-phase">Max Moon Illumination (%)</label>
+                                    <input type="number" id="max-moon-phase" class="form-control" placeholder="e.g. 50" min="0" max="100" value="50">
+                                </div>
+
+                                <!-- Preference Toggles -->
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="avoid-moon" checked>
+                                        <span>Avoid bright moon</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="prioritize-transits">
+                                        <span>Prioritize meridian transits</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mosaic Planning Panel -->
+                        <div class="panel panel-collapsible collapsed" id="mosaic-planning-panel">
+                            <div class="panel-header">
+                                <h3>Mosaic Planning</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <!-- Enable Mosaic -->
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="enable-mosaic">
+                                        <span>Enable mosaic mode</span>
+                                    </label>
+                                </div>
+
+                                <!-- Mosaic Configuration (hidden unless mosaic enabled) -->
+                                <div id="mosaic-config" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="mosaic-rows">Grid Rows</label>
+                                        <input type="number" id="mosaic-rows" class="form-control" value="2" min="1" max="10">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="mosaic-cols">Grid Columns</label>
+                                        <input type="number" id="mosaic-cols" class="form-control" value="2" min="1" max="10">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="mosaic-overlap">Overlap (%)</label>
+                                        <input type="number" id="mosaic-overlap" class="form-control" value="20" min="0" max="50" step="5">
+                                    </div>
+
+                                    <!-- Mosaic Visualization Placeholder -->
+                                    <div class="mosaic-visualization" id="mosaic-visualization">
+                                        <div class="visualization-placeholder">
+                                            <p>Mosaic pattern will be visualized here</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Estimated Time -->
+                                    <div class="form-group">
+                                        <label>Estimated Total Time</label>
+                                        <div class="info-display" id="mosaic-estimated-time">
+                                            --:--:--
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Plan Results Panel -->
+                        <div class="panel panel-collapsible collapsed" id="plan-results-panel">
+                            <div class="panel-header">
+                                <h3>Plan Results</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <!-- Generate Plan Button -->
+                                <button id="generate-plan-btn" class="btn btn-primary">Generate Plan</button>
+
+                                <!-- Plan Summary (hidden until plan generated) -->
+                                <div id="plan-summary" style="display: none;">
+                                    <div class="plan-summary-header">
+                                        <h4>Observation Plan</h4>
+                                        <span class="plan-date" id="plan-summary-date"></span>
+                                    </div>
+
+                                    <div class="plan-summary-body">
+                                        <div class="plan-stat">
+                                            <span class="plan-stat-label">Total Targets:</span>
+                                            <span class="plan-stat-value" id="plan-total-targets">0</span>
+                                        </div>
+
+                                        <div class="plan-stat">
+                                            <span class="plan-stat-label">Duration:</span>
+                                            <span class="plan-stat-value" id="plan-duration">0h 0m</span>
+                                        </div>
+
+                                        <div class="plan-stat">
+                                            <span class="plan-stat-label">Start Time:</span>
+                                            <span class="plan-stat-value" id="plan-start">--:--</span>
+                                        </div>
+
+                                        <div class="plan-stat">
+                                            <span class="plan-stat-label">End Time:</span>
+                                            <span class="plan-stat-value" id="plan-end">--:--</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Export Options -->
+                                    <div class="plan-export-actions">
+                                        <button class="btn btn-secondary btn-sm" id="export-pdf-btn">Export PDF</button>
+                                        <button class="btn btn-secondary btn-sm" id="export-csv-btn">Export CSV</button>
+                                        <button class="btn btn-secondary btn-sm" id="export-ical-btn">Export iCal</button>
+                                    </div>
+
+                                    <!-- Start Execution Button -->
+                                    <button class="btn btn-primary" id="start-execution-btn">Start Execution</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -251,5 +435,6 @@
     <script src="js/connection-manager.js"></script>
     <script src="js/weather-widget.js"></script>
     <script src="js/catalog-search.js"></script>
+    <script src="js/planning-controls.js"></script>
 </body>
 </html>
