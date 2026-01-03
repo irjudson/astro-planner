@@ -174,7 +174,30 @@
         <!-- Main Content Area -->
         <main class="app-main" id="app-main">
             <div class="main-content" id="main-content">
-                <p>Main content will go here</p>
+                <!-- Catalog View (Discovery Context) -->
+                <div class="catalog-view" id="catalog-view">
+                    <!-- Catalog Stats Banner -->
+                    <div class="catalog-stats" id="catalog-stats">
+                        <span class="stats-count">0 objects</span>
+                        <span class="stats-filters" id="stats-filters"></span>
+                    </div>
+
+                    <!-- Catalog Grid -->
+                    <div class="catalog-grid" id="catalog-grid">
+                        <!-- Empty state -->
+                        <div class="empty-state" id="catalog-empty-state">
+                            <p>No objects found. Try adjusting your search or filters.</p>
+                        </div>
+                        <!-- Catalog cards will be inserted here by JavaScript -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="catalog-pagination" id="catalog-pagination">
+                        <button class="btn btn-secondary" id="prev-page-btn" disabled>Previous</button>
+                        <span class="page-info" id="page-info">Page 1 of 1</span>
+                        <button class="btn btn-secondary" id="next-page-btn" disabled>Next</button>
+                    </div>
+                </div>
             </div>
         </main>
 
