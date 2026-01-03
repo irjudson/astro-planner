@@ -478,6 +478,106 @@ async def list_caldwell_targets(
         raise HTTPException(status_code=500, detail=f"Error fetching Caldwell targets: {str(e)}")
 
 
+@router.get("/catalog/search")
+async def search_catalog(
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None, description="Search by object name or catalog ID"),
+    type: Optional[str] = Query(None, description="Filter by object type"),
+    constellation: Optional[str] = Query(None, description="Filter by constellation"),
+    max_magnitude: Optional[float] = Query(None, description="Maximum magnitude (fainter limit)"),
+    sort_by: str = Query("name", description="Sort by: name, magnitude, or type"),
+    page: int = Query(1, description="Page number (1-indexed)", ge=1),
+    page_size: int = Query(20, description="Items per page", ge=1, le=100),
+):
+    """
+    Search and filter catalog objects for discovery workflow.
+
+    This endpoint is specifically designed for the catalog search interface,
+    providing paginated results with search and filter capabilities.
+
+    Args:
+        search: Free text search (matches object name or catalog ID)
+        type: Object type filter (galaxy, nebula, cluster, etc.)
+        constellation: Constellation filter (3-letter abbreviation)
+        max_magnitude: Maximum magnitude filter
+        sort_by: Sort field (name, magnitude, type)
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+
+    Returns:
+        Paginated catalog search results
+    """
+    try:
+        from app.models.catalog_models import DSOCatalog
+
+        # Build query directly from database for constellation access
+        query = db.query(DSOCatalog)
+
+        # Apply filters
+        if type:
+            query = query.filter(DSOCatalog.object_type == type)
+        if constellation:
+            query = query.filter(DSOCatalog.constellation == constellation)
+        if max_magnitude:
+            query = query.filter(DSOCatalog.magnitude <= max_magnitude)
+
+        # Get all results for search and count
+        all_results = query.all()
+
+        # Apply search filter if provided
+        if search:
+            search_lower = search.lower()
+            catalog_service = CatalogService(db)
+            # Convert to DSOTarget for name/catalog_id access
+            all_targets = [catalog_service._db_row_to_target(dso) for dso in all_results]
+            filtered_results = [
+                dso for dso, target in zip(all_results, all_targets)
+                if search_lower in target.name.lower() or search_lower in target.catalog_id.lower()
+            ]
+            all_results = filtered_results
+
+        # Sort results
+        if sort_by == "magnitude":
+            all_results.sort(key=lambda dso: dso.magnitude if dso.magnitude else 99)
+        elif sort_by == "type":
+            all_results.sort(key=lambda dso: dso.object_type)
+        else:  # name (default)
+            all_results.sort(key=lambda dso: dso.catalog_name + str(dso.catalog_number))
+
+        # Calculate pagination
+        total = len(all_results)
+        offset = (page - 1) * page_size
+        paginated = all_results[offset:offset + page_size]
+
+        # Convert to response format
+        catalog_service = CatalogService(db)
+        items = []
+        for dso in paginated:
+            target = catalog_service._db_row_to_target(dso)
+            items.append({
+                "id": target.catalog_id,
+                "name": target.name,
+                "type": target.object_type,
+                "constellation": dso.constellation,
+                "magnitude": target.magnitude,
+                "ra": target.ra_hours * 15,  # Convert hours to degrees
+                "dec": target.dec_degrees,
+                "size": f"{target.size_arcmin:.1f}'" if target.size_arcmin and target.size_arcmin > 1 else None,
+            })
+
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error searching catalog: {str(e)}")
+
+
 @router.get("/catalog/stats")
 async def get_catalog_stats(db: Session = Depends(get_db)):
     """

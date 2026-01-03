@@ -1,0 +1,424 @@
+/**
+ * Catalog Search Module
+ * Handles catalog data loading, filtering, and grid population
+ */
+
+const CatalogSearch = {
+    currentPage: 1,
+    pageSize: 20,
+    totalItems: 0,
+
+    /**
+     * Initialize catalog search functionality
+     */
+    init() {
+        this.attachEventListeners();
+        this.loadCatalogData(); // Load initial data
+    },
+
+    /**
+     * Attach event listeners to search and filter controls
+     */
+    attachEventListeners() {
+        // Search button
+        const searchBtn = document.getElementById('catalog-search-btn');
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => this.handleSearch());
+        }
+
+        // Search on Enter key
+        const searchInput = document.getElementById('catalog-search');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleSearch();
+                }
+            });
+        }
+
+        // Apply Filters button
+        const applyBtn = document.getElementById('apply-filters-btn');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => this.handleSearch());
+        }
+
+        // Clear Filters button
+        const clearBtn = document.getElementById('clear-filters-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this.handleClearFilters());
+        }
+
+        // Pagination buttons
+        const prevBtn = document.getElementById('prev-page-btn');
+        const nextBtn = document.getElementById('next-page-btn');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => this.handlePrevPage());
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => this.handleNextPage());
+        }
+    },
+
+    /**
+     * Get current filter values from form
+     */
+    getFilters() {
+        const searchInput = document.getElementById('catalog-search');
+        const typeFilter = document.getElementById('filter-type');
+        const constellationFilter = document.getElementById('filter-constellation');
+        const magnitudeFilter = document.getElementById('filter-magnitude');
+        const sortBy = document.getElementById('sort-by');
+
+        return {
+            search: searchInput?.value || '',
+            type: typeFilter?.value || '',
+            constellation: constellationFilter?.value || '',
+            max_magnitude: magnitudeFilter?.value || '',
+            sort_by: sortBy?.value || 'name',
+            page: this.currentPage,
+            page_size: this.pageSize
+        };
+    },
+
+    /**
+     * Handle search button click
+     */
+    handleSearch() {
+        this.currentPage = 1; // Reset to first page
+        this.loadCatalogData();
+    },
+
+    /**
+     * Handle clear filters button click
+     */
+    handleClearFilters() {
+        // Clear all filter inputs
+        const searchInput = document.getElementById('catalog-search');
+        const typeFilter = document.getElementById('filter-type');
+        const constellationFilter = document.getElementById('filter-constellation');
+        const magnitudeFilter = document.getElementById('filter-magnitude');
+        const sortBy = document.getElementById('sort-by');
+
+        if (searchInput) searchInput.value = '';
+        if (typeFilter) typeFilter.value = '';
+        if (constellationFilter) constellationFilter.value = '';
+        if (magnitudeFilter) magnitudeFilter.value = '';
+        if (sortBy) sortBy.value = 'name';
+
+        this.currentPage = 1;
+        this.loadCatalogData();
+    },
+
+    /**
+     * Handle previous page button click
+     */
+    handlePrevPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.loadCatalogData();
+        }
+    },
+
+    /**
+     * Handle next page button click
+     */
+    handleNextPage() {
+        const totalPages = Math.ceil(this.totalItems / this.pageSize);
+        if (this.currentPage < totalPages) {
+            this.currentPage++;
+            this.loadCatalogData();
+        }
+    },
+
+    /**
+     * Load catalog data from API
+     */
+    async loadCatalogData() {
+        try {
+            const filters = this.getFilters();
+            const queryParams = new URLSearchParams();
+
+            // Only add non-empty params
+            Object.entries(filters).forEach(([key, value]) => {
+                if (value !== '') {
+                    queryParams.append(key, value);
+                }
+            });
+
+            const response = await fetch(`/api/catalog/search?${queryParams.toString()}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            this.totalItems = data.total || 0;
+            this.renderCatalogGrid(data.items || []);
+            this.updateStats(data.total || 0, filters);
+            this.updatePagination();
+
+            // Update app state
+            if (window.AppState) {
+                AppState.discovery.catalogData = data.items || [];
+                AppState.discovery.currentPage = this.currentPage;
+                AppState.save();
+            }
+
+        } catch (error) {
+            console.error('Error loading catalog data:', error);
+            this.showError('Failed to load catalog data. Please try again.');
+        }
+    },
+
+    /**
+     * Render catalog grid with items
+     */
+    renderCatalogGrid(items) {
+        const grid = document.getElementById('catalog-grid');
+        const emptyState = document.getElementById('catalog-empty-state');
+
+        if (!grid) return;
+
+        // Clear existing cards (except empty state)
+        const cards = grid.querySelectorAll('.catalog-card');
+        cards.forEach(card => card.remove());
+
+        if (items.length === 0) {
+            // Show empty state
+            if (emptyState) {
+                emptyState.classList.remove('hidden');
+            }
+            return;
+        }
+
+        // Hide empty state
+        if (emptyState) {
+            emptyState.classList.add('hidden');
+        }
+
+        // Create and append cards
+        items.forEach(item => {
+            const card = this.createCatalogCard(item);
+            grid.appendChild(card);
+        });
+    },
+
+    /**
+     * Create a single catalog card element
+     */
+    createCatalogCard(item) {
+        const card = document.createElement('div');
+        card.className = 'catalog-card';
+        card.dataset.itemId = item.id || item.name;
+
+        card.innerHTML = `
+            <div class="catalog-card-header">
+                <h4 class="catalog-card-title">${this.escapeHtml(item.name || 'Unknown')}</h4>
+                <span class="catalog-card-type">${this.escapeHtml(item.type || 'unknown')}</span>
+            </div>
+            <div class="catalog-card-body">
+                <div class="catalog-card-detail">
+                    <span class="catalog-card-label">Constellation:</span>
+                    <span class="catalog-card-value">${this.escapeHtml(item.constellation || 'N/A')}</span>
+                </div>
+                <div class="catalog-card-detail">
+                    <span class="catalog-card-label">Magnitude:</span>
+                    <span class="catalog-card-value">${item.magnitude !== null && item.magnitude !== undefined ? item.magnitude.toFixed(1) : 'N/A'}</span>
+                </div>
+                <div class="catalog-card-detail">
+                    <span class="catalog-card-label">RA/Dec:</span>
+                    <span class="catalog-card-value">${this.formatCoordinates(item.ra, item.dec)}</span>
+                </div>
+                ${item.size ? `
+                <div class="catalog-card-detail">
+                    <span class="catalog-card-label">Size:</span>
+                    <span class="catalog-card-value">${this.escapeHtml(item.size)}</span>
+                </div>
+                ` : ''}
+            </div>
+            <div class="catalog-card-actions">
+                <button class="btn btn-primary btn-sm" data-action="add-to-plan">Add to Plan</button>
+                <button class="btn btn-secondary btn-sm" data-action="view-details">Details</button>
+            </div>
+        `;
+
+        // Attach card event listeners
+        const addToPlanBtn = card.querySelector('[data-action="add-to-plan"]');
+        const viewDetailsBtn = card.querySelector('[data-action="view-details"]');
+
+        if (addToPlanBtn) {
+            addToPlanBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleAddToPlan(item);
+            });
+        }
+
+        if (viewDetailsBtn) {
+            viewDetailsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.handleViewDetails(item);
+            });
+        }
+
+        return card;
+    },
+
+    /**
+     * Format RA/Dec coordinates
+     */
+    formatCoordinates(ra, dec) {
+        if (ra === null || ra === undefined || dec === null || dec === undefined) {
+            return 'N/A';
+        }
+        return `${ra.toFixed(2)}° / ${dec.toFixed(2)}°`;
+    },
+
+    /**
+     * Update stats banner
+     */
+    updateStats(total, filters) {
+        const statsCount = document.querySelector('.stats-count');
+        const statsFilters = document.getElementById('stats-filters');
+
+        if (statsCount) {
+            statsCount.textContent = `${total} object${total !== 1 ? 's' : ''}`;
+        }
+
+        if (statsFilters) {
+            const activeFilters = [];
+
+            if (filters.search) activeFilters.push(`Search: "${filters.search}"`);
+            if (filters.type) activeFilters.push(`Type: ${filters.type}`);
+            if (filters.constellation) activeFilters.push(`Constellation: ${filters.constellation}`);
+            if (filters.max_magnitude) activeFilters.push(`Max Mag: ${filters.max_magnitude}`);
+
+            statsFilters.textContent = activeFilters.length > 0
+                ? activeFilters.join(' • ')
+                : '';
+        }
+    },
+
+    /**
+     * Update pagination controls
+     */
+    updatePagination() {
+        const prevBtn = document.getElementById('prev-page-btn');
+        const nextBtn = document.getElementById('next-page-btn');
+        const pageInfo = document.getElementById('page-info');
+
+        const totalPages = Math.ceil(this.totalItems / this.pageSize);
+
+        if (prevBtn) {
+            prevBtn.disabled = this.currentPage <= 1;
+        }
+
+        if (nextBtn) {
+            nextBtn.disabled = this.currentPage >= totalPages;
+        }
+
+        if (pageInfo) {
+            pageInfo.textContent = `Page ${this.currentPage} of ${totalPages}`;
+        }
+    },
+
+    /**
+     * Handle "Add to Plan" button click
+     */
+    handleAddToPlan(item) {
+        console.log('Adding to plan:', item);
+
+        // Update AppState
+        if (window.AppState) {
+            if (!AppState.discovery.selectedTargets.find(t => t.name === item.name)) {
+                AppState.discovery.selectedTargets.push(item);
+                AppState.save();
+
+                // Update Custom Plan Builder panel
+                this.updateSelectedTargetsList();
+            }
+        }
+    },
+
+    /**
+     * Handle "View Details" button click
+     */
+    handleViewDetails(item) {
+        console.log('Viewing details:', item);
+        // TODO: Implement details modal or panel
+    },
+
+    /**
+     * Update selected targets list in Custom Plan Builder panel
+     */
+    updateSelectedTargetsList() {
+        const targetsList = document.getElementById('selected-targets-list');
+        const createBtn = document.getElementById('create-custom-plan-btn');
+
+        if (!targetsList || !window.AppState) return;
+
+        const selectedTargets = AppState.discovery.selectedTargets || [];
+
+        if (selectedTargets.length === 0) {
+            targetsList.innerHTML = '<p class="empty-state">No targets selected</p>';
+            if (createBtn) createBtn.disabled = true;
+            return;
+        }
+
+        targetsList.innerHTML = selectedTargets.map(target => `
+            <div class="selected-target-item">
+                <span class="target-name">${this.escapeHtml(target.name)}</span>
+                <button class="btn-remove" data-target-name="${this.escapeHtml(target.name)}">&times;</button>
+            </div>
+        `).join('');
+
+        if (createBtn) createBtn.disabled = false;
+
+        // Attach remove button listeners
+        targetsList.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const targetName = e.target.dataset.targetName;
+                this.removeSelectedTarget(targetName);
+            });
+        });
+    },
+
+    /**
+     * Remove target from selected targets
+     */
+    removeSelectedTarget(targetName) {
+        if (window.AppState) {
+            AppState.discovery.selectedTargets = AppState.discovery.selectedTargets.filter(
+                t => t.name !== targetName
+            );
+            AppState.save();
+            this.updateSelectedTargetsList();
+        }
+    },
+
+    /**
+     * Show error message
+     */
+    showError(message) {
+        // TODO: Implement toast notification or error banner
+        console.error(message);
+        alert(message);
+    },
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+};
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    CatalogSearch.init();
+});
