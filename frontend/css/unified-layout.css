@@ -197,3 +197,121 @@
         grid-column: 1;
     }
 }
+
+/* ==========================================
+   PANELS (Connection, and collapsible panels)
+   ========================================== */
+
+.panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 12px 16px;
+    background: rgba(0, 217, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.panel-header h3 {
+    margin: 0;
+    color: #00d9ff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.panel-body {
+    padding: 16px;
+    color: white;
+}
+
+/* Collapsible Panels */
+.panel-collapsible .panel-header {
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 200ms;
+}
+
+.panel-collapsible .panel-header:hover {
+    background: rgba(0, 217, 255, 0.1);
+}
+
+.panel-collapsible.collapsed .panel-header {
+    border-radius: 8px;
+    border-bottom: none;
+}
+
+.panel-collapsible.collapsed .panel-body {
+    display: none;
+}
+
+.panel-chevron {
+    font-size: 12px;
+    color: #00d9ff;
+    transition: transform 300ms ease-in-out;
+}
+
+.panel-collapsible.collapsed .panel-chevron {
+    transform: rotate(-90deg);
+}
+
+/* ==========================================
+   WORKFLOW SECTIONS
+   ========================================== */
+
+.workflow-section {
+    background: rgba(0, 217, 255, 0.03);
+    border: 1px solid rgba(0, 217, 255, 0.15);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.workflow-header {
+    padding: 12px 16px;
+    background: rgba(0, 217, 255, 0.08);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 200ms;
+}
+
+.workflow-header:hover {
+    background: rgba(0, 217, 255, 0.12);
+}
+
+.workflow-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #00d9ff;
+}
+
+.workflow-chevron {
+    font-size: 12px;
+    color: #00d9ff;
+    transition: transform 300ms ease-in-out;
+}
+
+.workflow-section.collapsed .workflow-chevron {
+    transform: rotate(-90deg);
+}
+
+.workflow-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 1000px;
+    transition: max-height 300ms ease-in-out;
+    overflow: hidden;
+}
+
+.workflow-section.collapsed .workflow-content {
+    max-height: 0;
+    padding: 0 16px;
+}
