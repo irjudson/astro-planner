@@ -15,7 +15,7 @@ const WeatherWidget = {
         try {
             // Try local weather station first
             try {
-                const localResponse = await fetch('http://localhost:7000/', {
+                const localResponse = await fetch('http://192.168.2.111:7000/api/weather/latest', {
                     signal: AbortSignal.timeout(2000) // 2 second timeout
                 });
 
@@ -53,6 +53,7 @@ const WeatherWidget = {
                 };
                 AppState.weather.forecast = data.forecast;
                 AppState.weather.observability = this.calculateObservability(current);
+                AppState.weather.source = '7timer';
             }
 
             this.updateDisplay();
@@ -63,13 +64,17 @@ const WeatherWidget = {
     },
 
     processLocalWeather(data) {
-        // Process local weather station data
-        // Adjust this based on your weather station's data format
+        // Process local weather station data from wx-tools
+        // Convert Fahrenheit to Celsius
+        const tempC = data.outdoor_temp_f ? (data.outdoor_temp_f - 32) * 5 / 9 : null;
+        // Convert mph to km/h
+        const windKmh = data.wind_speed_mph ? data.wind_speed_mph * 1.60934 : null;
+
         AppState.weather.conditions = {
-            temperature: data.temperature || data.temp || data.outTemp,
-            humidity: data.humidity || data.outHumidity,
-            cloud_cover: data.cloud_cover || data.cloudCover || null,
-            wind_speed: data.wind_speed || data.windSpeed
+            temperature: tempC,
+            humidity: data.humidity_pct,
+            cloud_cover: null, // Local station doesn't provide cloud cover
+            wind_speed: windKmh
         };
 
         // Calculate observability from local data
@@ -80,15 +85,18 @@ const WeatherWidget = {
 
     calculateLocalObservability(data) {
         // Calculate based on local conditions
-        // This is a simple heuristic - adjust based on your station's capabilities
-        const cloudCover = data.cloud_cover || data.cloudCover || 50;
-        const humidity = data.humidity || data.outHumidity || 50;
+        // Without cloud cover data, use humidity and solar radiation as proxies
+        const humidity = data.humidity_pct || 50;
+        const solarRadiation = data.solar_radiation_wm2 || 0;
 
-        // Good: low clouds, low humidity
-        if (cloudCover < 20 && humidity < 60) return 'good';
-        // Fair: moderate conditions
-        if (cloudCover < 50 && humidity < 80) return 'fair';
-        // Poor: high clouds or humidity
+        // Nighttime (solar_radiation near 0) with low humidity is good for astronomy
+        if (solarRadiation < 10) {
+            if (humidity < 60) return 'good';
+            if (humidity < 80) return 'fair';
+            return 'poor';
+        }
+
+        // Daytime - can't observe
         return 'poor';
     },
 
@@ -127,25 +135,36 @@ const WeatherWidget = {
 
         // Update status
         if (statusEl) {
-            const temp = conditions.temperature ? `${Math.round(conditions.temperature)}°C` : '--';
+            const units = Units.getCurrentUnits();
+            const temp = conditions.temperature ? Units.temperature.toDisplay(conditions.temperature, units) : '--';
             statusEl.textContent = `${temp} • ${observability.charAt(0).toUpperCase() + observability.slice(1)}`;
             statusEl.className = `weather-status observability-${observability}`;
         }
 
         // Update details
         if (detailsEl) {
+            const units = Units.getCurrentUnits();
+            const source = AppState.weather.source || '7timer';
+            const sourceLabel = source === 'local' ? 'Local Station' : '7Timer';
+            const sourceClass = source === 'local' ? 'weather-source-local' : 'weather-source-remote';
+            const windSpeed = conditions.wind_speed ? Units.windSpeed.toDisplay(conditions.wind_speed, units) : '--';
+
             detailsEl.innerHTML = `
                 <div class="weather-detail-row">
+                    <span>Source:</span>
+                    <span class="${sourceClass}">${sourceLabel}</span>
+                </div>
+                <div class="weather-detail-row">
                     <span>Humidity:</span>
-                    <span>${conditions.humidity || '--'}%</span>
+                    <span>${conditions.humidity !== null ? conditions.humidity + '%' : '--'}</span>
                 </div>
                 <div class="weather-detail-row">
                     <span>Cloud Cover:</span>
-                    <span>${conditions.cloud_cover || '--'}%</span>
+                    <span>${conditions.cloud_cover !== null ? conditions.cloud_cover + '%' : '--'}</span>
                 </div>
                 <div class="weather-detail-row">
                     <span>Wind:</span>
-                    <span>${conditions.wind_speed || '--'} km/h</span>
+                    <span>${windSpeed}</span>
                 </div>
                 <div class="weather-detail-row">
                     <span>Observing:</span>

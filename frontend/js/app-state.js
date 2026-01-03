@@ -74,13 +74,19 @@ const AppState = {
         sidebarOpen: false
     },
 
+    // User preferences
+    preferences: {
+        units: 'metric' // 'metric' (SI) or 'imperial' (US)
+    },
+
     // Persist state to localStorage
     save() {
         try {
             const stateToPersist = {
                 workflowSections: this.workflowSections,
                 currentContext: this.currentContext,
-                drawer: this.drawer
+                drawer: this.drawer,
+                preferences: this.preferences
             };
             localStorage.setItem('astro-planner-state', JSON.stringify(stateToPersist));
         } catch (e) {
@@ -97,6 +103,7 @@ const AppState = {
                 this.workflowSections = parsed.workflowSections || this.workflowSections;
                 this.currentContext = parsed.currentContext || this.currentContext;
                 this.drawer = { ...this.drawer, ...parsed.drawer };
+                this.preferences = { ...this.preferences, ...parsed.preferences };
             }
         } catch (e) {
             console.warn('Failed to load state:', e);

@@ -70,15 +70,6 @@ const ConnectionManager = {
         const deviceId = AppState.connection.deviceId;
         if (!deviceId) return;
 
-        // Get device host and port from selected option
-        const select = document.getElementById('device-select');
-        const selectedOption = select?.options[select.selectedIndex];
-
-        if (!selectedOption) return;
-
-        const host = selectedOption.dataset.host;
-        const port = parseInt(selectedOption.dataset.port || '4700');
-
         this.updateStatus('connecting', 'Connecting...');
 
         try {
@@ -87,7 +78,7 @@ const ConnectionManager = {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ host, port })
+                body: JSON.stringify({ device_id: parseInt(deviceId) })
             });
 
             if (!response.ok) {

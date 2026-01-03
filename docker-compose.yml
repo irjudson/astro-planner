@@ -25,6 +25,7 @@ services:
       - /mnt/seestar-s50:/fits:ro
       - ./data:/app/data
       - ./backend/secrets:/app/secrets:ro
+      - ./frontend:/app/frontend
     networks:
       - shared-infra
 

@@ -204,6 +204,12 @@ const CatalogSearch = {
             const card = this.createCatalogCard(item);
             grid.appendChild(card);
         });
+
+        // Calculate grid height after rendering
+        if (window.CatalogLayout) {
+            // Use setTimeout to ensure DOM has updated
+            setTimeout(() => CatalogLayout.calculateGridHeight(), 0);
+        }
     },
 
     /**
@@ -321,6 +327,11 @@ const CatalogSearch = {
 
         if (pageInfo) {
             pageInfo.textContent = `Page ${this.currentPage} of ${totalPages}`;
+        }
+
+        // Update pagination visibility based on total items
+        if (window.CatalogLayout) {
+            CatalogLayout.updatePaginationVisibility(this.totalItems, this.pageSize);
         }
     },
 

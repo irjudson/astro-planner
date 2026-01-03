@@ -54,7 +54,7 @@ const PlanningControls = {
      */
     async loadDevicesForPlanning() {
         try {
-            const response = await fetch('/api/devices');
+            const response = await fetch('/api/settings/devices');
             if (!response.ok) return;
 
             const devices = await response.json();

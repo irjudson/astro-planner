@@ -21,13 +21,14 @@ from app.api.planets import router as planet_router
 from app.api.plans import router as plans_router
 from app.api.processing import router as processing_router
 from app.api.settings import router as settings_router
-from app.clients.seestar_client import SeestarClient
 from app.database import get_db
 from app.models import DSOTarget, ExportFormat, Location, ObservingPlan, PlanRequest, ScheduledTarget
+from app.models.settings_models import SeestarDevice
 from app.services.catalog_service import CatalogService
 from app.services.light_pollution_service import LightPollutionService
 from app.services.planner_service import PlannerService
-from app.services.telescope_service import TelescopeService
+from app.telescope.adapter_factory import AdapterFactory
+from app.telescope.base_adapter import TelescopeAdapter
 
 router = APIRouter()
 
@@ -40,9 +41,8 @@ router.include_router(astronomy_router)
 router.include_router(settings_router)
 router.include_router(captures_router)
 
-# Telescope control (singleton instances)
-seestar_client = SeestarClient()
-telescope_service = TelescopeService(seestar_client)
+# Telescope control (singleton adapter instance)
+telescope_adapter: Optional[TelescopeAdapter] = None
 
 # In-memory storage for shared plans (in production, use Redis or database)
 shared_plans: Dict[str, ObservingPlan] = {}
@@ -50,8 +50,9 @@ shared_plans: Dict[str, ObservingPlan] = {}
 
 # Request/Response models for telescope endpoints
 class TelescopeConnectRequest(BaseModel):
-    host: str = "seestar.local"
-    port: int = 4700  # Port 4700 for firmware v5.x
+    host: Optional[str] = None  # Optional: can specify host directly
+    port: Optional[int] = None  # Optional: can specify port directly
+    device_id: Optional[int] = None  # Optional: or specify device_id to load from database
 
 
 class ExecutePlanRequest(BaseModel):
@@ -758,29 +759,88 @@ async def get_shared_plan(plan_id: str):
 
 
 @router.post("/telescope/connect")
-async def connect_telescope(request: TelescopeConnectRequest):
+async def connect_telescope(request: TelescopeConnectRequest, db: Session = Depends(get_db)):
     """
-    Connect to Seestar S50 telescope.
+    Connect to telescope using adapter pattern.
+
+    Can connect either by:
+    1. Specifying device_id (loads configuration from database)
+    2. Specifying host and port directly (creates temporary device)
 
     Args:
-        request: Connection details (host and port)
+        request: Connection details (device_id OR host/port)
+        db: Database session
 
     Returns:
         Connection status and telescope info
     """
+    global telescope_adapter
+
     try:
-        await seestar_client.connect(request.host, request.port)
-        status = seestar_client.status
+        # Determine which device to connect to
+        if request.device_id is not None:
+            # Load device from database
+            device = db.query(SeestarDevice).filter(SeestarDevice.id == request.device_id).first()
+            if not device:
+                raise HTTPException(status_code=404, detail=f"Device {request.device_id} not found")
+
+            if not device.is_control_enabled:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Device '{device.name}' control is not enabled. Enable in settings first."
+                )
+
+            # Create adapter from device configuration
+            telescope_adapter = AdapterFactory.create_adapter(device)
+            host = device.control_host
+            port = device.control_port
+
+        elif request.host is not None:
+            # Create temporary device for direct connection
+            # This creates a temporary SeestarDevice object (not saved to database)
+            temp_device = SeestarDevice(
+                id=0,  # Temporary ID
+                name="Direct Connection",
+                control_host=request.host,
+                control_port=request.port or 4700,
+                is_control_enabled=True,
+            )
+            telescope_adapter = AdapterFactory.create_adapter(temp_device)
+            host = request.host
+            port = request.port or 4700
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Must provide either device_id or host parameter"
+            )
+
+        # Connect using adapter
+        success = await telescope_adapter.connect()
+
+        if not success:
+            telescope_adapter = None  # Reset on failure
+            raise HTTPException(status_code=500, detail="Connection failed")
+
+        # Get status from adapter
+        status = await telescope_adapter.get_status()
 
         return {
             "connected": True,
-            "host": request.host,
-            "port": request.port,
+            "host": host,
+            "port": port,
             "state": status.state.value,
             "firmware_version": status.firmware_version,
-            "message": "Connected to Seestar S50",
+            "capabilities": telescope_adapter.capabilities,
+            "message": f"Connected to {telescope_adapter.name}",
         }
+    except HTTPException:
+        telescope_adapter = None  # Reset on any error
+        raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        telescope_adapter = None  # Reset on any error
         raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
 
 
@@ -792,8 +852,15 @@ async def disconnect_telescope():
     Returns:
         Disconnection status
     """
+    global telescope_adapter
+
     try:
-        await seestar_client.disconnect()
+        if telescope_adapter is None:
+            return {"connected": False, "message": "No telescope connected"}
+
+        await telescope_adapter.disconnect()
+        telescope_adapter = None
+
         return {"connected": False, "message": "Disconnected from telescope"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Disconnect failed: {str(e)}")
@@ -807,17 +874,33 @@ async def get_telescope_status():
     Returns:
         Telescope connection and state information
     """
-    status = seestar_client.status
+    if telescope_adapter is None:
+        return {
+            "connected": False,
+            "state": "disconnected",
+            "message": "No telescope connected",
+        }
 
-    return {
-        "connected": status.connected,
-        "state": status.state.value if status.state else "unknown",
-        "current_target": status.current_target,
-        "firmware_version": status.firmware_version,
-        "is_tracking": status.is_tracking,
-        "last_update": status.last_update.isoformat() if status.last_update else None,
-        "last_error": status.last_error,
-    }
+    try:
+        status = await telescope_adapter.get_status()
+
+        return {
+            "connected": status.connected,
+            "state": status.state.value if status.state else "unknown",
+            "firmware_version": status.firmware_version,
+            "is_tracking": status.is_tracking,
+            "is_exposing": status.is_exposing,
+            "exposure_progress": status.exposure_progress,
+            "ra": status.ra,
+            "dec": status.dec,
+            "alt": status.alt,
+            "az": status.az,
+            "temperature": status.temperature,
+            "error_message": status.error_message,
+            "extra": status.extra,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
 
 
 @router.post("/telescope/execute")
@@ -835,7 +918,7 @@ async def execute_plan(request: ExecutePlanRequest):
         Execution ID and initial status
     """
     try:
-        if not seestar_client.connected:
+        if telescope_adapter is None or not telescope_adapter.connected:
             raise HTTPException(
                 status_code=400, detail="Telescope not connected. Connect first using /telescope/connect"
             )
@@ -861,8 +944,8 @@ async def execute_plan(request: ExecutePlanRequest):
         execution_id = str(uuid.uuid4())[:8]
 
         # Get telescope connection info
-        telescope_host = request.dict().get("telescope_host") or seestar_client.host or "192.168.2.47"
-        telescope_port = request.dict().get("telescope_port") or seestar_client.port or 4700
+        telescope_host = request.dict().get("telescope_host") or telescope_adapter.host or "192.168.2.47"
+        telescope_port = request.dict().get("telescope_port") or telescope_adapter.port or 4700
 
         # Convert targets to dict for Celery serialization
         targets_data = [t.dict() for t in request.scheduled_targets]
@@ -1004,10 +1087,10 @@ async def park_telescope():
         Park status
     """
     try:
-        if not seestar_client.connected:
+        if telescope_adapter is None or not telescope_adapter.connected:
             raise HTTPException(status_code=400, detail="Telescope not connected")
 
-        success = await telescope_service.park_telescope()
+        success = await telescope_adapter.park()
 
         if success:
             return {"status": "parking", "message": "Telescope parking"}
@@ -1117,47 +1200,14 @@ async def download_telescope_preview(path: str = Query(..., description="Relativ
         raise HTTPException(status_code=500, detail=f"Failed to download preview: {str(e)}")
 
 
-@router.post("/telescope/command/{command}")
-async def execute_telescope_command(command: str, params: Optional[Dict[str, Any]] = None):
-    """
-    Generic telescope command proxy.
-
-    Forwards commands to the SeestarClient. This allows the frontend to call
-    any SeestarClient method without requiring individual backend endpoints.
-
-    Args:
-        command: The SeestarClient method name (e.g., 'start_imaging', 'auto_focus')
-        params: Optional parameters to pass to the command
-
-    Returns:
-        Command result from SeestarClient
-    """
-    service = get_telescope_service()
-    client = service.client
-
-    if not client or not client.is_connected():
-        raise HTTPException(status_code=400, detail="Telescope not connected")
-
-    # Get the method from the client
-    if not hasattr(client, command):
-        raise HTTPException(status_code=400, detail=f"Unknown command: {command}")
-
-    method = getattr(client, command)
-    if not callable(method):
-        raise HTTPException(status_code=400, detail=f"Invalid command: {command}")
-
-    try:
-        # Call the method with params if provided
-        if params:
-            result = await method(**params)
-        else:
-            result = await method()
-
-        return {"success": True, "result": result}
-    except TypeError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid parameters: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Command failed: {str(e)}")
+# NOTE: This endpoint is disabled while transitioning to adapter pattern
+# It provided direct access to SeestarClient methods which doesn't fit the adapter abstraction
+# Telescope-specific commands should be implemented as proper adapter methods
+#
+# @router.post("/telescope/command/{command}")
+# async def execute_telescope_command(command: str, params: Optional[Dict[str, Any]] = None):
+#     """Generic telescope command proxy (DISABLED)."""
+#     raise HTTPException(status_code=501, detail="Generic command endpoint not implemented with adapter pattern")
 
 
 @router.get("/sky-quality/{lat}/{lon}")
@@ -1232,7 +1282,7 @@ async def health_check():
         "status": "healthy",
         "service": "astro-planner-api",
         "version": "1.0.0",
-        "telescope_connected": seestar_client.connected,
+        "telescope_connected": telescope_adapter is not None and telescope_adapter.connected,
     }
 
 

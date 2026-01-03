@@ -2,16 +2,40 @@
    UNIFIED LAYOUT - 3-ZONE STRUCTURE
    ========================================== */
 
+/* Reset html and body to eliminate default margins/padding */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
 /* App Container - CSS Grid */
 .app-container {
     display: grid;
     grid-template-columns: 320px 1fr;
-    grid-template-rows: 1fr auto;
-    gap: 24px;
+    grid-template-rows: auto 1fr auto;
+    gap: 16px 24px;
     height: 100vh;
     padding: 24px;
     background: #0a0e27;
     overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* ==========================================
+   COMPACT STATUS BAR (Full Width)
+   ========================================== */
+
+.status-bar {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    gap: 12px;
 }
 
 /* ==========================================
@@ -20,12 +44,13 @@
 
 .app-sidebar {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 2;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(0, 217, 255, 0.3);
     border-radius: 8px;
     overflow-y: auto;
     overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 .sidebar-content {
@@ -35,25 +60,77 @@
     gap: 16px;
 }
 
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    font-size: 12px;
+    flex: 1;
+}
+
+.status-item.clickable {
+    cursor: pointer;
+    transition: background 200ms;
+}
+
+.status-item.clickable:hover {
+    background: rgba(0, 217, 255, 0.1);
+}
+
+.status-label,
+.weather-label {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+}
+
+.btn-icon {
+    background: transparent;
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    color: #00d9ff;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 14px;
+    transition: all 200ms;
+}
+
+.btn-icon:hover:not(:disabled) {
+    background: rgba(0, 217, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.btn-icon:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 /* ==========================================
    MAIN CONTENT AREA (flexible)
    ========================================== */
 
 .app-main {
     grid-column: 2;
-    grid-row: 1;
+    grid-row: 2;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(0, 217, 255, 0.3);
     border-radius: 8px;
     overflow: hidden;
     position: relative;
+    box-sizing: border-box;
 }
 
 .main-content {
     padding: 24px;
     height: 100%;
-    overflow-y: auto;
+    overflow: hidden;
     color: white;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ==========================================
@@ -62,13 +139,14 @@
 
 .app-drawer {
     grid-column: 1 / -1;
-    grid-row: 2;
+    grid-row: 3;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(0, 217, 255, 0.3);
     border-radius: 8px;
     max-height: 400px;
     transition: max-height 250ms ease-out;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .app-drawer.closed {
@@ -93,6 +171,8 @@
 .drawer-content {
     padding: 16px;
     display: none;
+    max-height: calc(400px - 48px);
+    overflow-y: auto;
 }
 
 .app-drawer:not(.closed) .drawer-content {
@@ -467,6 +547,97 @@
 .observability-fair { color: #ffaa00; }
 .observability-poor { color: #ff4444; }
 
+.weather-source-local {
+    color: #00d9ff;
+    font-weight: 600;
+}
+
+.weather-source-remote {
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+}
+
+/* Settings Modal */
+.settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-modal-content {
+    background: #0f172a;
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.settings-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.settings-modal-header h2 {
+    margin: 0;
+    color: #00d9ff;
+    font-size: 18px;
+}
+
+.settings-modal-close {
+    background: none;
+    border: none;
+    color: #00d9ff;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.settings-modal-close:hover {
+    background: rgba(0, 217, 255, 0.1);
+}
+
+.settings-modal-body {
+    padding: 24px;
+}
+
+.settings-section {
+    margin-bottom: 24px;
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section h3 {
+    margin: 0 0 16px 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 16px;
+}
+
+.form-help {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
 .btn-sm {
     padding: 6px 12px;
     font-size: 12px;
@@ -508,9 +679,10 @@
    ========================================== */
 
 .catalog-view {
-    padding: 24px;
-    height: 100%;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 /* Catalog Stats Banner */
@@ -518,11 +690,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
-    margin-bottom: 24px;
+    padding: 8px 16px;
+    margin-bottom: 12px;
     background: rgba(0, 217, 255, 0.05);
     border: 1px solid rgba(0, 217, 255, 0.2);
     border-radius: 8px;
+    flex-shrink: 0;
 }
 
 .stats-count {
@@ -541,7 +714,9 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    margin-bottom: 24px;
+    overflow-y: auto;
+    align-content: start;
+    /* Height will be set by JavaScript based on available space */
 }
 
 @media (max-width: 1200px) {
@@ -649,7 +824,8 @@
     justify-content: center;
     align-items: center;
     gap: 16px;
-    padding: 16px;
+    padding: 12px 16px;
+    flex-shrink: 0;
 }
 
 .page-info {
@@ -714,8 +890,8 @@
 .planning-view,
 .execution-view,
 .processing-view {
-    padding: 24px;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
 }
 

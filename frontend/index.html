@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Astro Planner</title>
-    <link rel="stylesheet" href="tron-theme.css">
-    <link rel="stylesheet" href="css/unified-layout.css">
+    <link rel="stylesheet" href="tron-theme.css?v=7">
+    <link rel="stylesheet" href="css/unified-layout.css?v=7">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
@@ -15,47 +15,25 @@
             ☰
         </button>
 
+        <!-- Compact Status Bar (Full Width) -->
+        <div class="status-bar">
+            <!-- Connection Status -->
+            <div class="status-item clickable" id="connection-status-compact" title="Click for details">
+                <span class="status-indicator disconnected"></span>
+                <span class="status-label">Disconnected</span>
+                <button id="connect-btn-compact" class="btn-icon" disabled title="Connect">⚡</button>
+            </div>
+
+            <!-- Weather Status -->
+            <div class="status-item clickable" id="weather-status-compact" title="Click for details">
+                <span class="weather-icon">🌤️</span>
+                <span class="weather-label">Loading...</span>
+            </div>
+        </div>
+
         <!-- Left Sidebar (320px) -->
         <aside class="app-sidebar" id="app-sidebar">
             <div class="sidebar-content">
-                <!-- Connection Panel (Always Visible) -->
-                <div class="panel panel-connection" id="connection-panel">
-                    <div class="panel-header">
-                        <h3>Connection & Weather</h3>
-                    </div>
-                    <div class="panel-body">
-                        <!-- Device Selection -->
-                        <div class="form-group">
-                            <label for="device-select">Device</label>
-                            <select id="device-select" class="form-control">
-                                <option value="">Select device...</option>
-                            </select>
-                        </div>
-
-                        <!-- Connection Button -->
-                        <button id="connect-btn" class="btn btn-primary" disabled>
-                            Connect
-                        </button>
-
-                        <!-- Connection Status -->
-                        <div class="connection-status" id="connection-status">
-                            <span class="status-indicator disconnected"></span>
-                            <span class="status-text">Disconnected</span>
-                        </div>
-
-                        <!-- Weather Conditions -->
-                        <div class="weather-widget" id="weather-widget">
-                            <div class="weather-header">
-                                <span class="weather-icon">🌤️</span>
-                                <span class="weather-status">Loading weather...</span>
-                            </div>
-                            <div class="weather-details" id="weather-details">
-                                <!-- Weather details populated by JS -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Discovery Workflow Section -->
                 <div class="workflow-section" id="discovery-section">
                     <div class="workflow-header" data-workflow="discovery">
@@ -338,7 +316,144 @@
                         <span class="workflow-chevron">▶</span>
                     </div>
                     <div class="workflow-content">
-                        <p>Execution panels will go here</p>
+                        <!-- Execution Controls Panel -->
+                        <div class="panel panel-collapsible" id="execution-controls-panel">
+                            <div class="panel-header">
+                                <h3>Execution Controls</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-group">
+                                    <label for="execution-target">Target</label>
+                                    <select id="execution-target" class="form-control">
+                                        <option value="">No target selected</option>
+                                    </select>
+                                </div>
+                                <div class="execution-actions">
+                                    <button id="start-execution-btn" class="btn btn-primary" disabled>Start</button>
+                                    <button id="pause-execution-btn" class="btn btn-secondary" disabled>Pause</button>
+                                    <button id="stop-execution-btn" class="btn btn-danger" disabled>Stop</button>
+                                </div>
+                                <div class="execution-progress" id="execution-progress" style="display: none;">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="execution-progress-fill" style="width: 0%"></div>
+                                    </div>
+                                    <div class="progress-text" id="execution-progress-text">0 / 0 frames</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Imaging Panel -->
+                        <div class="panel panel-collapsible collapsed" id="imaging-panel">
+                            <div class="panel-header">
+                                <h3>Imaging</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="form-group">
+                                    <label for="exposure-time">Exposure Time (s)</label>
+                                    <input type="number" id="exposure-time" class="form-control" value="10" min="0.1" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="gain">Gain</label>
+                                    <input type="number" id="gain" class="form-control" value="80" min="0" max="200">
+                                </div>
+                                <div class="form-group">
+                                    <label for="frame-count">Frame Count</label>
+                                    <input type="number" id="frame-count" class="form-control" value="50" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="enable-dithering"> Enable Dithering
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Telescope Panel -->
+                        <div class="panel panel-collapsible collapsed" id="telescope-panel">
+                            <div class="panel-header">
+                                <h3>Telescope</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="telescope-coords">
+                                    <div class="coord-group">
+                                        <label>RA</label>
+                                        <span id="telescope-ra" class="coord-value">--</span>
+                                    </div>
+                                    <div class="coord-group">
+                                        <label>Dec</label>
+                                        <span id="telescope-dec" class="coord-value">--</span>
+                                    </div>
+                                </div>
+                                <div class="telescope-coords">
+                                    <div class="coord-group">
+                                        <label>Alt</label>
+                                        <span id="telescope-alt" class="coord-value">--</span>
+                                    </div>
+                                    <div class="coord-group">
+                                        <label>Az</label>
+                                        <span id="telescope-az" class="coord-value">--</span>
+                                    </div>
+                                </div>
+                                <div class="telescope-status">
+                                    <label>Tracking:</label>
+                                    <span id="tracking-status" class="status-value">Inactive</span>
+                                </div>
+                                <div class="form-group">
+                                    <button id="goto-target-btn" class="btn btn-primary" disabled>Goto Target</button>
+                                    <button id="park-telescope-btn" class="btn btn-secondary" disabled>Park</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hardware Panel -->
+                        <div class="panel panel-collapsible collapsed" id="hardware-panel">
+                            <div class="panel-header">
+                                <h3>Hardware</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="hardware-status">
+                                    <div class="status-row">
+                                        <label>Temperature:</label>
+                                        <span id="sensor-temp" class="status-value">--°C</span>
+                                    </div>
+                                    <div class="status-row">
+                                        <label>Dew Heater:</label>
+                                        <span id="dew-heater-status" class="status-value">Off</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <button id="toggle-dew-heater-btn" class="btn btn-secondary" disabled>Toggle Dew Heater</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Panel -->
+                        <div class="panel panel-collapsible collapsed" id="info-panel">
+                            <div class="panel-header">
+                                <h3>Session Info</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="session-stats">
+                                    <div class="stat-row">
+                                        <label>Session Time:</label>
+                                        <span id="session-time">00:00:00</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <label>Frames Captured:</label>
+                                        <span id="frames-captured">0</span>
+                                    </div>
+                                    <div class="stat-row">
+                                        <label>Total Exposure:</label>
+                                        <span id="total-exposure">0s</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -425,16 +540,136 @@
             </div>
         </div>
 
+        <!-- Connection Modal -->
+        <div class="modal" id="connection-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Device Connection</h2>
+                    <button class="modal-close" id="connection-modal-close">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="connection-info">
+                        <div class="info-row">
+                            <label>Device:</label>
+                            <span id="connection-device-name">None configured</span>
+                        </div>
+                        <div class="info-row">
+                            <label>Status:</label>
+                            <div class="status-inline">
+                                <span class="status-indicator disconnected" id="connection-indicator-modal"></span>
+                                <span class="status-text" id="connection-status-text-modal">Disconnected</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="connection-messages" id="connection-messages">
+                        <h4>Messages</h4>
+                        <div class="message-list" id="connection-message-list">
+                            <p class="empty-state">No messages</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="open-settings-btn" class="btn btn-secondary">Configure Device</button>
+                    <button id="connect-btn" class="btn btn-primary" disabled>Connect</button>
+                    <button id="disconnect-btn" class="btn btn-secondary" style="display: none;">Disconnect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather Modal -->
+        <div class="modal" id="weather-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Weather Conditions</h2>
+                    <button class="modal-close" id="weather-modal-close">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="weather-current" id="weather-current">
+                        <div class="weather-main">
+                            <span class="weather-icon-large">🌤️</span>
+                            <div class="weather-temp">
+                                <span id="weather-temp-value">--</span>°C
+                            </div>
+                        </div>
+                        <div class="weather-details-full">
+                            <div class="weather-detail-row">
+                                <label>Humidity:</label>
+                                <span id="weather-humidity">--</span>%
+                            </div>
+                            <div class="weather-detail-row">
+                                <label>Cloud Cover:</label>
+                                <span id="weather-cloud-cover">--</span>%
+                            </div>
+                            <div class="weather-detail-row">
+                                <label>Wind Speed:</label>
+                                <span id="weather-wind-speed">--</span> km/h
+                            </div>
+                            <div class="weather-detail-row">
+                                <label>Observability:</label>
+                                <span id="weather-observability" class="observability-unknown">Unknown</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="weather-forecast" id="weather-forecast">
+                        <h4>Forecast</h4>
+                        <div id="weather-forecast-list">
+                            <!-- Forecast items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="settings-modal" id="settings-modal" style="display: none;">
+            <div class="settings-modal-content">
+                <div class="settings-modal-header">
+                    <h2>Settings</h2>
+                    <button class="settings-modal-close" id="settings-modal-close">×</button>
+                </div>
+                <div class="settings-modal-body">
+                    <div class="settings-section">
+                        <h3>Device Configuration</h3>
+                        <div class="form-group">
+                            <label for="device-select">Default Device</label>
+                            <select id="device-select" class="form-control">
+                                <option value="">None configured</option>
+                            </select>
+                            <p class="form-help">Select the telescope device to use for observations</p>
+                        </div>
+                        <div class="form-group">
+                            <button id="manage-devices-btn" class="btn btn-secondary">Manage Devices</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Display Preferences</h3>
+                        <div class="form-group">
+                            <label for="units-toggle">Units</label>
+                            <select id="units-toggle" class="form-control">
+                                <option value="metric">Metric (SI)</option>
+                                <option value="imperial">Imperial (US)</option>
+                            </select>
+                            <p class="form-help">Choose between metric (°C, km/h) and imperial (°F, mph) units</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Mobile backdrop -->
         <div class="mobile-backdrop" id="mobile-backdrop"></div>
     </div>
 
     <!-- Scripts -->
     <script src="js/app-state.js"></script>
+    <script src="js/units.js"></script>
     <script src="js/app-context.js"></script>
     <script src="js/connection-manager.js"></script>
     <script src="js/weather-widget.js"></script>
+    <script src="js/catalog-layout.js"></script>
     <script src="js/catalog-search.js"></script>
     <script src="js/planning-controls.js"></script>
+    <script src="js/preferences.js"></script>
 </body>
 </html>
