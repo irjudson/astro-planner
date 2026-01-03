@@ -1,0 +1,199 @@
+/* ==========================================
+   UNIFIED LAYOUT - 3-ZONE STRUCTURE
+   ========================================== */
+
+/* App Container - CSS Grid */
+.app-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: 1fr auto;
+    gap: 24px;
+    height: 100vh;
+    padding: 24px;
+    background: #0a0e27;
+    overflow: hidden;
+}
+
+/* ==========================================
+   LEFT SIDEBAR (320px fixed)
+   ========================================== */
+
+.app-sidebar {
+    grid-column: 1;
+    grid-row: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ==========================================
+   MAIN CONTENT AREA (flexible)
+   ========================================== */
+
+.app-main {
+    grid-column: 2;
+    grid-row: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.main-content {
+    padding: 24px;
+    height: 100%;
+    overflow-y: auto;
+    color: white;
+}
+
+/* ==========================================
+   BOTTOM DRAWER
+   ========================================== */
+
+.app-drawer {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    max-height: 400px;
+    transition: max-height 250ms ease-out;
+    overflow: hidden;
+}
+
+.app-drawer.closed {
+    max-height: 48px;
+}
+
+.drawer-toggle {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: none;
+    color: #00d9ff;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+}
+
+.drawer-toggle:hover {
+    background: rgba(0, 217, 255, 0.1);
+}
+
+.drawer-content {
+    padding: 16px;
+    display: none;
+}
+
+.app-drawer:not(.closed) .drawer-content {
+    display: block;
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.drawer-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 16px;
+}
+
+.settings-btn {
+    background: transparent;
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    color: #00d9ff;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.settings-btn:hover {
+    background: rgba(0, 217, 255, 0.1);
+}
+
+/* ==========================================
+   MOBILE (< 768px)
+   ========================================== */
+
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 1001;
+    background: rgba(0, 217, 255, 0.2);
+    border: 1px solid rgba(0, 217, 255, 0.5);
+    color: #00d9ff;
+    padding: 12px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.mobile-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 999;
+}
+
+@media (max-width: 768px) {
+    .app-container {
+        grid-template-columns: 1fr;
+        padding: 16px;
+        gap: 16px;
+    }
+
+    .mobile-menu-toggle {
+        display: block;
+    }
+
+    .app-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(320px, 90vw);
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 300ms ease-in-out;
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .app-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .mobile-backdrop.visible {
+        display: block;
+    }
+
+    .app-main {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .app-drawer {
+        grid-column: 1;
+    }
+}
