@@ -1121,8 +1121,8 @@ html, body {
 }
 
 .weather-details-full {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 217, 255, 0.2);
     border-radius: 4px;
     padding: 12px;
 }
@@ -1184,4 +1184,15 @@ html, body {
 .forecast-conditions {
     flex: 1;
     color: rgba(255, 255, 255, 0.8);
+}
+
+/* Weather Source Styling */
+.weather-source-local {
+    color: #00ff88 !important;
+    font-weight: 600;
+}
+
+.weather-source-remote {
+    color: #00d9ff !important;
+    font-weight: 600;
 }

@@ -201,10 +201,18 @@ const WeatherWidget = {
         }
 
         // Update weather details
+        const sourceEl = document.getElementById('weather-source');
         const humidityEl = document.getElementById('weather-humidity');
         const cloudCoverEl = document.getElementById('weather-cloud-cover');
         const windSpeedEl = document.getElementById('weather-wind-speed');
         const observabilityEl = document.getElementById('weather-observability');
+
+        if (sourceEl) {
+            const source = AppState.weather.source || '7timer';
+            const sourceLabel = source === 'local' ? 'Local Weather Station' : '7Timer Astronomy';
+            sourceEl.textContent = sourceLabel;
+            sourceEl.className = source === 'local' ? 'weather-source-local' : 'weather-source-remote';
+        }
 
         if (humidityEl) {
             humidityEl.textContent = conditions.humidity !== null ? conditions.humidity : '--';
