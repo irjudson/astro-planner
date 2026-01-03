@@ -49,9 +49,9 @@ const ConnectionManager = {
             devices.forEach(device => {
                 const option = document.createElement('option');
                 option.value = device.id;
-                option.dataset.host = device.ip_address;
-                option.dataset.port = device.port || 4700;
-                option.textContent = `${device.name} (${device.ip_address})`;
+                option.dataset.host = device.control_host;
+                option.dataset.port = device.control_port || 4700;
+                option.textContent = `${device.name} (${device.control_host})`;
                 select.appendChild(option);
             });
 
