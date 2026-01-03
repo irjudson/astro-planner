@@ -63,7 +63,76 @@
                         <span class="workflow-chevron">▼</span>
                     </div>
                     <div class="workflow-content">
-                        <p>Discovery panels will go here</p>
+                        <!-- Catalog Search Panel -->
+                        <div class="panel panel-collapsible" id="catalog-search-panel">
+                            <div class="panel-header">
+                                <h3>Catalog Search</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <!-- Search Box -->
+                                <div class="form-group">
+                                    <label for="catalog-search">Search</label>
+                                    <div class="search-box">
+                                        <input type="text" id="catalog-search" class="form-control" placeholder="Object name...">
+                                        <button id="catalog-search-btn" class="btn btn-primary btn-sm">Search</button>
+                                    </div>
+                                </div>
+
+                                <!-- Filters -->
+                                <div class="form-group">
+                                    <label for="filter-type">Type</label>
+                                    <select id="filter-type" class="form-control">
+                                        <option value="">All types</option>
+                                        <option value="galaxy">Galaxy</option>
+                                        <option value="nebula">Nebula</option>
+                                        <option value="cluster">Cluster</option>
+                                        <option value="planetary_nebula">Planetary Nebula</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="filter-constellation">Constellation</label>
+                                    <select id="filter-constellation" class="form-control">
+                                        <option value="">All constellations</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="filter-magnitude">Max Magnitude</label>
+                                    <input type="number" id="filter-magnitude" class="form-control" placeholder="e.g. 12.0" step="0.1">
+                                </div>
+
+                                <!-- Sort -->
+                                <div class="form-group">
+                                    <label for="sort-by">Sort By</label>
+                                    <select id="sort-by" class="form-control">
+                                        <option value="name">Name</option>
+                                        <option value="magnitude">Magnitude</option>
+                                        <option value="type">Type</option>
+                                    </select>
+                                </div>
+
+                                <!-- Actions -->
+                                <button id="apply-filters-btn" class="btn btn-primary">Apply Filters</button>
+                                <button id="clear-filters-btn" class="btn btn-secondary">Clear</button>
+                            </div>
+                        </div>
+
+                        <!-- Custom Plan Builder Panel -->
+                        <div class="panel panel-collapsible collapsed" id="custom-plan-panel">
+                            <div class="panel-header">
+                                <h3>Custom Plan Builder</h3>
+                                <span class="panel-chevron">▼</span>
+                            </div>
+                            <div class="panel-body">
+                                <p class="info-text">Select targets from catalog to build a custom observation plan.</p>
+                                <div id="selected-targets-list">
+                                    <p class="empty-state">No targets selected</p>
+                                </div>
+                                <button id="create-custom-plan-btn" class="btn btn-primary" disabled>Create Plan</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
