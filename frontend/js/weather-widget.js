@@ -237,9 +237,20 @@ const WeatherWidget = {
     },
 
     updateForecast() {
+        const forecastSection = document.getElementById('weather-forecast');
         const forecastList = document.getElementById('weather-forecast-list');
-        if (!forecastList || !AppState.weather.forecast) {
+
+        if (!forecastList || !AppState.weather.forecast || AppState.weather.forecast.length <= 1) {
+            // Hide forecast section if no data
+            if (forecastSection) {
+                forecastSection.style.display = 'none';
+            }
             return;
+        }
+
+        // Show forecast section
+        if (forecastSection) {
+            forecastSection.style.display = 'block';
         }
 
         // Show next 8 forecast entries (skip first which is "current")

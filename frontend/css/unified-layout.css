@@ -1057,9 +1057,10 @@ html, body {
 
 .modal-header h2 {
     margin: 0;
-    color: #00d9ff;
+    color: #ffffff;
     font-size: 18px;
     font-weight: 600;
+    text-decoration: none;
 }
 
 .modal-close {
@@ -1085,9 +1086,11 @@ html, body {
 .modal-body {
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
     color: white;
     background: #0a0e27;
+    max-height: calc(90vh - 120px);
 }
 
 .modal-footer {
@@ -1138,7 +1141,7 @@ html, body {
 }
 
 .weather-detail-row label {
-    color: rgba(0, 217, 255, 0.8);
+    color: rgba(255, 255, 255, 0.8);
     font-weight: 500;
 }
 
@@ -1154,9 +1157,10 @@ html, body {
 }
 
 .weather-forecast h4 {
-    color: #00d9ff;
+    color: #ffffff;
     margin: 0 0 12px 0;
     font-size: 14px;
+    font-weight: 600;
 }
 
 .forecast-item {
@@ -1173,7 +1177,7 @@ html, body {
 
 .forecast-time {
     min-width: 80px;
-    color: rgba(0, 217, 255, 0.9);
+    color: rgba(255, 255, 255, 0.8);
     font-weight: 500;
 }
 
