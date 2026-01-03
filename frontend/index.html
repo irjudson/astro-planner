@@ -24,7 +24,35 @@
                         <h3>Connection & Weather</h3>
                     </div>
                     <div class="panel-body">
-                        <p>Connection panel content will go here</p>
+                        <!-- Device Selection -->
+                        <div class="form-group">
+                            <label for="device-select">Device</label>
+                            <select id="device-select" class="form-control">
+                                <option value="">Select device...</option>
+                            </select>
+                        </div>
+
+                        <!-- Connection Button -->
+                        <button id="connect-btn" class="btn btn-primary" disabled>
+                            Connect
+                        </button>
+
+                        <!-- Connection Status -->
+                        <div class="connection-status" id="connection-status">
+                            <span class="status-indicator disconnected"></span>
+                            <span class="status-text">Disconnected</span>
+                        </div>
+
+                        <!-- Weather Conditions -->
+                        <div class="weather-widget" id="weather-widget">
+                            <div class="weather-header">
+                                <span class="weather-icon">🌤️</span>
+                                <span class="weather-status">Loading weather...</span>
+                            </div>
+                            <div class="weather-details" id="weather-details">
+                                <!-- Weather details populated by JS -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
