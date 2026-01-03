@@ -1015,3 +1015,173 @@ html, body {
     flex: 1;
     min-width: 80px;
 }
+
+/* ==========================================
+   MODALS
+   ========================================== */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.modal-content {
+    background: #0a0e27;
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #00d9ff;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: #00d9ff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 200ms;
+}
+
+.modal-close:hover {
+    background: rgba(0, 217, 255, 0.1);
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    color: white;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(0, 217, 255, 0.2);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Weather Modal */
+.weather-current {
+    margin-bottom: 24px;
+}
+
+.weather-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.weather-icon-large {
+    font-size: 48px;
+}
+
+.weather-temp {
+    font-size: 32px;
+    font-weight: 600;
+    color: white;
+}
+
+.weather-details-full {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.weather-detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.weather-detail-row label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.weather-detail-row span {
+    color: white;
+    font-weight: 500;
+}
+
+.weather-forecast {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 16px;
+}
+
+.weather-forecast h4 {
+    color: #00d9ff;
+    margin: 0 0 12px 0;
+    font-size: 14px;
+}
+
+.forecast-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.forecast-time {
+    min-width: 80px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.forecast-icon {
+    font-size: 20px;
+}
+
+.forecast-temp {
+    min-width: 50px;
+    color: white;
+    font-weight: 500;
+}
+
+.forecast-conditions {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.8);
+}

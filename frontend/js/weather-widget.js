@@ -9,6 +9,42 @@ const WeatherWidget = {
     init() {
         this.loadWeather();
         this.startAutoUpdate();
+        this.setupEventListeners();
+    },
+
+    setupEventListeners() {
+        // Weather info button opens modal
+        const infoBtn = document.getElementById('weather-info-btn');
+        const modal = document.getElementById('weather-modal');
+        const closeBtn = document.getElementById('weather-modal-close');
+
+        if (infoBtn) {
+            infoBtn.addEventListener('click', () => {
+                this.openModal();
+            });
+        }
+
+        if (closeBtn && modal) {
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        }
+
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    },
+
+    openModal() {
+        const modal = document.getElementById('weather-modal');
+        if (modal) {
+            this.updateModalDisplay();
+            modal.style.display = 'flex';
+        }
     },
 
     async loadWeather() {
@@ -116,12 +152,12 @@ const WeatherWidget = {
     },
 
     updateDisplay() {
-        const statusEl = document.querySelector('.weather-status');
-        const detailsEl = document.getElementById('weather-details');
-        const iconEl = document.querySelector('.weather-icon');
+        // Update compact status bar
+        const labelEl = document.querySelector('.weather-label');
+        const iconEl = document.querySelector('#weather-status-compact .weather-icon');
 
         if (!AppState.weather.conditions) {
-            if (statusEl) statusEl.textContent = 'Weather unavailable';
+            if (labelEl) labelEl.textContent = 'Weather unavailable';
             return;
         }
 
@@ -133,45 +169,94 @@ const WeatherWidget = {
             iconEl.textContent = this.getWeatherIcon(conditions, observability);
         }
 
-        // Update status
-        if (statusEl) {
+        // Update compact status label
+        if (labelEl) {
             const units = Units.getCurrentUnits();
             const temp = conditions.temperature ? Units.temperature.toDisplay(conditions.temperature, units) : '--';
-            statusEl.textContent = `${temp} • ${observability.charAt(0).toUpperCase() + observability.slice(1)}`;
-            statusEl.className = `weather-status observability-${observability}`;
+            labelEl.textContent = `${temp} • ${observability.charAt(0).toUpperCase() + observability.slice(1)}`;
+            labelEl.className = `weather-label observability-${observability}`;
+        }
+    },
+
+    updateModalDisplay() {
+        if (!AppState.weather.conditions) {
+            return;
         }
 
-        // Update details
-        if (detailsEl) {
-            const units = Units.getCurrentUnits();
-            const source = AppState.weather.source || '7timer';
-            const sourceLabel = source === 'local' ? 'Local Station' : '7Timer';
-            const sourceClass = source === 'local' ? 'weather-source-local' : 'weather-source-remote';
-            const windSpeed = conditions.wind_speed ? Units.windSpeed.toDisplay(conditions.wind_speed, units) : '--';
+        const conditions = AppState.weather.conditions;
+        const observability = AppState.weather.observability;
+        const units = Units.getCurrentUnits();
 
-            detailsEl.innerHTML = `
-                <div class="weather-detail-row">
-                    <span>Source:</span>
-                    <span class="${sourceClass}">${sourceLabel}</span>
-                </div>
-                <div class="weather-detail-row">
-                    <span>Humidity:</span>
-                    <span>${conditions.humidity !== null ? conditions.humidity + '%' : '--'}</span>
-                </div>
-                <div class="weather-detail-row">
-                    <span>Cloud Cover:</span>
-                    <span>${conditions.cloud_cover !== null ? conditions.cloud_cover + '%' : '--'}</span>
-                </div>
-                <div class="weather-detail-row">
-                    <span>Wind:</span>
-                    <span>${windSpeed}</span>
-                </div>
-                <div class="weather-detail-row">
-                    <span>Observing:</span>
-                    <span class="observability-${observability}">${observability.toUpperCase()}</span>
+        // Update modal icon and temperature
+        const modalIcon = document.querySelector('#weather-modal .weather-icon-large');
+        const tempValue = document.getElementById('weather-temp-value');
+
+        if (modalIcon) {
+            modalIcon.textContent = this.getWeatherIcon(conditions, observability);
+        }
+
+        if (tempValue) {
+            const temp = conditions.temperature ? Units.temperature.toDisplay(conditions.temperature, units) : '--';
+            tempValue.textContent = temp;
+        }
+
+        // Update weather details
+        const humidityEl = document.getElementById('weather-humidity');
+        const cloudCoverEl = document.getElementById('weather-cloud-cover');
+        const windSpeedEl = document.getElementById('weather-wind-speed');
+        const observabilityEl = document.getElementById('weather-observability');
+
+        if (humidityEl) {
+            humidityEl.textContent = conditions.humidity !== null ? conditions.humidity : '--';
+        }
+
+        if (cloudCoverEl) {
+            cloudCoverEl.textContent = conditions.cloud_cover !== null ? conditions.cloud_cover : '--';
+        }
+
+        if (windSpeedEl) {
+            const windSpeed = conditions.wind_speed ? Units.windSpeed.toDisplay(conditions.wind_speed, units) : '--';
+            windSpeedEl.textContent = windSpeed;
+        }
+
+        if (observabilityEl) {
+            observabilityEl.textContent = observability.toUpperCase();
+            observabilityEl.className = `observability-${observability}`;
+        }
+
+        // Update forecast
+        this.updateForecast();
+    },
+
+    updateForecast() {
+        const forecastList = document.getElementById('weather-forecast-list');
+        if (!forecastList || !AppState.weather.forecast) {
+            return;
+        }
+
+        // Show next 8 forecast entries (skip first which is "current")
+        const forecast = AppState.weather.forecast.slice(1, 9);
+        const units = Units.getCurrentUnits();
+
+        forecastList.innerHTML = forecast.map(entry => {
+            const time = new Date(entry.time).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            const temp = entry.temperature_c ? Units.temperature.toDisplay(entry.temperature_c, units) : '--';
+            const icon = this.getWeatherIcon(entry, this.calculateObservability(entry));
+            const conditions = entry.seeing ? `Seeing: ${entry.seeing}` : `Clouds: ${entry.cloud_cover || '--'}%`;
+
+            return `
+                <div class="forecast-item">
+                    <span class="forecast-time">${time}</span>
+                    <span class="forecast-icon">${icon}</span>
+                    <span class="forecast-temp">${temp}</span>
+                    <span class="forecast-conditions">${conditions}</span>
                 </div>
             `;
-        }
+        }).join('');
     },
 
     getWeatherIcon(conditions, observability) {
