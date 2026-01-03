@@ -1035,7 +1035,7 @@ html, body {
 }
 
 .modal-content {
-    background: #0a0e27;
+    background: #0a0e27 !important;
     border: 1px solid rgba(0, 217, 255, 0.3);
     border-radius: 8px;
     max-width: 600px;
@@ -1052,7 +1052,7 @@ html, body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: rgba(0, 0, 0, 0.4);
+    background: #0a0e27 !important;
 }
 
 .modal-header h2 {
