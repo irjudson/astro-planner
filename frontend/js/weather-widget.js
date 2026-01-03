@@ -13,16 +13,47 @@ const WeatherWidget = {
 
     async loadWeather() {
         try {
-            // Try to get location from planning state or use default
+            // Try local weather station first
+            try {
+                const localResponse = await fetch('http://localhost:7000/', {
+                    signal: AbortSignal.timeout(2000) // 2 second timeout
+                });
+
+                if (localResponse.ok) {
+                    const localData = await localResponse.json();
+                    this.processLocalWeather(localData);
+                    this.updateDisplay();
+                    return;
+                }
+            } catch (localError) {
+                console.log('Local weather station not available, using 7Timer...');
+            }
+
+            // Fallback to 7Timer astronomy weather
             const lat = AppState.planning.location?.latitude || 40.7128;
             const lon = AppState.planning.location?.longitude || -74.0060;
 
-            const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-            const weather = await response.json();
+            const response = await fetch(`/api/weather/astronomy?lat=${lat}&lon=${lon}&hours=48`);
 
-            AppState.weather.conditions = weather.current;
-            AppState.weather.forecast = weather.forecast;
-            AppState.weather.observability = this.calculateObservability(weather);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Use the first forecast entry as "current" conditions
+            const current = data.forecast && data.forecast.length > 0 ? data.forecast[0] : null;
+
+            if (current) {
+                AppState.weather.conditions = {
+                    temperature: current.temperature_c,
+                    humidity: null, // 7Timer doesn't provide humidity
+                    cloud_cover: current.cloud_cover,
+                    wind_speed: current.wind_speed_kmh
+                };
+                AppState.weather.forecast = data.forecast;
+                AppState.weather.observability = this.calculateObservability(current);
+            }
 
             this.updateDisplay();
         } catch (error) {
@@ -31,10 +62,46 @@ const WeatherWidget = {
         }
     },
 
-    calculateObservability(weather) {
-        // Simple observability calculation based on cloud cover
-        const cloudCover = weather.current?.cloud_cover || 100;
+    processLocalWeather(data) {
+        // Process local weather station data
+        // Adjust this based on your weather station's data format
+        AppState.weather.conditions = {
+            temperature: data.temperature || data.temp || data.outTemp,
+            humidity: data.humidity || data.outHumidity,
+            cloud_cover: data.cloud_cover || data.cloudCover || null,
+            wind_speed: data.wind_speed || data.windSpeed
+        };
 
+        // Calculate observability from local data
+        const observability = this.calculateLocalObservability(data);
+        AppState.weather.observability = observability;
+        AppState.weather.source = 'local';
+    },
+
+    calculateLocalObservability(data) {
+        // Calculate based on local conditions
+        // This is a simple heuristic - adjust based on your station's capabilities
+        const cloudCover = data.cloud_cover || data.cloudCover || 50;
+        const humidity = data.humidity || data.outHumidity || 50;
+
+        // Good: low clouds, low humidity
+        if (cloudCover < 20 && humidity < 60) return 'good';
+        // Fair: moderate conditions
+        if (cloudCover < 50 && humidity < 80) return 'fair';
+        // Poor: high clouds or humidity
+        return 'poor';
+    },
+
+    calculateObservability(conditions) {
+        // Calculate observability based on astronomy_score (0-1 scale)
+        if (conditions.astronomy_score !== undefined) {
+            if (conditions.astronomy_score >= 0.7) return 'good';
+            if (conditions.astronomy_score >= 0.4) return 'fair';
+            return 'poor';
+        }
+
+        // Fallback to cloud cover
+        const cloudCover = conditions.cloud_cover || 100;
         if (cloudCover < 30) return 'good';
         if (cloudCover < 70) return 'fair';
         return 'poor';

@@ -33,7 +33,12 @@ const ConnectionManager = {
 
     async loadDevices() {
         try {
-            const response = await fetch('/api/devices');
+            const response = await fetch('/api/settings/devices');
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
             const devices = await response.json();
 
             const select = document.getElementById('device-select');
@@ -44,6 +49,8 @@ const ConnectionManager = {
             devices.forEach(device => {
                 const option = document.createElement('option');
                 option.value = device.id;
+                option.dataset.host = device.ip_address;
+                option.dataset.port = device.port || 4700;
                 option.textContent = `${device.name} (${device.ip_address})`;
                 select.appendChild(option);
             });
@@ -63,60 +70,79 @@ const ConnectionManager = {
         const deviceId = AppState.connection.deviceId;
         if (!deviceId) return;
 
+        // Get device host and port from selected option
+        const select = document.getElementById('device-select');
+        const selectedOption = select?.options[select.selectedIndex];
+
+        if (!selectedOption) return;
+
+        const host = selectedOption.dataset.host;
+        const port = parseInt(selectedOption.dataset.port || '4700');
+
         this.updateStatus('connecting', 'Connecting...');
 
         try {
-            const response = await fetch(`/api/devices/${deviceId}/connect`, {
-                method: 'POST'
+            const response = await fetch('/api/telescope/connect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ host, port })
             });
 
-            if (response.ok) {
-                AppState.connection.isConnected = true;
-                AppState.connection.status = 'connected';
-                this.updateStatus('connected', 'Connected');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Connection failed');
+            }
 
-                const connectBtn = document.getElementById('connect-btn');
-                if (connectBtn) {
-                    connectBtn.textContent = 'Disconnect';
-                    connectBtn.classList.remove('btn-primary');
-                    connectBtn.classList.add('btn-danger');
-                }
+            const data = await response.json();
 
-                // Switch to execution context when device connects
+            AppState.connection.isConnected = true;
+            AppState.connection.status = 'connected';
+            this.updateStatus('connected', 'Connected');
+
+            const connectBtn = document.getElementById('connect-btn');
+            if (connectBtn) {
+                connectBtn.textContent = 'Disconnect';
+                connectBtn.classList.remove('btn-primary');
+                connectBtn.classList.add('btn-danger');
+            }
+
+            // Switch to execution context when device connects
+            if (window.AppContext) {
                 AppContext.switchContext('execution');
-            } else {
-                throw new Error('Connection failed');
             }
         } catch (error) {
             console.error('Connection error:', error);
             this.updateStatus('error', 'Connection failed');
+            this.showError(error.message || 'Failed to connect to device');
             AppState.connection.isConnected = false;
         }
     },
 
     async disconnect() {
-        const deviceId = AppState.connection.deviceId;
-        if (!deviceId) return;
-
         try {
-            const response = await fetch(`/api/devices/${deviceId}/disconnect`, {
+            const response = await fetch('/api/telescope/disconnect', {
                 method: 'POST'
             });
 
-            if (response.ok) {
-                AppState.connection.isConnected = false;
-                AppState.connection.status = 'disconnected';
-                this.updateStatus('disconnected', 'Disconnected');
+            if (!response.ok) {
+                throw new Error('Disconnect failed');
+            }
 
-                const connectBtn = document.getElementById('connect-btn');
-                if (connectBtn) {
-                    connectBtn.textContent = 'Connect';
-                    connectBtn.classList.remove('btn-danger');
-                    connectBtn.classList.add('btn-primary');
-                }
+            AppState.connection.isConnected = false;
+            AppState.connection.status = 'disconnected';
+            this.updateStatus('disconnected', 'Disconnected');
+
+            const connectBtn = document.getElementById('connect-btn');
+            if (connectBtn) {
+                connectBtn.textContent = 'Connect';
+                connectBtn.classList.remove('btn-danger');
+                connectBtn.classList.add('btn-primary');
             }
         } catch (error) {
             console.error('Disconnect error:', error);
+            this.showError(error.message || 'Failed to disconnect');
         }
     },
 
