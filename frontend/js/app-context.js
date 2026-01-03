@@ -8,16 +8,37 @@ const AppContext = {
         this.setupWorkflowToggle();
         this.setupDrawerToggle();
         this.setupMobileMenu();
+
+        // Restore context from URL hash or AppState
+        const hashContext = window.location.hash.replace('#/', '');
+        const initialContext = hashContext || AppState.currentContext || 'discovery';
+
+        if (initialContext !== 'discovery') {
+            this.switchContext(initialContext);
+        } else {
+            this.updateMainContent('discovery');
+            this.updateDrawerContent('discovery');
+        }
+
         this.restoreUIState();
     },
 
     // Setup workflow section expand/collapse
     setupWorkflowToggle() {
         const workflowHeaders = document.querySelectorAll('.workflow-header');
+
         workflowHeaders.forEach(header => {
-            header.addEventListener('click', (e) => {
+            header.addEventListener('click', () => {
                 const workflow = header.dataset.workflow;
+
+                // Toggle the workflow section
                 this.toggleWorkflowSection(workflow);
+
+                // Switch context when workflow is expanded
+                const section = document.getElementById(`${workflow}-section`);
+                if (section && !section.classList.contains('collapsed')) {
+                    this.switchContext(workflow);
+                }
             });
         });
     },
@@ -104,16 +125,33 @@ const AppContext = {
     switchContext(newContext) {
         if (AppState.currentContext === newContext) return;
 
-        console.log(`Switching context: ${AppState.currentContext} → ${newContext}`);
+        const mainContent = document.getElementById('main-content');
+        if (!mainContent) return;
 
-        AppState.currentContext = newContext;
-        AppState.save();
+        // Fade out
+        mainContent.style.opacity = '0';
 
-        // Update main content area
-        this.updateMainContent(newContext);
+        setTimeout(() => {
+            // Update state
+            AppState.currentContext = newContext;
 
-        // Update drawer content
-        this.updateDrawerContent(newContext);
+            // Update main content
+            this.updateMainContent(newContext);
+
+            // Update drawer content
+            this.updateDrawerContent(newContext);
+
+            // Update URL hash
+            window.location.hash = `/${newContext}`;
+
+            // Save state
+            AppState.save();
+
+            // Fade in
+            setTimeout(() => {
+                mainContent.style.opacity = '1';
+            }, 50);
+        }, 200);
     },
 
     // Update main content area based on context
@@ -121,29 +159,32 @@ const AppContext = {
         const mainContent = document.getElementById('main-content');
         if (!mainContent) return;
 
-        // Add fade out
-        mainContent.style.opacity = '0';
+        // Hide all context views
+        const catalogView = document.getElementById('catalog-view');
+        const planningView = document.getElementById('planning-view');
+        const executionView = document.getElementById('execution-view');
+        const processingView = document.getElementById('processing-view');
 
-        setTimeout(() => {
-            // Update content based on context
-            switch (context) {
-                case 'discovery':
-                    mainContent.innerHTML = '<h2>Catalog Grid</h2><p>Discovery content coming soon</p>';
-                    break;
-                case 'planning':
-                    mainContent.innerHTML = '<h2>Planning Results</h2><p>Planning content coming soon</p>';
-                    break;
-                case 'execution':
-                    mainContent.innerHTML = '<h2>Execution View</h2><p>Execution content coming soon</p>';
-                    break;
-                case 'processing':
-                    mainContent.innerHTML = '<h2>Processing Workspace</h2><p>Processing content coming soon</p>';
-                    break;
-            }
+        if (catalogView) catalogView.style.display = 'none';
+        if (planningView) planningView.style.display = 'none';
+        if (executionView) executionView.style.display = 'none';
+        if (processingView) processingView.style.display = 'none';
 
-            // Fade in
-            mainContent.style.opacity = '1';
-        }, 200);
+        // Show appropriate view
+        switch (context) {
+            case 'discovery':
+                if (catalogView) catalogView.style.display = 'block';
+                break;
+            case 'planning':
+                if (planningView) planningView.style.display = 'block';
+                break;
+            case 'execution':
+                if (executionView) executionView.style.display = 'block';
+                break;
+            case 'processing':
+                if (processingView) processingView.style.display = 'block';
+                break;
+        }
     },
 
     // Update drawer content based on context
@@ -151,26 +192,15 @@ const AppContext = {
         const drawerTabs = document.getElementById('drawer-tabs');
         if (!drawerTabs) return;
 
-        drawerTabs.style.opacity = '0';
+        // Placeholder drawer content based on context
+        const drawerContent = {
+            discovery: '<p>Advanced catalog filters and queries</p>',
+            planning: '<p>Advanced planning constraints and optimization</p>',
+            execution: '<p>Advanced imaging controls and system diagnostics</p>',
+            processing: '<p>Advanced processing parameters and batch operations</p>'
+        };
 
-        setTimeout(() => {
-            switch (context) {
-                case 'discovery':
-                    drawerTabs.innerHTML = '<p>Discovery drawer: Advanced Filters, Custom Queries</p>';
-                    break;
-                case 'planning':
-                    drawerTabs.innerHTML = '<p>Planning drawer: Constraints, Optimization</p>';
-                    break;
-                case 'execution':
-                    drawerTabs.innerHTML = '<p>Execution drawer: Advanced Imaging, System, WiFi, Calibration, Hardware</p>';
-                    break;
-                case 'processing':
-                    drawerTabs.innerHTML = '<p>Processing drawer: Processing Parameters, Batch Operations</p>';
-                    break;
-            }
-
-            drawerTabs.style.opacity = '1';
-        }, 150);
+        drawerTabs.innerHTML = drawerContent[context] || '';
     }
 };
 

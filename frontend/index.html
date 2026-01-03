@@ -175,7 +175,7 @@
         <main class="app-main" id="app-main">
             <div class="main-content" id="main-content">
                 <!-- Catalog View (Discovery Context) -->
-                <div class="catalog-view" id="catalog-view">
+                <div class="catalog-view" id="catalog-view" style="display: block;">
                     <!-- Catalog Stats Banner -->
                     <div class="catalog-stats" id="catalog-stats">
                         <span class="stats-count">0 objects</span>
@@ -196,6 +196,30 @@
                         <button class="btn btn-secondary" id="prev-page-btn" disabled>Previous</button>
                         <span class="page-info" id="page-info">Page 1 of 1</span>
                         <button class="btn btn-secondary" id="next-page-btn" disabled>Next</button>
+                    </div>
+                </div>
+
+                <!-- Planning View (Planning Context) -->
+                <div class="planning-view" id="planning-view" style="display: none;">
+                    <div class="view-placeholder">
+                        <h2>Planning Results</h2>
+                        <p>Plan generation results will appear here</p>
+                    </div>
+                </div>
+
+                <!-- Execution View (Execution Context) -->
+                <div class="execution-view" id="execution-view" style="display: none;">
+                    <div class="view-placeholder">
+                        <h2>Execution</h2>
+                        <p>Telescope control and imaging will appear here</p>
+                    </div>
+                </div>
+
+                <!-- Processing View (Processing Context) -->
+                <div class="processing-view" id="processing-view" style="display: none;">
+                    <div class="view-placeholder">
+                        <h2>Processing</h2>
+                        <p>Image processing workspace will appear here</p>
                     </div>
                 </div>
             </div>
