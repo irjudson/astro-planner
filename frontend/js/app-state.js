@@ -57,7 +57,9 @@ const AppState = {
         ditheringEnabled: false,
         queue: [],
         sessionData: {},
-        library: []
+        library: [],
+        activePlanId: null,
+        activePlanName: null
     },
 
     // Processing state

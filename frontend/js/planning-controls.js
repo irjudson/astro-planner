@@ -926,6 +926,16 @@ const PlanningControls = {
     handleStartExecution() {
         console.log('Starting execution...');
 
+        // Store the plan ID if we have a loaded plan
+        if (this.currentLoadedPlan && this.currentLoadedPlan.id) {
+            // Store in AppState for execution view to use
+            if (window.AppState) {
+                AppState.execution.activePlanId = this.currentLoadedPlan.id;
+                AppState.execution.activePlanName = this.currentLoadedPlan.name;
+                AppState.save();
+            }
+        }
+
         // Switch to execution context
         if (window.AppContext) {
             AppContext.switchContext('execution');
