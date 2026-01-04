@@ -11,6 +11,7 @@ const PlanningControls = {
         this.attachEventListeners();
         this.loadDevicesForPlanning();
         this.setDefaultDateTime();
+        this.loadSavedPlans();
     },
 
     /**
@@ -472,6 +473,193 @@ const PlanningControls = {
         console.log(`Exporting plan as ${format}...`);
         // TODO: Implement export functionality
         alert(`Export as ${format.toUpperCase()} - Coming soon!`);
+    },
+
+    /**
+     * Load saved plans from database
+     */
+    async loadSavedPlans() {
+        console.log('Loading saved plans...');
+
+        const savedPlansSection = document.getElementById('saved-plans-section');
+        const savedPlansList = document.getElementById('saved-plans-list');
+
+        if (!savedPlansSection || !savedPlansList) {
+            console.warn('Saved plans section not found');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/plans/');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const plans = await response.json();
+            console.log(`Loaded ${plans.length} saved plans`);
+
+            if (plans.length === 0) {
+                savedPlansList.innerHTML = '<p class="empty-state">No saved plans</p>';
+                savedPlansSection.style.display = 'block'; // Still show the section
+                return;
+            }
+
+            // Build plans list HTML
+            savedPlansList.innerHTML = plans.map(plan => `
+                <div class="saved-plan-item" data-plan-id="${plan.id}">
+                    <div class="saved-plan-info">
+                        <div class="saved-plan-name">${this.escapeHtml(plan.name)}</div>
+                        <div class="saved-plan-meta">
+                            ${plan.observing_date} • ${plan.location_name} • ${plan.total_targets} targets
+                            ${plan.description ? `<br><span style="color: rgba(255, 255, 255, 0.5);">${this.escapeHtml(plan.description)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="saved-plan-actions">
+                        <button class="btn btn-sm btn-primary load-plan-btn" data-plan-id="${plan.id}">Load</button>
+                        <button class="btn btn-sm btn-secondary delete-plan-btn" data-plan-id="${plan.id}">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Show the section
+            savedPlansSection.style.display = 'block';
+
+            // Attach click handlers
+            savedPlansList.querySelectorAll('.load-plan-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const planId = parseInt(btn.dataset.planId);
+                    this.loadPlan(planId);
+                });
+            });
+
+            savedPlansList.querySelectorAll('.delete-plan-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const planId = parseInt(btn.dataset.planId);
+                    this.deletePlan(planId);
+                });
+            });
+
+            // Make plan items clickable to load
+            savedPlansList.querySelectorAll('.saved-plan-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const planId = parseInt(item.dataset.planId);
+                    this.loadPlan(planId);
+                });
+            });
+
+        } catch (error) {
+            console.error('Error loading saved plans:', error);
+            savedPlansList.innerHTML = '<p class="empty-state" style="color: rgba(255, 100, 100, 0.8);">Error loading plans</p>';
+            savedPlansSection.style.display = 'block';
+        }
+    },
+
+    /**
+     * Load a specific plan
+     */
+    async loadPlan(planId) {
+        console.log('Loading plan:', planId);
+
+        try {
+            const response = await fetch(`/api/plans/${planId}/`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const planData = await response.json();
+            console.log('Loaded plan data:', planData);
+
+            // Display the loaded plan
+            this.displayLoadedPlan(planData);
+
+            // Show notification
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+            notification.textContent = `Loaded plan: ${planData.name}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2000);
+
+        } catch (error) {
+            console.error('Error loading plan:', error);
+            alert('Error loading plan: ' + error.message);
+        }
+    },
+
+    /**
+     * Display a loaded plan
+     */
+    displayLoadedPlan(planData) {
+        // Hide empty state
+        const emptyState = document.getElementById('plan-empty-state');
+        const customPlanSection = document.getElementById('custom-plan-targets');
+        const planSummary = document.getElementById('plan-summary');
+        const plannedTargets = document.getElementById('planned-targets');
+
+        if (emptyState) emptyState.style.display = 'none';
+        if (customPlanSection) customPlanSection.style.display = 'none';
+
+        // Show plan summary
+        if (planSummary) {
+            planSummary.style.display = 'block';
+            document.getElementById('plan-summary-date').textContent = planData.observing_date;
+            document.getElementById('plan-total-targets').textContent = planData.plan.total_targets || 0;
+            document.getElementById('plan-duration').textContent = `${planData.plan.duration_hours || 0}h`;
+            document.getElementById('plan-start').textContent = planData.plan.session?.start_time || '--';
+            document.getElementById('plan-end').textContent = planData.plan.session?.end_time || '--';
+        }
+
+        // Show scheduled targets
+        if (plannedTargets && planData.plan.scheduled_targets) {
+            plannedTargets.style.display = 'block';
+            const tbody = document.getElementById('planned-targets-body');
+            if (tbody) {
+                tbody.innerHTML = planData.plan.scheduled_targets.map(target => `
+                    <tr>
+                        <td>${target.start_time || '--'}</td>
+                        <td>${this.escapeHtml(target.name || target.target_name)}</td>
+                        <td>${this.escapeHtml(target.type || '--')}</td>
+                        <td>${target.altitude_deg ? target.altitude_deg.toFixed(1) + '°' : '--'}</td>
+                        <td>${target.duration_minutes ? target.duration_minutes + ' min' : '--'}</td>
+                        <td>${target.priority || '--'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+    },
+
+    /**
+     * Delete a plan
+     */
+    async deletePlan(planId) {
+        if (!confirm('Are you sure you want to delete this plan?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/plans/${planId}/`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            // Reload the plans list
+            this.loadSavedPlans();
+
+            // Show notification
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+            notification.textContent = 'Plan deleted';
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2000);
+
+        } catch (error) {
+            console.error('Error deleting plan:', error);
+            alert('Error deleting plan: ' + error.message);
+        }
     },
 
     /**
