@@ -1656,6 +1656,167 @@ html, body {
     line-height: 1.6;
 }
 
+/* Custom Plan Targets Section */
+.custom-plan-targets {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.custom-plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.custom-plan-header h3 {
+    color: #00d9ff;
+    margin: 0;
+    font-size: 18px;
+}
+
+.custom-plan-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.custom-targets-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.custom-target-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 6px;
+    transition: border-color 200ms;
+}
+
+.custom-target-item:hover {
+    border-color: rgba(0, 217, 255, 0.4);
+}
+
+.target-number {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 217, 255, 0.2);
+    border-radius: 50%;
+    color: #00d9ff;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.target-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.target-name {
+    color: white;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.target-details {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.target-details .badge {
+    padding: 2px 8px;
+    background: rgba(0, 217, 255, 0.2);
+    border-radius: 3px;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #00d9ff;
+}
+
+.target-details .detail {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Saved Plans Section */
+.saved-plans-section {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.saved-plans-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.saved-plans-header h3 {
+    color: #00d9ff;
+    margin: 0;
+    font-size: 18px;
+}
+
+.saved-plans-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.saved-plan-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 200ms, background 200ms;
+}
+
+.saved-plan-item:hover {
+    border-color: rgba(0, 217, 255, 0.4);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.saved-plan-info {
+    flex: 1;
+}
+
+.saved-plan-name {
+    color: white;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.saved-plan-meta {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.saved-plan-actions {
+    display: flex;
+    gap: 8px;
+}
+
 /* Selected Targets List in Custom Plan Builder */
 .selected-target-item {
     display: flex;

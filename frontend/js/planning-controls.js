@@ -160,6 +160,9 @@ const PlanningControls = {
                 AppContext.toggleWorkflowSection('planning');
             }
 
+            // Display custom plan targets
+            this.displayCustomPlanTargets(selectedTargets);
+
             // Show notification
             const notification = document.createElement('div');
             notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
@@ -169,6 +172,81 @@ const PlanningControls = {
         } else {
             console.error('AppContext not found!');
         }
+    },
+
+    /**
+     * Display custom plan targets in planning view
+     */
+    displayCustomPlanTargets(targets) {
+        const customPlanSection = document.getElementById('custom-plan-targets');
+        const emptyState = document.getElementById('plan-empty-state');
+        const targetsList = document.getElementById('custom-targets-list');
+
+        if (!customPlanSection || !targetsList) return;
+
+        // Hide empty state, show custom plan
+        if (emptyState) emptyState.style.display = 'none';
+        customPlanSection.style.display = 'block';
+
+        // Build targets list HTML
+        targetsList.innerHTML = targets.map((target, index) => `
+            <div class="custom-target-item">
+                <div class="target-number">${index + 1}</div>
+                <div class="target-info">
+                    <div class="target-name">${this.escapeHtml(target.name)}</div>
+                    <div class="target-details">
+                        ${target.type ? `<span class="badge">${target.type}</span>` : ''}
+                        ${target.constellation ? `<span class="detail">Const: ${target.constellation}</span>` : ''}
+                        ${target.magnitude !== null ? `<span class="detail">Mag: ${target.magnitude.toFixed(1)}</span>` : ''}
+                        ${target.size ? `<span class="detail">Size: ${target.size}</span>` : ''}
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-secondary remove-target-btn" data-index="${index}">Remove</button>
+            </div>
+        `).join('');
+
+        // Attach remove button listeners
+        targetsList.querySelectorAll('.remove-target-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                this.removeTargetFromCustomPlan(index);
+            });
+        });
+    },
+
+    /**
+     * Remove target from custom plan
+     */
+    removeTargetFromCustomPlan(index) {
+        if (!window.AppState) return;
+
+        AppState.discovery.selectedTargets.splice(index, 1);
+        AppState.save();
+
+        if (AppState.discovery.selectedTargets.length === 0) {
+            // Show empty state again
+            const customPlanSection = document.getElementById('custom-plan-targets');
+            const emptyState = document.getElementById('plan-empty-state');
+            if (customPlanSection) customPlanSection.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'block';
+        } else {
+            // Refresh display
+            this.displayCustomPlanTargets(AppState.discovery.selectedTargets);
+        }
+
+        // Update catalog search view too
+        if (window.CatalogSearch && window.CatalogSearch.updateSelectedTargetsList) {
+            CatalogSearch.updateSelectedTargetsList();
+        }
+    },
+
+    /**
+     * Escape HTML for safe display
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     /**

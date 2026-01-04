@@ -557,6 +557,31 @@
                         </table>
                     </div>
 
+                    <!-- Custom Plan Targets (before scheduling) -->
+                    <div class="custom-plan-targets" id="custom-plan-targets" style="display: none;">
+                        <div class="custom-plan-header">
+                            <h3>Custom Plan Targets</h3>
+                            <div class="custom-plan-actions">
+                                <button class="btn btn-sm btn-secondary" id="save-custom-plan-btn">Save Plan</button>
+                                <button class="btn btn-sm btn-primary" id="schedule-plan-btn">Schedule & Optimize</button>
+                            </div>
+                        </div>
+                        <div class="custom-targets-list" id="custom-targets-list">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Saved Plans Manager -->
+                    <div class="saved-plans-section" id="saved-plans-section" style="display: none;">
+                        <div class="saved-plans-header">
+                            <h3>Saved Plans</h3>
+                            <button class="btn btn-sm btn-secondary" id="refresh-plans-btn">Refresh</button>
+                        </div>
+                        <div class="saved-plans-list" id="saved-plans-list">
+                            <p class="empty-state">No saved plans</p>
+                        </div>
+                    </div>
+
                     <!-- Empty State -->
                     <div class="plan-empty-state" id="plan-empty-state">
                         <h2>No Plan Generated</h2>
