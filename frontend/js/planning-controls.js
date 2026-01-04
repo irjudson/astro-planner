@@ -483,6 +483,7 @@ const PlanningControls = {
 
         const savedPlansSection = document.getElementById('saved-plans-section');
         const savedPlansList = document.getElementById('saved-plans-list');
+        const planEmptyState = document.getElementById('plan-empty-state');
 
         if (!savedPlansSection || !savedPlansList) {
             console.warn('Saved plans section not found');
@@ -501,8 +502,13 @@ const PlanningControls = {
             if (plans.length === 0) {
                 savedPlansList.innerHTML = '<p class="empty-state">No saved plans</p>';
                 savedPlansSection.style.display = 'block'; // Still show the section
+                // Show empty state when no plans
+                if (planEmptyState) planEmptyState.style.display = 'block';
                 return;
             }
+
+            // Hide empty state when we have plans
+            if (planEmptyState) planEmptyState.style.display = 'none';
 
             // Build plans list HTML
             savedPlansList.innerHTML = plans.map(plan => `
