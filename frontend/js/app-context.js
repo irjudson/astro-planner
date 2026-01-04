@@ -13,14 +13,22 @@ const AppContext = {
         const hashContext = window.location.hash.replace('#/', '');
         const initialContext = hashContext || AppState.currentContext || 'discovery';
 
-        if (initialContext !== 'discovery') {
-            this.switchContext(initialContext);
-        } else {
-            this.updateMainContent('discovery');
-            this.updateDrawerContent('discovery');
+        // On initial load, set context immediately without animation
+        AppState.currentContext = initialContext;
+        this.updateMainContent(initialContext);
+        this.updateDrawerContent(initialContext);
+
+        // Update URL hash if needed
+        if (window.location.hash !== `#/${initialContext}`) {
+            window.location.hash = `/${initialContext}`;
         }
 
         this.restoreUIState();
+
+        // If switching to planning, refresh location defaults
+        if (initialContext === 'planning' && window.PlanningControls) {
+            PlanningControls.updateLocationDefaults();
+        }
     },
 
     // Setup workflow section expand/collapse

@@ -563,7 +563,7 @@ const PlanningControls = {
         console.log('Loading plan:', planId);
 
         try {
-            const response = await fetch(`/api/plans/${planId}/`);
+            const response = await fetch(`/api/plans/${planId}`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -638,7 +638,7 @@ const PlanningControls = {
         }
 
         try {
-            const response = await fetch(`/api/plans/${planId}/`, {
+            const response = await fetch(`/api/plans/${planId}`, {
                 method: 'DELETE'
             });
 
