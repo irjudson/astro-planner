@@ -197,25 +197,25 @@ const AppContext = {
         switch (context) {
             case 'discovery':
                 if (catalogView) {
-                    catalogView.style.display = 'block';
+                    catalogView.style.display = 'flex';  // catalog-view uses flexbox
                     this.resetDiscoveryView();
                 }
                 break;
             case 'planning':
                 if (planningView) {
-                    planningView.style.display = 'block';
+                    planningView.style.display = 'flex';  // planning-view uses flexbox
                     this.resetPlanningView();
                 }
                 break;
             case 'execution':
                 if (executionView) {
-                    executionView.style.display = 'block';
+                    executionView.style.display = 'flex';  // execution-view uses flexbox
                     this.resetExecutionView();
                 }
                 break;
             case 'processing':
                 if (processingView) {
-                    processingView.style.display = 'block';
+                    processingView.style.display = 'flex';  // processing-view uses flexbox
                     this.resetProcessingView();
                 }
                 break;
