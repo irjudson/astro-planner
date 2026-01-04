@@ -729,15 +729,15 @@ const PlanningControls = {
         // Hide empty state
         const emptyState = document.getElementById('plan-empty-state');
         const customPlanSection = document.getElementById('custom-plan-targets');
-        const planSummary = document.getElementById('plan-summary');
+        const loadedPlanSummary = document.getElementById('loaded-plan-summary');
         const plannedTargets = document.getElementById('planned-targets');
 
         if (emptyState) emptyState.style.display = 'none';
         if (customPlanSection) customPlanSection.style.display = 'none';
 
         // Show plan summary
-        if (planSummary) {
-            planSummary.style.display = 'block';
+        if (loadedPlanSummary) {
+            loadedPlanSummary.style.display = 'block';
             document.getElementById('plan-summary-date').textContent = planData.observing_date;
             document.getElementById('plan-total-targets').textContent = planData.plan.total_targets || 0;
             document.getElementById('plan-duration').textContent = `${planData.plan.duration_hours || 0}h`;
@@ -829,21 +829,14 @@ const PlanningControls = {
         }
 
         // Hide plan summary and scheduled targets
-        const planSummary = document.getElementById('plan-summary');
+        const loadedPlanSummary = document.getElementById('loaded-plan-summary');
         const plannedTargets = document.getElementById('planned-targets');
-        if (planSummary) planSummary.style.display = 'none';
+        if (loadedPlanSummary) loadedPlanSummary.style.display = 'none';
         if (plannedTargets) plannedTargets.style.display = 'none';
 
         // Show custom plan targets
         if (AppState.discovery.selectedTargets.length > 0) {
             this.displayCustomPlanTargets(AppState.discovery.selectedTargets);
-        }
-
-        // Expand the planning panels
-        const locationPanel = document.getElementById('location-device-section');
-        if (locationPanel && locationPanel.classList.contains('collapsed')) {
-            const header = locationPanel.querySelector('.panel-header');
-            if (header) header.click();
         }
 
         // Show notification
