@@ -100,6 +100,12 @@ const PlanningControls = {
         if (prioritizeTransitsCheckbox) {
             prioritizeTransitsCheckbox.addEventListener('change', () => this.saveObservingPreferences());
         }
+
+        // Refresh Plans button
+        const refreshPlansBtn = document.getElementById('refresh-plans-btn');
+        if (refreshPlansBtn) {
+            refreshPlansBtn.addEventListener('click', () => this.loadSavedPlans());
+        }
     },
 
     /**
