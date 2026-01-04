@@ -86,6 +86,21 @@ class CatalogService:
 
         return constellation.full_name if constellation else abbreviation
 
+    def _get_constellation_details(self, abbreviation: str) -> dict:
+        """Look up constellation details from abbreviation."""
+        if not abbreviation:
+            return None
+
+        constellation = self.db.query(ConstellationName).filter(ConstellationName.abbreviation == abbreviation).first()
+
+        if constellation:
+            return {
+                'abbreviation': constellation.abbreviation,
+                'full_name': constellation.full_name,
+                'common_name': constellation.common_name
+            }
+        return None
+
     def get_all_targets(self, limit: Optional[int] = None, offset: int = 0) -> List[DSOTarget]:
         """
         Get all targets in catalog.

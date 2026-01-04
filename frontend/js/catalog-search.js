@@ -95,6 +95,8 @@ const CatalogSearch = {
      * Handle clear filters button click
      */
     handleClearFilters() {
+        console.log('Clearing filters...');
+
         // Clear all filter inputs
         const searchInput = document.getElementById('catalog-search');
         const typeFilter = document.getElementById('filter-type');
@@ -102,13 +104,31 @@ const CatalogSearch = {
         const magnitudeFilter = document.getElementById('filter-magnitude');
         const sortBy = document.getElementById('sort-by');
 
-        if (searchInput) searchInput.value = '';
-        if (typeFilter) typeFilter.value = '';
-        if (constellationFilter) constellationFilter.value = '';
-        if (magnitudeFilter) magnitudeFilter.value = '';
-        if (sortBy) sortBy.value = 'name';
+        if (searchInput) {
+            searchInput.value = '';
+            console.log('Cleared search input');
+        }
+        if (typeFilter) {
+            typeFilter.value = '';
+            typeFilter.selectedIndex = 0; // Ensure first option is selected
+            console.log('Cleared type filter');
+        }
+        if (constellationFilter) {
+            constellationFilter.value = '';
+            constellationFilter.selectedIndex = 0; // Ensure first option is selected
+            console.log('Cleared constellation filter');
+        }
+        if (magnitudeFilter) {
+            magnitudeFilter.value = '';
+            console.log('Cleared magnitude filter');
+        }
+        if (sortBy) {
+            sortBy.value = 'name';
+            console.log('Reset sort to name');
+        }
 
         this.currentPage = 1;
+        console.log('Reloading catalog data...');
         this.loadCatalogData();
     },
 
@@ -221,15 +241,29 @@ const CatalogSearch = {
         card.className = 'catalog-card';
         card.dataset.itemId = item.id || item.name;
 
+        // Build title with catalog ID and common name
+        let title = item.id || item.name || 'Unknown';
+        if (item.common_name && item.common_name !== item.id) {
+            // Show both catalog ID and common name
+            title = `${this.escapeHtml(item.id)} - ${this.escapeHtml(item.common_name)}`;
+        }
+
+        // Image URL
+        const imageUrl = item.image_url || `/api/images/targets/${encodeURIComponent(item.id || item.name)}`;
+
         card.innerHTML = `
-            <div class="catalog-card-header">
-                <h4 class="catalog-card-title">${this.escapeHtml(item.name || 'Unknown')}</h4>
-                <span class="catalog-card-type">${this.escapeHtml(item.type || 'unknown')}</span>
+            <div class="catalog-card-image">
+                <img src="${imageUrl}" alt="${this.escapeHtml(item.name)}" loading="lazy" onerror="this.parentElement.style.display='none'">
             </div>
+            <div class="catalog-card-content">
+                <div class="catalog-card-header">
+                    <h4 class="catalog-card-title">${title}</h4>
+                    <span class="catalog-card-type">${this.escapeHtml(item.type || 'unknown')}</span>
+                </div>
             <div class="catalog-card-body">
                 <div class="catalog-card-detail">
                     <span class="catalog-card-label">Constellation:</span>
-                    <span class="catalog-card-value">${this.escapeHtml(item.constellation || 'N/A')}</span>
+                    <span class="catalog-card-value">${this.formatConstellation(item)}</span>
                 </div>
                 <div class="catalog-card-detail">
                     <span class="catalog-card-label">Magnitude:</span>
@@ -249,6 +283,7 @@ const CatalogSearch = {
             <div class="catalog-card-actions">
                 <button class="btn btn-primary btn-sm" data-action="add-to-plan">Add to Plan</button>
                 <button class="btn btn-secondary btn-sm" data-action="view-details">Details</button>
+            </div>
             </div>
         `;
 
@@ -281,6 +316,21 @@ const CatalogSearch = {
             return 'N/A';
         }
         return `${this.formatRA(ra)} / ${this.formatDec(dec)}`;
+    },
+
+    /**
+     * Format constellation with full name and common name
+     */
+    formatConstellation(item) {
+        if (!item.constellation_full) {
+            return item.constellation || 'N/A';
+        }
+
+        if (item.constellation_common) {
+            return `${this.escapeHtml(item.constellation_full)} (${this.escapeHtml(item.constellation_common)})`;
+        }
+
+        return this.escapeHtml(item.constellation_full);
     },
 
     /**
@@ -426,7 +476,7 @@ const CatalogSearch = {
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label">Constellation:</span>
-                                <span class="detail-value">${this.escapeHtml(item.constellation || 'N/A')}</span>
+                                <span class="detail-value">${this.formatConstellation(item)}</span>
                             </div>
                             <div class="detail-row">
                                 <span class="detail-label">Magnitude:</span>

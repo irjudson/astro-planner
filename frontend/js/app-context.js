@@ -276,9 +276,10 @@ const AppContext = {
 
         // Show appropriate content based on state
         if (hasLoadedPlan) {
-            // We have a loaded plan - show it
-            if (loadedPlanSummary) loadedPlanSummary.style.display = 'block';
-            if (plannedTargets) plannedTargets.style.display = 'block';
+            // We have a loaded plan - re-display it with data
+            if (window.PlanningControls.displayLoadedPlan) {
+                PlanningControls.displayLoadedPlan(window.PlanningControls.currentLoadedPlan);
+            }
         } else if (hasCustomTargets) {
             // We have custom targets selected - show them
             if (customPlanTargets) customPlanTargets.style.display = 'block';

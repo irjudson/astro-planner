@@ -122,7 +122,7 @@
                 <div class="workflow-section collapsed" id="planning-section">
                     <div class="workflow-header" data-workflow="planning">
                         <span class="workflow-title">PLANNING</span>
-                        <span class="workflow-chevron">▶</span>
+                        <span class="workflow-chevron">▼</span>
                     </div>
                     <div class="workflow-content">
                         <!-- Location & Device Panel -->
@@ -258,58 +258,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Plan Results Panel -->
-                        <div class="panel panel-collapsible collapsed" id="plan-results-panel">
-                            <div class="panel-header">
-                                <h3>Plan Results</h3>
-                                <span class="panel-chevron">▼</span>
-                            </div>
-                            <div class="panel-body">
-                                <!-- Generate Plan Button -->
-                                <button id="generate-plan-btn" class="btn btn-primary">Generate Plan</button>
-
-                                <!-- Plan Summary (hidden until plan generated) -->
-                                <div id="plan-summary" style="display: none;">
-                                    <div class="plan-summary-header">
-                                        <h4>Observation Plan</h4>
-                                        <span class="plan-date" id="plan-summary-date"></span>
-                                    </div>
-
-                                    <div class="plan-summary-body">
-                                        <div class="plan-stat">
-                                            <span class="plan-stat-label">Total Targets:</span>
-                                            <span class="plan-stat-value" id="plan-total-targets">0</span>
-                                        </div>
-
-                                        <div class="plan-stat">
-                                            <span class="plan-stat-label">Duration:</span>
-                                            <span class="plan-stat-value" id="plan-duration">0h 0m</span>
-                                        </div>
-
-                                        <div class="plan-stat">
-                                            <span class="plan-stat-label">Start Time:</span>
-                                            <span class="plan-stat-value" id="plan-start">--:--</span>
-                                        </div>
-
-                                        <div class="plan-stat">
-                                            <span class="plan-stat-label">End Time:</span>
-                                            <span class="plan-stat-value" id="plan-end">--:--</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Export Options -->
-                                    <div class="plan-export-actions">
-                                        <button class="btn btn-secondary btn-sm" id="export-pdf-btn">Export PDF</button>
-                                        <button class="btn btn-secondary btn-sm" id="export-csv-btn">Export CSV</button>
-                                        <button class="btn btn-secondary btn-sm" id="export-ical-btn">Export iCal</button>
-                                    </div>
-
-                                    <!-- Start Execution Button -->
-                                    <button class="btn btn-primary" id="start-execution-btn">Start Execution</button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -317,36 +265,9 @@
                 <div class="workflow-section collapsed" id="execution-section">
                     <div class="workflow-header" data-workflow="execution">
                         <span class="workflow-title">EXECUTION</span>
-                        <span class="workflow-chevron">▶</span>
+                        <span class="workflow-chevron">▼</span>
                     </div>
                     <div class="workflow-content">
-                        <!-- Execution Controls Panel -->
-                        <div class="panel panel-collapsible collapsed" id="execution-controls-panel">
-                            <div class="panel-header">
-                                <h3>Execution Controls</h3>
-                                <span class="panel-chevron">▼</span>
-                            </div>
-                            <div class="panel-body">
-                                <div class="form-group">
-                                    <label for="execution-target">Target</label>
-                                    <select id="execution-target" class="form-control">
-                                        <option value="">No target selected</option>
-                                    </select>
-                                </div>
-                                <div class="execution-actions">
-                                    <button id="start-execution-btn" class="btn btn-primary" disabled>Start</button>
-                                    <button id="pause-execution-btn" class="btn btn-secondary" disabled>Pause</button>
-                                    <button id="stop-execution-btn" class="btn btn-danger" disabled>Stop</button>
-                                </div>
-                                <div class="execution-progress" id="execution-progress" style="display: none;">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" id="execution-progress-fill" style="width: 0%"></div>
-                                    </div>
-                                    <div class="progress-text" id="execution-progress-text">0 / 0 frames</div>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Imaging Panel -->
                         <div class="panel panel-collapsible collapsed" id="imaging-panel">
                             <div class="panel-header">
@@ -465,7 +386,7 @@
                 <div class="workflow-section collapsed" id="processing-section">
                     <div class="workflow-header" data-workflow="processing">
                         <span class="workflow-title">PROCESSING</span>
-                        <span class="workflow-chevron">▶</span>
+                        <span class="workflow-chevron">▼</span>
                     </div>
                     <div class="workflow-content">
                         <p>Processing panels will go here</p>
@@ -958,5 +879,14 @@
     <script src="js/planning-controls.js"></script>
     <script src="js/processing-controls.js"></script>
     <script src="js/preferences.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => console.log('Service Worker registered:', registration.scope))
+                .catch(error => console.error('Service Worker registration failed:', error));
+        }
+    </script>
 </body>
 </html>

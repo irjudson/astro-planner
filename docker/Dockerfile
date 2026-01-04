@@ -1,6 +1,6 @@
 # Multi-stage build for Astro Planner with CUDA support
-# Using CUDA 12.8+ for RTX 50-series (Blackwell) compute capability 12.0 support
-FROM nvidia/cuda:12.8.0-devel-ubuntu22.04 AS base
+# Using CUDA 13.0 for enhanced compute support
+FROM nvidia/cuda:13.0.0-devel-ubuntu22.04 AS base
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive

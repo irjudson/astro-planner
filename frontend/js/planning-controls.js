@@ -373,21 +373,35 @@ const PlanningControls = {
         customPlanSection.style.display = 'block';
 
         // Build targets list HTML
-        targetsList.innerHTML = targets.map((target, index) => `
-            <div class="custom-target-item">
-                <div class="target-number">${index + 1}</div>
-                <div class="target-info">
-                    <div class="target-name">${this.escapeHtml(target.name)}</div>
-                    <div class="target-details">
-                        ${target.type ? `<span class="badge">${target.type}</span>` : ''}
+        targetsList.innerHTML = targets.map((target, index) => {
+            // Build name with catalog ID and common name
+            let displayName = target.id || target.name;
+            if (target.common_name && target.common_name !== target.id) {
+                displayName = `${this.escapeHtml(target.id)} - ${this.escapeHtml(target.common_name)}`;
+            } else {
+                displayName = this.escapeHtml(displayName);
+            }
+
+            // Image URL
+            const imageUrl = target.image_url || `/api/images/targets/${encodeURIComponent(target.id || target.name)}`;
+
+            return `
+                <div class="custom-target-item">
+                    <div class="target-number">${index + 1}</div>
+                    <div class="target-thumbnail">
+                        <img src="${imageUrl}" alt="${this.escapeHtml(target.name)}" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    <div class="target-info">
+                        <span class="target-name">${displayName}</span>
+                        ${target.type ? `<span class="object-type-badge">${target.type}</span>` : ''}
                         ${target.constellation ? `<span class="detail">Const: ${target.constellation}</span>` : ''}
                         ${target.magnitude !== null ? `<span class="detail">Mag: ${target.magnitude.toFixed(1)}</span>` : ''}
                         ${target.size ? `<span class="detail">Size: ${target.size}</span>` : ''}
                     </div>
+                    <button class="btn btn-sm btn-secondary remove-target-btn" data-index="${index}">Remove</button>
                 </div>
-                <button class="btn btn-sm btn-secondary remove-target-btn" data-index="${index}">Remove</button>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         // Attach remove button listeners
         targetsList.querySelectorAll('.remove-target-btn').forEach(btn => {
@@ -762,18 +776,27 @@ const PlanningControls = {
         // Show plan summary
         if (loadedPlanSummary) {
             loadedPlanSummary.style.display = 'block';
-            document.getElementById('plan-summary-date').textContent = planData.observing_date;
-            document.getElementById('plan-total-targets').textContent = planData.plan.total_targets || 0;
+
+            const dateElem = document.getElementById('plan-summary-date');
+            const targetsElem = document.getElementById('plan-total-targets');
+            const durationElem = document.getElementById('plan-duration');
+            const startElem = document.getElementById('plan-start');
+            const endElem = document.getElementById('plan-end');
+
+            if (dateElem) dateElem.textContent = planData.observing_date || '--';
+            if (targetsElem) targetsElem.textContent = planData.plan?.total_targets || 0;
 
             // Calculate duration from total_imaging_minutes
-            const durationMinutes = planData.plan.session?.total_imaging_minutes || 0;
+            const durationMinutes = planData.plan?.session?.total_imaging_minutes || 0;
             const hours = Math.floor(durationMinutes / 60);
             const minutes = durationMinutes % 60;
-            document.getElementById('plan-duration').textContent = `${hours}h ${minutes}m`;
+            if (durationElem) durationElem.textContent = `${hours}h ${minutes}m`;
 
             // Use imaging_start and imaging_end from session
-            document.getElementById('plan-start').textContent = this.formatTime(planData.plan.session?.imaging_start) || '--';
-            document.getElementById('plan-end').textContent = this.formatTime(planData.plan.session?.imaging_end) || '--';
+            const startText = this.formatTime(planData.plan?.session?.imaging_start);
+            const endText = this.formatTime(planData.plan?.session?.imaging_end);
+            if (startElem) startElem.textContent = startText || '--';
+            if (endElem) endElem.textContent = endText || '--';
         }
 
         // Show scheduled targets
@@ -781,16 +804,19 @@ const PlanningControls = {
             plannedTargets.style.display = 'block';
             const tbody = document.getElementById('planned-targets-body');
             if (tbody) {
-                tbody.innerHTML = planData.plan.scheduled_targets.map(schedTarget => `
+                tbody.innerHTML = planData.plan.scheduled_targets.map(schedTarget => {
+                    const objectType = schedTarget.target?.object_type || schedTarget.type || '--';
+                    return `
                     <tr>
                         <td>${this.formatTime(schedTarget.start_time)}</td>
                         <td>${this.escapeHtml(schedTarget.target?.name || schedTarget.target_name || '--')}</td>
-                        <td>${this.escapeHtml(schedTarget.target?.object_type || schedTarget.type || '--')}</td>
+                        <td>${objectType !== '--' ? `<span class="object-type-badge">${this.escapeHtml(objectType)}</span>` : '--'}</td>
                         <td>${schedTarget.start_altitude ? schedTarget.start_altitude.toFixed(1) + '°' : (schedTarget.altitude_deg ? schedTarget.altitude_deg.toFixed(1) + '°' : '--')}</td>
                         <td>${schedTarget.duration_minutes ? schedTarget.duration_minutes + ' min' : '--'}</td>
                         <td>${schedTarget.score?.total_score ? schedTarget.score.total_score.toFixed(2) : '--'}</td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
     },
@@ -961,39 +987,40 @@ const PlanningControls = {
     },
 
     /**
-     * Handle Cancel Edit Plan button - return to viewing the loaded plan
+     * Handle Cancel Edit Plan button - clear custom plan targets and show saved plans
      */
     handleCancelEditPlan() {
-        if (!this.currentLoadedPlan) {
-            console.warn('No loaded plan to return to');
-            return;
-        }
-
         // Hide custom plan targets
         const customPlanSection = document.getElementById('custom-plan-targets');
-        if (customPlanSection) customPlanSection.style.display = 'none';
-
-        // Show loaded plan summary and targets table again
         const loadedPlanSummary = document.getElementById('loaded-plan-summary');
         const plannedTargets = document.getElementById('planned-targets');
-        if (loadedPlanSummary) loadedPlanSummary.style.display = 'block';
-        if (plannedTargets) plannedTargets.style.display = 'block';
+        const savedPlansSection = document.getElementById('saved-plans-section');
 
-        // Clear selected targets to avoid confusion
+        if (customPlanSection) customPlanSection.style.display = 'none';
+        if (loadedPlanSummary) loadedPlanSummary.style.display = 'none';
+        if (plannedTargets) plannedTargets.style.display = 'none';
+
+        // Clear selected targets
         if (window.AppState) {
             AppState.discovery.selectedTargets = [];
             AppState.save();
         }
+
+        // Clear current loaded plan
+        this.currentLoadedPlan = null;
 
         // Update catalog search view if available
         if (window.CatalogSearch && window.CatalogSearch.updateSelectedTargetsList) {
             CatalogSearch.updateSelectedTargetsList();
         }
 
+        // Always show saved plans section
+        if (savedPlansSection) savedPlansSection.style.display = 'block';
+
         // Show notification
         const notification = document.createElement('div');
         notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
-        notification.textContent = 'Edit cancelled - returned to plan view';
+        notification.textContent = 'Custom plan cancelled';
         document.body.appendChild(notification);
         setTimeout(() => notification.remove(), 2000);
     },
@@ -1238,16 +1265,19 @@ const PlanningControls = {
             plannedTargets.style.display = 'block';
             const tbody = document.getElementById('planned-targets-body');
             if (tbody) {
-                tbody.innerHTML = planData.scheduled_targets.map(schedTarget => `
+                tbody.innerHTML = planData.scheduled_targets.map(schedTarget => {
+                    const objectType = schedTarget.target?.object_type || schedTarget.type || '--';
+                    return `
                     <tr>
                         <td>${this.formatTime(schedTarget.start_time)}</td>
                         <td>${this.escapeHtml(schedTarget.target?.name || schedTarget.target_name || '--')}</td>
-                        <td>${this.escapeHtml(schedTarget.target?.object_type || schedTarget.type || '--')}</td>
+                        <td>${objectType !== '--' ? `<span class="object-type-badge">${this.escapeHtml(objectType)}</span>` : '--'}</td>
                         <td>${schedTarget.start_altitude ? schedTarget.start_altitude.toFixed(1) + '°' : '--'}</td>
                         <td>${schedTarget.duration_minutes ? schedTarget.duration_minutes + ' min' : '--'}</td>
                         <td>${schedTarget.score?.total_score ? schedTarget.score.total_score.toFixed(2) : '--'}</td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
     }

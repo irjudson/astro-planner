@@ -560,11 +560,17 @@ async def search_catalog(
         items = []
         for dso in paginated:
             target = catalog_service._db_row_to_target(dso)
+            # Get constellation details
+            constellation_details = catalog_service._get_constellation_details(dso.constellation)
+
             items.append({
                 "id": target.catalog_id,
                 "name": target.name,
+                "common_name": dso.common_name,  # Include common_name from database
                 "type": target.object_type,
                 "constellation": dso.constellation,
+                "constellation_full": constellation_details['full_name'] if constellation_details else dso.constellation,
+                "constellation_common": constellation_details['common_name'] if constellation_details else None,
                 "magnitude": target.magnitude,
                 "ra": target.ra_hours * 15,  # Convert hours to degrees
                 "dec": target.dec_degrees,
@@ -1344,27 +1350,59 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
         from app.services.catalog_service import CatalogService
         from app.services.image_preview_service import ImagePreviewService
 
-        # Reconstruct original catalog_id (reverse sanitization)
-        # Note: This is lossy - we can't distinguish between underscore and space/slash
-        # So we'll query the database to find matching target
+        # Parse catalog ID to find target in database
+        # Catalog IDs are like: M31, NGC224, IC434, C80
         catalog_service = CatalogService(db)
 
-        # Get all targets and find one matching sanitized ID
-        # This is not optimal but works for the MVP
-        all_targets = catalog_service.filter_targets(object_types=None, limit=5000)
-
         target = None
-        for t in all_targets:
-            sanitized = t.catalog_id.replace(" ", "_").replace("/", "_").replace(":", "_")
-            if sanitized == sanitized_catalog_id:
-                target = t
-                break
+
+        # Try to parse catalog ID format
+        import re
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Match patterns like M31, NGC224, IC434, C80
+        match = re.match(r'([A-Z]+)(\d+)', sanitized_catalog_id)
+        if match:
+            catalog_name = match.group(1)
+            catalog_number = int(match.group(2))
+
+            logger.info(f"Looking up target: {catalog_name}{catalog_number}")
+
+            # Query database for this specific catalog entry
+            from app.models.catalog_models import DSOCatalog
+
+            # Handle special cases
+            if catalog_name == 'M':
+                # Messier objects - find by common_name starting with M
+                dso = db.query(DSOCatalog).filter(
+                    DSOCatalog.common_name.like(f'M%{catalog_number:03d}')
+                ).first()
+            elif catalog_name == 'C':
+                # Caldwell objects - find by caldwell_number
+                dso = db.query(DSOCatalog).filter(
+                    DSOCatalog.caldwell_number == catalog_number
+                ).first()
+            else:
+                # NGC, IC, etc. - find by catalog_name and catalog_number
+                dso = db.query(DSOCatalog).filter(
+                    DSOCatalog.catalog_name == catalog_name,
+                    DSOCatalog.catalog_number == catalog_number
+                ).first()
+                logger.info(f"DSO query result for {catalog_name}{catalog_number}: {dso is not None}")
+
+            if dso:
+                target = catalog_service._db_row_to_target(dso)
+                logger.info(f"Successfully created target for {sanitized_catalog_id}")
+        else:
+            logger.warning(f"Failed to parse catalog ID: {sanitized_catalog_id}")
 
         if not target:
+            logger.warning(f"Target not found: {sanitized_catalog_id}")
             raise HTTPException(status_code=404, detail=f"Target not found: {sanitized_catalog_id}")
 
         # Use image preview service to get or fetch image
-        image_service = ImagePreviewService()
+        image_service = ImagePreviewService(db=db)
         cache_filename = f"{sanitized_catalog_id}.jpg"
         cache_dir = Path(os.getenv("IMAGE_CACHE_DIR", "/app/data/previews"))
         cache_path = cache_dir / cache_filename

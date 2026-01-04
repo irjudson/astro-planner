@@ -821,7 +821,7 @@ html, body {
 /* Catalog Grid */
 .catalog-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
     overflow-y: auto;
     align-content: start;
@@ -830,15 +830,9 @@ html, body {
     transition: flex-basis 250ms ease-out;
 }
 
-@media (max-width: 1200px) {
-    .catalog-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
 @media (max-width: 768px) {
     .catalog-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     }
 }
 
@@ -853,9 +847,12 @@ html, body {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(0, 217, 255, 0.2);
     border-radius: 8px;
-    padding: 16px;
+    overflow: hidden;
     cursor: pointer;
     transition: transform 200ms, border-color 200ms, box-shadow 200ms;
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
 }
 
 .catalog-card:hover {
@@ -868,16 +865,23 @@ html, body {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    padding: 12px 12px 0;
     margin-bottom: 12px;
 }
 
 .catalog-card-title {
     color: #00d9ff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     margin: 0;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
+/* Shared object type badge styling */
+.object-type-badge,
 .catalog-card-type {
     background: rgba(0, 217, 255, 0.2);
     color: #00d9ff;
@@ -885,9 +889,33 @@ html, body {
     border-radius: 4px;
     font-size: 10px;
     text-transform: uppercase;
+    display: inline-block;
+}
+
+.catalog-card-image {
+    width: 100%;
+    height: 140px;
+    background: rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.catalog-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.catalog-card-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 .catalog-card-body {
+    padding: 0 12px;
     margin-bottom: 12px;
 }
 
@@ -909,6 +937,7 @@ html, body {
 .catalog-card-actions {
     display: flex;
     gap: 8px;
+    padding: 0 12px 12px;
 }
 
 .catalog-card-actions .btn {
@@ -1714,17 +1743,17 @@ html, body {
 .custom-targets-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .custom-target-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
+    gap: 10px;
+    padding: 8px 10px;
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(0, 217, 255, 0.2);
-    border-radius: 6px;
+    border-radius: 4px;
     transition: border-color 200ms;
 }
 
@@ -1733,8 +1762,8 @@ html, body {
 }
 
 .target-number {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1742,38 +1771,64 @@ html, body {
     border-radius: 50%;
     color: #00d9ff;
     font-weight: 600;
+    font-size: 12px;
     flex-shrink: 0;
+}
+
+.target-thumbnail {
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.target-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .target-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .target-name {
     color: white;
     font-weight: 500;
-    margin-bottom: 4px;
+    font-size: 14px;
 }
 
-.target-details {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.target-details .badge {
-    padding: 2px 8px;
+.target-info .object-type-badge {
+    padding: 4px 8px;
     background: rgba(0, 217, 255, 0.2);
-    border-radius: 3px;
-    font-size: 11px;
+    border-radius: 4px;
+    font-size: 10px;
     text-transform: uppercase;
     color: #00d9ff;
+    display: inline-block;
+    flex-shrink: 0;
+    width: fit-content;
 }
 
-.target-details .detail {
-    font-size: 12px;
+.target-info .detail {
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.remove-target-btn {
+    flex-shrink: 0;
+    padding: 4px 10px !important;
+    font-size: 11px !important;
 }
 
 /* Saved Plans Section */

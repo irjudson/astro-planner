@@ -19,6 +19,7 @@ class PlannerService:
 
     def __init__(self, db: Session):
         """Initialize all required services."""
+        self.db = db
         self.ephemeris = EphemerisService()
         self.catalog = CatalogService(db)
         self.comet_service = CometService(db)
@@ -26,7 +27,7 @@ class PlannerService:
         self.scheduler = SchedulerService()
         self.exporter = ExportService()
         self.light_pollution = LightPollutionService()
-        self.image_preview = ImagePreviewService()
+        self.image_preview = ImagePreviewService(db=db)
 
     def generate_plan(self, request: PlanRequest) -> ObservingPlan:
         """

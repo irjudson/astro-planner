@@ -107,3 +107,22 @@ class ConstellationName(Base):
     id = Column(Integer, primary_key=True, index=True)
     abbreviation = Column(String(3), nullable=False, unique=True)  # And, Ori, etc.
     full_name = Column(String(50), nullable=False)  # Andromeda, Orion, etc.
+    common_name = Column(String(100), nullable=True)  # The Princess, The Hunter, etc.
+
+
+class ImageSourceStats(Base):
+    """Image source performance tracking table."""
+
+    __tablename__ = "image_source_stats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_name = Column(String(50), nullable=False, unique=True)  # sdss, panstarrs, etc.
+    total_requests = Column(Integer, nullable=False, default=0)
+    successful_requests = Column(Integer, nullable=False, default=0)
+    failed_requests = Column(Integer, nullable=False, default=0)
+    avg_response_time_ms = Column(Float, nullable=True)
+    avg_quality_score = Column(Float, nullable=True)
+    priority_score = Column(Float, nullable=True)
+    last_used = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
