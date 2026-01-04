@@ -280,7 +280,31 @@ const CatalogSearch = {
         if (ra === null || ra === undefined || dec === null || dec === undefined) {
             return 'N/A';
         }
-        return `${ra.toFixed(2)}° / ${dec.toFixed(2)}°`;
+        return `${this.formatRA(ra)} / ${this.formatDec(dec)}`;
+    },
+
+    /**
+     * Format RA in hours:minutes:seconds
+     */
+    formatRA(ra) {
+        // Convert degrees to hours (360° = 24h)
+        const hours = ra / 15.0;
+        const h = Math.floor(hours);
+        const m = Math.floor((hours - h) * 60);
+        const s = Math.floor(((hours - h) * 60 - m) * 60);
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    },
+
+    /**
+     * Format Dec in degrees:arcminutes:arcseconds
+     */
+    formatDec(dec) {
+        const sign = dec >= 0 ? '+' : '-';
+        const absDec = Math.abs(dec);
+        const d = Math.floor(absDec);
+        const m = Math.floor((absDec - d) * 60);
+        const s = Math.floor(((absDec - d) * 60 - m) * 60);
+        return `${sign}${d.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     },
 
     /**
