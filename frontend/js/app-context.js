@@ -332,3 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
     AppContext.init();
     console.log('AppContext initialized');
 });
+
+// Make AppContext globally accessible
+window.AppContext = AppContext;

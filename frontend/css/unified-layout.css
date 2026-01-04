@@ -21,6 +21,7 @@ html, body {
     background: #0a0e27;
     overflow: hidden;
     box-sizing: border-box;
+    transition: grid-template-rows 250ms ease-out;
 }
 
 /* Adjust grid when drawer is open - shrink main content to make room */
@@ -764,7 +765,7 @@ html, body {
 .catalog-view {
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
 }
 
@@ -799,8 +800,9 @@ html, body {
     gap: 16px;
     overflow-y: auto;
     align-content: start;
-    flex: 1;
+    flex: 1 1 auto;
     min-height: 0;
+    transition: flex-basis 250ms ease-out;
 }
 
 @media (max-width: 1200px) {
