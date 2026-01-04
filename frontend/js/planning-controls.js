@@ -467,6 +467,23 @@ const PlanningControls = {
     },
 
     /**
+     * Format ISO time to HH:MM
+     */
+    formatTime(isoTime) {
+        if (!isoTime) return '--';
+        try {
+            const date = new Date(isoTime);
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        } catch (e) {
+            return '--';
+        }
+    },
+
+    /**
      * Handle export button click
      */
     handleExport(format) {
@@ -621,14 +638,14 @@ const PlanningControls = {
             plannedTargets.style.display = 'block';
             const tbody = document.getElementById('planned-targets-body');
             if (tbody) {
-                tbody.innerHTML = planData.plan.scheduled_targets.map(target => `
+                tbody.innerHTML = planData.plan.scheduled_targets.map(schedTarget => `
                     <tr>
-                        <td>${target.start_time || '--'}</td>
-                        <td>${this.escapeHtml(target.name || target.target_name)}</td>
-                        <td>${this.escapeHtml(target.type || '--')}</td>
-                        <td>${target.altitude_deg ? target.altitude_deg.toFixed(1) + '°' : '--'}</td>
-                        <td>${target.duration_minutes ? target.duration_minutes + ' min' : '--'}</td>
-                        <td>${target.priority || '--'}</td>
+                        <td>${this.formatTime(schedTarget.start_time)}</td>
+                        <td>${this.escapeHtml(schedTarget.target?.name || schedTarget.target_name || '--')}</td>
+                        <td>${this.escapeHtml(schedTarget.target?.object_type || schedTarget.type || '--')}</td>
+                        <td>${schedTarget.start_altitude ? schedTarget.start_altitude.toFixed(1) + '°' : (schedTarget.altitude_deg ? schedTarget.altitude_deg.toFixed(1) + '°' : '--')}</td>
+                        <td>${schedTarget.duration_minutes ? schedTarget.duration_minutes + ' min' : '--'}</td>
+                        <td>${schedTarget.score?.total_score ? schedTarget.score.total_score.toFixed(2) : '--'}</td>
                     </tr>
                 `).join('');
             }
@@ -649,7 +666,17 @@ const PlanningControls = {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                // Try to get error detail from response
+                let errorMsg = `HTTP ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.detail) {
+                        errorMsg = errorData.detail;
+                    }
+                } catch (e) {
+                    // Failed to parse error, use status code
+                }
+                throw new Error(errorMsg);
             }
 
             // Reload the plans list
@@ -664,7 +691,13 @@ const PlanningControls = {
 
         } catch (error) {
             console.error('Error deleting plan:', error);
-            alert('Error deleting plan: ' + error.message);
+
+            // Show error notification
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(255, 100, 100, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000; max-width: 400px;';
+            notification.textContent = error.message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 5000);
         }
     },
 
