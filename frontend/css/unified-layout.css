@@ -799,7 +799,8 @@ html, body {
     gap: 16px;
     overflow-y: auto;
     align-content: start;
-    /* Height will be set by JavaScript based on available space */
+    flex: 1;
+    min-height: 0;
 }
 
 @media (max-width: 1200px) {

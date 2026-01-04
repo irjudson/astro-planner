@@ -135,26 +135,40 @@ const PlanningControls = {
      * Handle Create Custom Plan button click
      */
     async handleCreateCustomPlan() {
+        console.log('handleCreateCustomPlan called');
+
         // Get selected targets from AppState
-        const selectedTargets = AppState.discovery?.selectedTargets || [];
+        const selectedTargets = window.AppState?.discovery?.selectedTargets || [];
+        console.log('Selected targets:', selectedTargets);
 
         if (selectedTargets.length === 0) {
             alert('Please select at least one target from the catalog');
             return;
         }
 
+        console.log('Creating custom plan with', selectedTargets.length, 'targets');
+
         // Switch to planning workflow
         if (window.AppContext) {
+            console.log('Switching to planning context');
             AppContext.switchContext('planning');
 
             // Expand Planning workflow section
             const planningSection = document.getElementById('planning-section');
             if (planningSection && planningSection.classList.contains('collapsed')) {
+                console.log('Expanding planning section');
                 AppContext.toggleWorkflowSection('planning');
             }
-        }
 
-        console.log('Creating custom plan with', selectedTargets.length, 'targets');
+            // Show notification
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+            notification.textContent = `Custom plan created with ${selectedTargets.length} target${selectedTargets.length > 1 ? 's' : ''}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2000);
+        } else {
+            console.error('AppContext not found!');
+        }
     },
 
     /**
