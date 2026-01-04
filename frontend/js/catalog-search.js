@@ -14,6 +14,7 @@ const CatalogSearch = {
     init() {
         this.attachEventListeners();
         this.loadCatalogData(); // Load initial data
+        this.updateSelectedTargetsList(); // Initialize selected targets list
     },
 
     /**
@@ -343,12 +344,24 @@ const CatalogSearch = {
 
         // Update AppState
         if (window.AppState) {
-            if (!AppState.discovery.selectedTargets.find(t => t.name === item.name)) {
+            const exists = AppState.discovery.selectedTargets.find(t => t.name === item.name);
+            if (!exists) {
                 AppState.discovery.selectedTargets.push(item);
                 AppState.save();
 
+                console.log('Target added. Total selected:', AppState.discovery.selectedTargets.length);
+
                 // Update Custom Plan Builder panel
                 this.updateSelectedTargetsList();
+
+                // Show confirmation
+                const notification = document.createElement('div');
+                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+                notification.textContent = `Added ${item.name} to plan`;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 2000);
+            } else {
+                alert(`${item.name} is already in your plan`);
             }
         }
     },
@@ -358,7 +371,98 @@ const CatalogSearch = {
      */
     handleViewDetails(item) {
         console.log('Viewing details:', item);
-        // TODO: Implement details modal or panel
+
+        // Create modal content
+        const modalHtml = `
+            <div class="modal" id="target-details-modal" style="display: flex;">
+                <div class="modal-content modal-dark" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2>${this.escapeHtml(item.name || 'Unknown Target')}</h2>
+                        <button class="modal-close" id="target-details-close">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="target-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Type:</span>
+                                <span class="detail-value">${this.escapeHtml(item.type || 'Unknown')}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Constellation:</span>
+                                <span class="detail-value">${this.escapeHtml(item.constellation || 'N/A')}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Magnitude:</span>
+                                <span class="detail-value">${item.magnitude !== null && item.magnitude !== undefined ? item.magnitude.toFixed(1) : 'N/A'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Right Ascension:</span>
+                                <span class="detail-value">${item.ra !== null && item.ra !== undefined ? item.ra.toFixed(4) + '°' : 'N/A'}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Declination:</span>
+                                <span class="detail-value">${item.dec !== null && item.dec !== undefined ? item.dec.toFixed(4) + '°' : 'N/A'}</span>
+                            </div>
+                            ${item.size ? `
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value">${this.escapeHtml(item.size)}</span>
+                            </div>
+                            ` : ''}
+                            ${item.common_name ? `
+                            <div class="detail-row">
+                                <span class="detail-label">Common Name:</span>
+                                <span class="detail-value">${this.escapeHtml(item.common_name)}</span>
+                            </div>
+                            ` : ''}
+                            ${item.description ? `
+                            <div class="detail-row" style="flex-direction: column; align-items: flex-start;">
+                                <span class="detail-label">Description:</span>
+                                <p class="detail-value" style="margin-top: 8px; line-height: 1.6;">${this.escapeHtml(item.description)}</p>
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div style="margin-top: 20px; display: flex; gap: 12px;">
+                            <button class="btn btn-primary" id="add-from-details-btn" style="flex: 1;">Add to Plan</button>
+                            <button class="btn btn-secondary" id="close-details-btn" style="flex: 1;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove existing modal if any
+        const existingModal = document.getElementById('target-details-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // Add event listeners
+        const modal = document.getElementById('target-details-modal');
+        const closeBtn = document.getElementById('target-details-close');
+        const closeDetailsBtn = document.getElementById('close-details-btn');
+        const addFromDetailsBtn = document.getElementById('add-from-details-btn');
+
+        const closeModal = () => {
+            if (modal) modal.remove();
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (closeDetailsBtn) closeDetailsBtn.addEventListener('click', closeModal);
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        }
+
+        if (addFromDetailsBtn) {
+            addFromDetailsBtn.addEventListener('click', () => {
+                this.handleAddToPlan(item);
+                closeModal();
+            });
+        }
     },
 
     /**

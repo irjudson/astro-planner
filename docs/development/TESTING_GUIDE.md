@@ -14,9 +14,9 @@ docker-compose ps
 ```
 
 You should see:
-- ✅ `astro-planner` - Main API (port 9247)
-- ✅ `astro-planner-celery` - Background worker
-- ✅ `astro-planner-redis` - Task queue
+- ✅ `astronomus` - Main API (port 9247)
+- ✅ `astronomus-celery` - Background worker
+- ✅ `astronomus-redis` - Task queue
 
 All should show status `Up` and be healthy.
 
@@ -30,7 +30,7 @@ Expected output:
 ```json
 {
   "status": "healthy",
-  "service": "astro-planner-api",
+  "service": "astronomus-api",
   "version": "1.0.0",
   "telescope_connected": false
 }
@@ -42,10 +42,10 @@ Verify both containers have Docker CLI:
 
 ```bash
 # Main API container
-docker exec astro-planner docker --version
+docker exec astronomus docker --version
 
 # Celery worker container
-docker exec astro-planner-celery docker --version
+docker exec astronomus-celery docker --version
 ```
 
 Both should return: `Docker version 28.5.2, build ecc6942` (or similar)
@@ -293,7 +293,7 @@ docker-compose logs -f celery-worker
 
 **Check main API logs:**
 ```bash
-docker-compose logs -f astro-planner
+docker-compose logs -f astronomus
 ```
 
 **Restart services:**
@@ -491,7 +491,7 @@ find fits/sessions/ -type f -mtime +30 -delete
 pip list --outdated
 
 # Check Docker image sizes
-docker images | grep astro-planner
+docker images | grep astronomus
 
 # Review and archive old sessions
 ```

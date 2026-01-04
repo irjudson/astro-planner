@@ -9,7 +9,7 @@ The Astro Planner is a Python FastAPI-based astrophotography session planner for
 
 ### 1.1 Catalog Service (`backend/app/services/catalog_service.py`)
 
-**Location:** `/home/irjudson/Projects/astro-planner/backend/app/services/catalog_service.py`
+**Location:** `/home/irjudson/Projects/astronomus/backend/app/services/catalog_service.py`
 
 **Purpose:** Manages deep sky object (DSO) catalog stored in SQLite database.
 
@@ -47,7 +47,7 @@ class DSOTarget:
 
 ### 1.2 Catalog Import Script (`backend/scripts/import_catalog.py`)
 
-**Location:** `/home/irjudson/Projects/astro-planner/backend/scripts/import_catalog.py`
+**Location:** `/home/irjudson/Projects/astronomus/backend/scripts/import_catalog.py`
 
 **Purpose:** Import NGC and IC catalog objects from pyongc library into SQLite database
 
@@ -266,7 +266,7 @@ catalog_id: M31, NGC224, IC434
 
 ### 2.3 Telescope Service (`backend/app/services/telescope_service.py`)
 
-**Location:** `/home/irjudson/Projects/astro-planner/backend/app/services/telescope_service.py`
+**Location:** `/home/irjudson/Projects/astronomus/backend/app/services/telescope_service.py`
 
 **Execution Phases for Each Target:**
 1. **Goto** - Slew to target coordinates (timeout: 180s, retries: 3)
@@ -297,7 +297,7 @@ SETTLE_TIME = 2.0  # seconds to settle after operations
 
 ### 3.1 Frontend Files
 
-**Location:** `/home/irjudson/Projects/astro-planner/frontend/`
+**Location:** `/home/irjudson/Projects/astronomus/frontend/`
 
 **Files:**
 - `index.html` - Main application interface (planning + execution + catalog browser)
@@ -665,7 +665,7 @@ SETTLE_TIME = 2 seconds between operations
 
 ```
 Backend:
-  /home/irjudson/Projects/astro-planner/backend/
+  /home/irjudson/Projects/astronomus/backend/
   ├── app/
   │   ├── main.py                      # FastAPI app entry point
   │   ├── api/
@@ -699,14 +699,14 @@ Backend:
   └── .env.example
 
 Frontend:
-  /home/irjudson/Projects/astro-planner/frontend/
+  /home/irjudson/Projects/astronomus/frontend/
   ├── index.html                       # Main application UI
   ├── catalog.html                     # Catalog browser UI
   ├── plan.html                        # Plan viewer UI
   └── tron-theme.css                   # Styling
 
 Configuration:
-  /home/irjudson/Projects/astro-planner/
+  /home/irjudson/Projects/astronomus/
   ├── docker-compose.yml               # Docker setup
   ├── docker/
   │   └── Dockerfile

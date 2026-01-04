@@ -51,6 +51,10 @@ const AppState = {
     execution: {
         activeTab: 'execution', // execution | library | telemetry | liveview
         currentTarget: null,
+        exposureTime: 10,
+        gain: 80,
+        frameCount: 50,
+        ditheringEnabled: false,
         queue: [],
         sessionData: {},
         library: []
@@ -76,7 +80,11 @@ const AppState = {
 
     // User preferences
     preferences: {
-        units: 'metric' // 'metric' (SI) or 'imperial' (US)
+        units: 'metric', // 'metric' (SI) or 'imperial' (US)
+        latitude: null,
+        longitude: null,
+        elevation: null,
+        defaultDeviceId: null
     },
 
     // Persist state to localStorage

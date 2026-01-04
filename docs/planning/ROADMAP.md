@@ -722,7 +722,7 @@ Frontend (Upload) → FastAPI → Redis Queue → Celery Workers → Siril/Astro
 
 ### Feature Requests
 Submit feature requests via GitHub Issues:
-https://github.com/irjudson/astro-planner/issues
+https://github.com/irjudson/astronomus/issues
 
 ---
 

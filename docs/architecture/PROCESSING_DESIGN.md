@@ -820,7 +820,7 @@ websockets==12.0  # For progress updates
 **Docker Setup**:
 ```bash
 # Build processing worker image
-docker build -f docker/processing-worker.Dockerfile -t astro-planner/processing-worker:latest .
+docker build -f docker/processing-worker.Dockerfile -t astronomus/processing-worker:latest .
 
 # Start services
 docker-compose up -d
@@ -1138,7 +1138,7 @@ class ProcessingService:
 
     def __init__(self):
         self.docker_client = docker.from_env()
-        self.processing_image = "astro-planner/processing-worker:latest"
+        self.processing_image = "astronomus/processing-worker:latest"
         self.data_dir = Path("/data/processing")
 
     async def execute_pipeline(

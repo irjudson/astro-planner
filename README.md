@@ -1,4 +1,4 @@
-# Astro Planner
+# Astronomus
 
 > Intelligent observing session planner for astrophotography with Seestar S50 integration
 
@@ -8,9 +8,9 @@
 
 ---
 
-## What is Astro Planner?
+## What is Astronomus?
 
-Astro Planner is a comprehensive observing session planning tool that helps astrophotographers maximize their imaging time by intelligently scheduling deep sky objects throughout the night. The application accounts for astronomical phenomena, weather conditions, and equipment limitations to create optimal observation plans.
+Astronomus is a comprehensive observing session planning tool that helps astrophotographers maximize their imaging time by intelligently scheduling deep sky objects throughout the night. The application accounts for astronomical phenomena, weather conditions, and equipment limitations to create optimal observation plans.
 
 **Perfect for:**
 - 🔭 Seestar S50 telescope users
@@ -118,8 +118,8 @@ open http://localhost:9247
 
 ```bash
 # Setup
-git clone https://github.com/irjudson/astro-planner.git
-cd astro-planner/backend
+git clone https://github.com/irjudson/astronomus.git
+cd astronomus/backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -169,7 +169,7 @@ chmod 600 backend/secrets/seestar_private_key.pem
 ### Getting Help
 
 If you need assistance obtaining the key:
-- Open an issue: [GitHub Issues](https://github.com/irjudson/astro-planner/issues)
+- Open an issue: [GitHub Issues](https://github.com/irjudson/astronomus/issues)
 - Contact the maintainer for instructions
 
 **Note:** The key is extracted from the official Seestar app and is required for the authentication protocol used by firmware 6.45+. This is the same key used by the official app.
@@ -374,13 +374,13 @@ Targets setting within the lookahead window (30 minutes) receive priority bonus 
 docker-compose up -d
 
 # Run test suite
-docker exec astro-planner pytest
+docker exec astronomus pytest
 
 # Run with coverage
-docker exec astro-planner pytest --cov=app
+docker exec astronomus pytest --cov=app
 
 # Run specific test
-docker exec astro-planner pytest tests/test_planner_service.py
+docker exec astronomus pytest tests/test_planner_service.py
 ```
 
 **Test Coverage:** 471 tests passing, 3 skipped
@@ -460,9 +460,9 @@ MIT License - See [LICENSE](LICENSE) for details
 
 **Documentation:** [docs/INDEX.md](docs/INDEX.md)
 
-**Issues:** [GitHub Issues](https://github.com/irjudson/astro-planner/issues)
+**Issues:** [GitHub Issues](https://github.com/irjudson/astronomus/issues)
 
-**Discussions:** [GitHub Discussions](https://github.com/irjudson/astro-planner/discussions) (for questions)
+**Discussions:** [GitHub Discussions](https://github.com/irjudson/astronomus/discussions) (for questions)
 
 ---
 

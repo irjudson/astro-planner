@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astro Planner</title>
+    <title>Astronomus</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="tron-theme.css?v=8">
     <link rel="stylesheet" href="css/unified-layout.css?v=8">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -25,7 +26,7 @@
             </div>
 
             <!-- Connection Status -->
-            <div class="status-item clickable" id="connection-status-compact" title="Click for details">
+            <div class="status-item clickable" id="connection-status-compact">
                 <span class="status-indicator disconnected"></span>
                 <span class="status-label">Disconnected</span>
                 <button id="connect-btn-compact" class="btn-icon" disabled title="Connect">⚡</button>
@@ -93,8 +94,10 @@
                                 </div>
 
                                 <!-- Actions -->
-                                <button id="apply-filters-btn" class="btn btn-primary">Apply Filters</button>
-                                <button id="clear-filters-btn" class="btn btn-secondary">Clear</button>
+                                <div class="button-group">
+                                    <button id="apply-filters-btn" class="btn btn-primary">Apply Filters</button>
+                                    <button id="clear-filters-btn" class="btn btn-secondary">Clear</button>
+                                </div>
                             </div>
                         </div>
 
@@ -501,25 +504,248 @@
 
                 <!-- Planning View (Planning Context) -->
                 <div class="planning-view" id="planning-view" style="display: none;">
-                    <div class="view-placeholder">
-                        <h2>Planning Results</h2>
-                        <p>Plan generation results will appear here</p>
+                    <!-- Plan Summary Card -->
+                    <div class="plan-summary-card" id="plan-summary" style="display: none;">
+                        <div class="plan-summary-header">
+                            <h3>Observation Plan</h3>
+                            <span class="plan-date" id="plan-summary-date">--</span>
+                        </div>
+                        <div class="plan-summary-stats">
+                            <div class="stat-item">
+                                <label>Total Targets:</label>
+                                <span id="plan-total-targets">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Duration:</label>
+                                <span id="plan-duration">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Start Time:</label>
+                                <span id="plan-start">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>End Time:</label>
+                                <span id="plan-end">--</span>
+                            </div>
+                        </div>
+
+                        <!-- Export Actions -->
+                        <div class="plan-actions">
+                            <button class="btn btn-secondary btn-sm" id="export-pdf-btn">Export PDF</button>
+                            <button class="btn btn-secondary btn-sm" id="export-csv-btn">Export CSV</button>
+                            <button class="btn btn-secondary btn-sm" id="export-ical-btn">Export iCal</button>
+                        </div>
+                    </div>
+
+                    <!-- Scheduled Targets Table -->
+                    <div class="planned-targets" id="planned-targets" style="display: none;">
+                        <h4>Scheduled Targets</h4>
+                        <table class="targets-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Target</th>
+                                    <th>Type</th>
+                                    <th>Alt</th>
+                                    <th>Duration</th>
+                                    <th>Priority</th>
+                                </tr>
+                            </thead>
+                            <tbody id="planned-targets-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="plan-empty-state" id="plan-empty-state">
+                        <h2>No Plan Generated</h2>
+                        <p>Configure your observation parameters and click "Generate Plan" to create an optimized observation schedule.</p>
                     </div>
                 </div>
 
                 <!-- Execution View (Execution Context) -->
                 <div class="execution-view" id="execution-view" style="display: none;">
-                    <div class="view-placeholder">
-                        <h2>Execution</h2>
-                        <p>Telescope control and imaging will appear here</p>
+                    <div class="execution-unified-layout">
+                        <!-- Left Panel: Execution Controls & Telemetry -->
+                        <div class="execution-left-panel">
+                            <div class="execution-section">
+                                <h3>Execution Queue</h3>
+                                <div id="execution-queue" class="execution-queue">
+                                    <p class="text-secondary">No targets in queue</p>
+                                </div>
+                                <div class="execution-buttons">
+                                    <button class="btn btn-primary" id="start-execution-main-btn" disabled>Start Execution</button>
+                                    <button class="btn btn-secondary" id="pause-execution-btn" disabled>Pause</button>
+                                    <button class="btn btn-secondary" id="stop-execution-btn" disabled>Stop</button>
+                                </div>
+                            </div>
+
+                            <div class="execution-section">
+                                <h3>Telemetry</h3>
+                                <div class="telemetry-compact">
+                                    <div class="telemetry-item">
+                                        <span class="telemetry-label">RA:</span>
+                                        <span class="telemetry-value" id="telem-ra">--:--:--</span>
+                                    </div>
+                                    <div class="telemetry-item">
+                                        <span class="telemetry-label">Dec:</span>
+                                        <span class="telemetry-value" id="telem-dec">--°--'--"</span>
+                                    </div>
+                                    <div class="telemetry-item">
+                                        <span class="telemetry-label">Alt:</span>
+                                        <span class="telemetry-value" id="telem-alt">--°</span>
+                                    </div>
+                                    <div class="telemetry-item">
+                                        <span class="telemetry-label">Az:</span>
+                                        <span class="telemetry-value" id="telem-az">--°</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="execution-section">
+                                <h3>Session Statistics</h3>
+                                <div class="session-stats-compact">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Targets:</span>
+                                        <span class="stat-value" id="session-targets-completed">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Exposure:</span>
+                                        <span class="stat-value" id="session-total-exposure">0h 0m</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Duration:</span>
+                                        <span class="stat-value" id="session-duration">0h 0m</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Live View -->
+                        <div class="execution-right-panel">
+                            <div class="liveview-container">
+                                <div class="liveview-header">
+                                    <h3>Live View</h3>
+                                    <div class="liveview-controls-inline">
+                                        <button class="btn btn-sm btn-primary" id="start-liveview-btn">Start</button>
+                                        <button class="btn btn-sm btn-secondary" id="stop-liveview-btn" disabled>Stop</button>
+                                        <button class="btn btn-sm btn-secondary" id="snapshot-btn" disabled>Snapshot</button>
+                                    </div>
+                                </div>
+                                <div class="liveview-frame" id="liveview-frame">
+                                    <p class="text-secondary">Live view not available</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Processing View (Processing Context) -->
                 <div class="processing-view" id="processing-view" style="display: none;">
-                    <div class="view-placeholder">
-                        <h2>Processing</h2>
-                        <p>Image processing workspace will appear here</p>
+                    <div class="processing-layout">
+                        <!-- Library Browser -->
+                        <div class="processing-files">
+                            <div class="processing-header">
+                                <h3>Image Library</h3>
+                                <button class="btn btn-sm btn-secondary" id="transfer-files-btn">Transfer</button>
+                            </div>
+                            <div class="library-browser">
+                                <div class="library-toolbar-compact">
+                                    <input type="text" id="library-search" class="form-control form-control-sm" placeholder="Search...">
+                                    <select id="library-filter" class="form-select form-select-sm">
+                                        <option value="all">All</option>
+                                        <option value="new">New</option>
+                                        <option value="needs_more">Needs More</option>
+                                        <option value="complete">Complete</option>
+                                    </select>
+                                </div>
+                                <div id="library-grid" class="library-grid-compact">
+                                    <p class="text-secondary">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- File Browser (Processing Files) -->
+                        <div class="processing-files">
+                            <div class="processing-header">
+                                <h3>Processing Files</h3>
+                                <button class="btn btn-sm btn-secondary" id="refresh-files-btn">Refresh</button>
+                            </div>
+                            <div class="file-browser" id="file-browser">
+                                <div class="file-list" id="file-list">
+                                    <p class="text-secondary">No files available</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Processing Panel -->
+                        <div class="processing-panel">
+                            <div class="processing-header">
+                                <h3>Processing Operations</h3>
+                            </div>
+
+                            <div class="processing-content">
+                                <!-- Selected Files -->
+                                <div class="selected-files-section">
+                                    <h4>Selected Files</h4>
+                                    <div id="selected-files-list" class="selected-files-list">
+                                        <p class="text-secondary">No files selected</p>
+                                    </div>
+                                </div>
+
+                                <!-- Processing Operations -->
+                                <div class="operations-section">
+                                    <h4>Operations</h4>
+
+                                    <div class="form-group">
+                                        <label>Operation Type</label>
+                                        <select id="operation-type" class="form-select">
+                                            <option value="">Select operation...</option>
+                                            <option value="stack">Stack Images</option>
+                                            <option value="calibrate">Calibrate</option>
+                                            <option value="stretch">Stretch</option>
+                                            <option value="gradient">Gradient Removal</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Output Format</label>
+                                        <select id="output-format" class="form-select">
+                                            <option value="fits">FITS</option>
+                                            <option value="tiff">TIFF</option>
+                                            <option value="png">PNG</option>
+                                            <option value="jpg">JPG</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="output-filename">Output Filename</label>
+                                        <input type="text" id="output-filename" class="form-control" placeholder="output">
+                                    </div>
+
+                                    <button class="btn btn-primary" id="start-processing-btn" disabled>Start Processing</button>
+                                </div>
+
+                                <!-- Processing Jobs -->
+                                <div class="jobs-section">
+                                    <h4>Processing Queue</h4>
+                                    <div id="processing-jobs" class="processing-jobs">
+                                        <p class="text-secondary">No active jobs</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="processing-preview">
+                            <div class="processing-header">
+                                <h3>Preview</h3>
+                            </div>
+                            <div class="preview-container" id="preview-container">
+                                <p class="text-secondary">No preview available</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -543,7 +769,7 @@
 
         <!-- Connection Modal -->
         <div class="modal" id="connection-modal" style="display: none;">
-            <div class="modal-content">
+            <div class="modal-content modal-dark">
                 <div class="modal-header">
                     <h2>Device Connection</h2>
                     <button class="modal-close" id="connection-modal-close">×</button>
@@ -648,6 +874,29 @@
                     </div>
 
                     <div class="settings-section">
+                        <h3>Location</h3>
+                        <div class="form-group">
+                            <label for="settings-latitude">Latitude</label>
+                            <input type="number" id="settings-latitude" class="form-control" step="0.0001" placeholder="e.g., 37.7749">
+                            <p class="form-help">Latitude in decimal degrees (North positive, South negative)</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="settings-longitude">Longitude</label>
+                            <input type="number" id="settings-longitude" class="form-control" step="0.0001" placeholder="e.g., -122.4194">
+                            <p class="form-help">Longitude in decimal degrees (East positive, West negative)</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="settings-elevation">Elevation (meters)</label>
+                            <input type="number" id="settings-elevation" class="form-control" step="1" placeholder="e.g., 100">
+                            <p class="form-help">Elevation above sea level in meters</p>
+                        </div>
+                        <div class="form-group" style="display: flex; gap: 8px;">
+                            <button id="detect-location-btn" class="btn btn-secondary" style="flex: 1;">Detect Location</button>
+                            <button id="save-location-btn" class="btn btn-primary" style="flex: 1;">Save Location</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
                         <h3>Display Preferences</h3>
                         <div class="form-group">
                             <label for="units-toggle">Units</label>
@@ -670,11 +919,16 @@
     <script src="js/app-state.js"></script>
     <script src="js/units.js"></script>
     <script src="js/app-context.js"></script>
+    <script src="js/panels-manager.js"></script>
     <script src="js/connection-manager.js"></script>
     <script src="js/weather-widget.js"></script>
+    <script src="js/telescope-capabilities.js"></script>
+    <script src="js/execution-manager.js"></script>
+    <script src="js/execution-tabs.js"></script>
     <script src="js/catalog-layout.js"></script>
     <script src="js/catalog-search.js"></script>
     <script src="js/planning-controls.js"></script>
+    <script src="js/processing-controls.js"></script>
     <script src="js/preferences.js"></script>
 </body>
 </html>

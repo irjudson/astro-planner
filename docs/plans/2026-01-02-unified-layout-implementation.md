@@ -16,7 +16,7 @@
 
 **Files:**
 - Backup: `frontend/index.html` → `frontend/index.html.backup`
-- Backup: `frontend/astro-planner.css` → `frontend/astro-planner.css.backup`
+- Backup: `frontend/astronomus.css` → `frontend/astronomus.css.backup`
 - Create: `frontend/js/app-context.js`
 - Create: `frontend/js/app-state.js`
 - Create: `frontend/css/unified-layout.css`
@@ -24,8 +24,8 @@
 **Step 1: Backup existing files**
 
 ```bash
-cp /home/irjudson/Projects/astro-planner/frontend/index.html /home/irjudson/Projects/astro-planner/frontend/index.html.backup
-cp /home/irjudson/Projects/astro-planner/frontend/astro-planner.css /home/irjudson/Projects/astro-planner/frontend/astro-planner.css.backup
+cp /home/irjudson/Projects/astronomus/frontend/index.html /home/irjudson/Projects/astronomus/frontend/index.html.backup
+cp /home/irjudson/Projects/astronomus/frontend/astronomus.css /home/irjudson/Projects/astronomus/frontend/astronomus.css.backup
 ```
 
 Expected: Backup files created
@@ -35,20 +35,20 @@ Expected: Backup files created
 Create empty files for context and state management:
 
 ```bash
-touch /home/irjudson/Projects/astro-planner/frontend/js/app-context.js
-touch /home/irjudson/Projects/astro-planner/frontend/js/app-state.js
+touch /home/irjudson/Projects/astronomus/frontend/js/app-context.js
+touch /home/irjudson/Projects/astronomus/frontend/js/app-state.js
 ```
 
 **Step 3: Create new CSS file**
 
 ```bash
-touch /home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css
+touch /home/irjudson/Projects/astronomus/frontend/css/unified-layout.css
 ```
 
 **Step 4: Commit**
 
 ```bash
-git add frontend/index.html.backup frontend/astro-planner.css.backup frontend/js/app-context.js frontend/js/app-state.js frontend/css/unified-layout.css
+git add frontend/index.html.backup frontend/astronomus.css.backup frontend/js/app-context.js frontend/js/app-state.js frontend/css/unified-layout.css
 git commit -m "chore: Backup old files and create foundation for unified layout"
 ```
 
@@ -61,7 +61,7 @@ git commit -m "chore: Backup old files and create foundation for unified layout"
 
 **Step 1: Write new minimal index.html**
 
-Replace entire contents of `/home/irjudson/Projects/astro-planner/frontend/index.html`:
+Replace entire contents of `/home/irjudson/Projects/astronomus/frontend/index.html`:
 
 ```html
 <!DOCTYPE html>
@@ -176,7 +176,7 @@ Replace entire contents of `/home/irjudson/Projects/astro-planner/frontend/index
 
 **Step 2: Verify HTML loads**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Expected: Page loads with minimal structure (no styling yet)
 
 **Step 3: Commit**
@@ -195,7 +195,7 @@ git commit -m "feat: Add minimal unified layout HTML structure"
 
 **Step 1: Write 3-zone layout CSS**
 
-Add to `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css`:
+Add to `/home/irjudson/Projects/astronomus/frontend/css/unified-layout.css`:
 
 ```css
 /* ==========================================
@@ -401,7 +401,7 @@ Add to `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css`:
 
 **Step 2: Test responsive layout**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Expected: 3-zone layout visible on desktop, sidebar hidden on mobile
 
@@ -421,7 +421,7 @@ git commit -m "feat: Add core 3-zone layout CSS with responsive behavior"
 
 **Step 1: Add panel styles**
 
-Append to `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css`:
+Append to `/home/irjudson/Projects/astronomus/frontend/css/unified-layout.css`:
 
 ```css
 /* ==========================================
@@ -545,7 +545,7 @@ Append to `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css
 
 **Step 2: Test panel styles**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Expected: Panels and workflow sections have proper styling
 
@@ -565,7 +565,7 @@ git commit -m "feat: Add panel and workflow section CSS styles"
 
 **Step 1: Write state management code**
 
-Add to `/home/irjudson/Projects/astro-planner/frontend/js/app-state.js`:
+Add to `/home/irjudson/Projects/astronomus/frontend/js/app-state.js`:
 
 ```javascript
 // ==========================================
@@ -652,7 +652,7 @@ const AppState = {
                 currentContext: this.currentContext,
                 drawer: this.drawer
             };
-            localStorage.setItem('astro-planner-state', JSON.stringify(stateToPersist));
+            localStorage.setItem('astronomus-state', JSON.stringify(stateToPersist));
         } catch (e) {
             console.warn('Failed to save state:', e);
         }
@@ -661,7 +661,7 @@ const AppState = {
     // Load state from localStorage
     load() {
         try {
-            const saved = localStorage.getItem('astro-planner-state');
+            const saved = localStorage.getItem('astronomus-state');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 this.workflowSections = parsed.workflowSections || this.workflowSections;
@@ -700,7 +700,7 @@ git commit -m "feat: Add application state management"
 
 **Step 1: Write context manager code**
 
-Add to `/home/irjudson/Projects/astro-planner/frontend/js/app-context.js`:
+Add to `/home/irjudson/Projects/astronomus/frontend/js/app-context.js`:
 
 ```javascript
 // ==========================================
@@ -888,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 **Step 2: Test workflow toggling**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Test:
 1. Click "DISCOVERY" header - should collapse
@@ -916,7 +916,7 @@ git commit -m "feat: Add context manager with workflow and drawer toggling"
 
 **Step 1: Replace connection panel placeholder**
 
-In `/home/irjudson/Projects/astro-planner/frontend/index.html`, find the connection panel section and replace with:
+In `/home/irjudson/Projects/astronomus/frontend/index.html`, find the connection panel section and replace with:
 
 ```html
 <!-- Connection Panel (Always Visible) -->
@@ -960,7 +960,7 @@ In `/home/irjudson/Projects/astro-planner/frontend/index.html`, find the connect
 
 **Step 2: Verify HTML renders**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Expected: Connection panel shows device dropdown, connect button, status, weather widget
 
@@ -980,7 +980,7 @@ git commit -m "feat: Add Connection panel HTML structure"
 
 **Step 1: Add connection panel styles**
 
-Append to `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css`:
+Append to `/home/irjudson/Projects/astronomus/frontend/css/unified-layout.css`:
 
 ```css
 /* ==========================================
@@ -1137,7 +1137,7 @@ Append to `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css
 
 **Step 2: Test connection panel styling**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Expected: Connection panel is well-styled, button and status look correct
 
@@ -1157,7 +1157,7 @@ git commit -m "feat: Add Connection panel CSS styling"
 
 **Step 1: Write connection manager**
 
-Create `/home/irjudson/Projects/astro-planner/frontend/js/connection-manager.js`:
+Create `/home/irjudson/Projects/astronomus/frontend/js/connection-manager.js`:
 
 ```javascript
 // ==========================================
@@ -1309,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 **Step 2: Add script to index.html**
 
-In `/home/irjudson/Projects/astro-planner/frontend/index.html`, before `</body>`, add:
+In `/home/irjudson/Projects/astronomus/frontend/index.html`, before `</body>`, add:
 
 ```html
 <script src="js/connection-manager.js"></script>
@@ -1317,7 +1317,7 @@ In `/home/irjudson/Projects/astro-planner/frontend/index.html`, before `</body>`
 
 **Step 3: Test connection functionality**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Test:
 1. Device dropdown should populate from API
@@ -1342,7 +1342,7 @@ git commit -m "feat: Add connection manager with device selection and connection
 
 **Step 1: Write weather widget**
 
-Create `/home/irjudson/Projects/astro-planner/frontend/js/weather-widget.js`:
+Create `/home/irjudson/Projects/astronomus/frontend/js/weather-widget.js`:
 
 ```javascript
 // ==========================================
@@ -1471,7 +1471,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 **Step 2: Add script to index.html**
 
-In `/home/irjudson/Projects/astro-planner/frontend/index.html`, before `</body>`, add:
+In `/home/irjudson/Projects/astronomus/frontend/index.html`, before `</body>`, add:
 
 ```html
 <script src="js/weather-widget.js"></script>
@@ -1479,7 +1479,7 @@ In `/home/irjudson/Projects/astro-planner/frontend/index.html`, before `</body>`
 
 **Step 3: Test weather widget**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Expected: Weather widget displays data (or "unavailable" if API not configured)
 
@@ -1501,7 +1501,7 @@ git commit -m "feat: Add weather widget with auto-updating conditions"
 
 **Step 1: Replace Discovery section placeholder**
 
-In `/home/irjudson/Projects/astro-planner/frontend/index.html`, find Discovery section and replace content with:
+In `/home/irjudson/Projects/astronomus/frontend/index.html`, find Discovery section and replace content with:
 
 ```html
 <!-- Discovery Workflow Section -->
@@ -1587,7 +1587,7 @@ In `/home/irjudson/Projects/astro-planner/frontend/index.html`, find Discovery s
 
 **Step 2: Add missing button styles**
 
-In `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css`, add:
+In `/home/irjudson/Projects/astronomus/frontend/css/unified-layout.css`, add:
 
 ```css
 .btn-sm {
@@ -1629,7 +1629,7 @@ In `/home/irjudson/Projects/astro-planner/frontend/css/unified-layout.css`, add:
 
 **Step 3: Test Discovery panels**
 
-Run: `docker-compose restart astro-planner`
+Run: `docker-compose restart astronomus`
 Navigate to: `http://localhost:9247`
 Expected: Discovery section shows Catalog Search and Custom Plan Builder panels
 

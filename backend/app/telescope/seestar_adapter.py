@@ -65,13 +65,14 @@ class SeestarAdapter(TelescopeAdapter):
         # Map Seestar states to generic telescope states
         state_mapping = {
             SeestarState.DISCONNECTED: TelescopeState.DISCONNECTED,
-            SeestarState.CONNECTING: TelescopeState.CONNECTING,
             SeestarState.CONNECTED: TelescopeState.CONNECTED,
             SeestarState.SLEWING: TelescopeState.SLEWING,
             SeestarState.TRACKING: TelescopeState.TRACKING,
-            SeestarState.EXPOSING: TelescopeState.EXPOSING,
-            SeestarState.ERROR: TelescopeState.ERROR,
+            SeestarState.FOCUSING: TelescopeState.SLEWING,  # Map focusing to slewing
+            SeestarState.IMAGING: TelescopeState.EXPOSING,  # Map imaging to exposing
+            SeestarState.PARKING: TelescopeState.SLEWING,   # Map parking to slewing
             SeestarState.PARKED: TelescopeState.PARKED,
+            SeestarState.ERROR: TelescopeState.ERROR,
         }
 
         generic_state = state_mapping.get(seestar_status.state, TelescopeState.ERROR)
@@ -80,19 +81,17 @@ class SeestarAdapter(TelescopeAdapter):
             connected=self.client.connected,
             state=generic_state,
             firmware_version=seestar_status.firmware_version,
-            ra=seestar_status.ra,
-            dec=seestar_status.dec,
-            alt=seestar_status.alt,
-            az=seestar_status.az,
+            ra=seestar_status.current_ra_hours,
+            dec=seestar_status.current_dec_degrees,
+            alt=None,  # Seestar doesn't provide alt/az in status
+            az=None,
             is_tracking=seestar_status.is_tracking,
-            is_exposing=seestar_status.is_exposing,
-            exposure_progress=seestar_status.exposure_progress,
-            temperature=seestar_status.sensor_temp,
+            is_exposing=(generic_state == TelescopeState.EXPOSING),
+            exposure_progress=None,  # Not available in current status
+            temperature=None,  # Not available in current status
             error_message=seestar_status.last_error,
             extra={
-                "dew_heater_on": seestar_status.dew_heater_on,
-                "stack_count": seestar_status.stack_count,
-                "total_exposure": seestar_status.total_exposure,
+                "current_target": seestar_status.current_target,
             },
         )
 
@@ -174,11 +173,10 @@ class SeestarAdapter(TelescopeAdapter):
         """Get Seestar-specific data."""
         status = self.client.status
         return {
-            "dew_heater_on": status.dew_heater_on,
-            "stack_count": status.stack_count,
-            "total_exposure": status.total_exposure,
-            "sensor_temp": status.sensor_temp,
-            "last_image_path": status.last_saved_image,
+            "current_target": status.current_target,
+            "firmware_version": status.firmware_version,
+            "last_error": status.last_error,
+            "last_update": status.last_update.isoformat() if status.last_update else None,
         }
 
     async def set_dew_heater(self, enabled: bool) -> bool:

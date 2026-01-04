@@ -398,9 +398,9 @@ Test all functionality:
 ## Files to Modify
 
 ### Complete Rewrites
-- `/home/irjudson/Projects/astro-planner/frontend/index.html` - Complete rewrite
-- `/home/irjudson/Projects/astro-planner/frontend/astro-planner.css` - Reorganize and cleanup
-- `/home/irjudson/Projects/astro-planner/frontend/app.js` - Add context management, remove old tab logic
+- `/home/irjudson/Projects/astronomus/frontend/index.html` - Complete rewrite
+- `/home/irjudson/Projects/astronomus/frontend/astronomus.css` - Reorganize and cleanup
+- `/home/irjudson/Projects/astronomus/frontend/app.js` - Add context management, remove old tab logic
 
 ### Review for Cleanup
 - Any JavaScript files with tab-specific logic

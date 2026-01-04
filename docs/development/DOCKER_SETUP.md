@@ -39,7 +39,7 @@ docker-compose up -d
 docker-compose logs -f
 
 # View logs for specific service
-docker-compose logs -f astro-planner
+docker-compose logs -f astronomus
 ```
 
 ### 3. Stop Services
@@ -56,7 +56,7 @@ docker-compose down -v
 
 ### Main Services
 
-1. **astro-planner** - Main API server
+1. **astronomus** - Main API server
    - Port: 9247
    - Health check: http://localhost:9247/api/health
    - Access UI: http://localhost:9247
@@ -115,13 +115,13 @@ docker-compose ps
 
 ```bash
 # Run tests
-docker-compose exec astro-planner pytest
+docker-compose exec astronomus pytest
 
 # Access Python shell
-docker-compose exec astro-planner python
+docker-compose exec astronomus python
 
 # Check database
-docker-compose exec astro-planner sqlite3 /app/data/astro_planner.db
+docker-compose exec astronomus sqlite3 /app/data/astro_planner.db
 ```
 
 ### Check Logs
@@ -131,11 +131,11 @@ docker-compose exec astro-planner sqlite3 /app/data/astro_planner.db
 docker-compose logs -f
 
 # Specific service
-docker-compose logs -f astro-planner
+docker-compose logs -f astronomus
 docker-compose logs -f celery-worker
 
 # Last N lines
-docker-compose logs --tail=100 astro-planner
+docker-compose logs --tail=100 astronomus
 ```
 
 ### Restart Services
@@ -145,7 +145,7 @@ docker-compose logs --tail=100 astro-planner
 docker-compose restart
 
 # Restart specific service
-docker-compose restart astro-planner
+docker-compose restart astronomus
 ```
 
 ## Clean Native System
@@ -196,22 +196,22 @@ If database initialization fails:
 rm -rf data/*.db
 
 # Restart services
-docker-compose restart astro-planner
+docker-compose restart astronomus
 ```
 
 ### View Container Logs
 
 ```bash
 # Detailed logs
-docker logs astro-planner
-docker logs astro-planner-celery
-docker logs astro-planner-redis
+docker logs astronomus
+docker logs astronomus-celery
+docker logs astronomus-redis
 ```
 
 ### Access Container Shell
 
 ```bash
-docker-compose exec astro-planner /bin/bash
+docker-compose exec astronomus /bin/bash
 ```
 
 ### Network Issues
@@ -220,10 +220,10 @@ Ensure containers can communicate:
 
 ```bash
 # Check network
-docker network inspect astro-planner_astro-planner-network
+docker network inspect astronomus_astronomus-network
 
 # Test connectivity
-docker-compose exec astro-planner ping redis
+docker-compose exec astronomus ping redis
 ```
 
 ### GPU Support for Processing
@@ -245,7 +245,7 @@ For development with hot-reload:
 version: '3.8'
 
 services:
-  astro-planner:
+  astronomus:
     volumes:
       - ./backend:/app:rw  # Mount source code
     environment:
@@ -314,7 +314,7 @@ docker-compose --profile monitoring up -d flower
 docker-compose logs -f
 
 # Export logs
-docker-compose logs > astro-planner.log
+docker-compose logs > astronomus.log
 ```
 
 ## Backup and Restore
@@ -323,22 +323,22 @@ docker-compose logs > astro-planner.log
 
 ```bash
 # Backup volumes
-docker run --rm -v astro-planner_redis-data:/data -v $(pwd):/backup \
+docker run --rm -v astronomus_redis-data:/data -v $(pwd):/backup \
   alpine tar czf /backup/redis-backup.tar.gz -C /data .
 
 # Backup database
-docker-compose exec astro-planner sqlite3 /app/data/astro_planner.db .dump > backup.sql
+docker-compose exec astronomus sqlite3 /app/data/astro_planner.db .dump > backup.sql
 ```
 
 ### Restore Data
 
 ```bash
 # Restore volumes
-docker run --rm -v astro-planner_redis-data:/data -v $(pwd):/backup \
+docker run --rm -v astronomus_redis-data:/data -v $(pwd):/backup \
   alpine tar xzf /backup/redis-backup.tar.gz -C /data
 
 # Restore database
-cat backup.sql | docker-compose exec -T astro-planner \
+cat backup.sql | docker-compose exec -T astronomus \
   sqlite3 /app/data/astro_planner.db
 ```
 

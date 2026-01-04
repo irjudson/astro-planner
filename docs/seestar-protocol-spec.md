@@ -286,7 +286,7 @@ Park the telescope at home position.
 
 ## Workflow for Automated Imaging
 
-For the astro-planner application, the typical workflow would be:
+For the astronomus application, the typical workflow would be:
 
 1. **Connect** to telescope via TCP socket
 2. **Send UDP intro** (optional, for guest mode)

@@ -166,7 +166,7 @@ docker-compose up -d
 docker-compose logs -f
 
 # Restart after code changes
-docker-compose restart astro-planner
+docker-compose restart astronomus
 
 # Stop everything
 docker-compose down
@@ -233,7 +233,7 @@ redis-cli -n 1 KEYS '*'
 ## File Structure
 
 ```
-astro-planner/
+astronomus/
 ├── backend/
 │   ├── app/
 │   │   ├── api/          # FastAPI endpoints
@@ -263,7 +263,7 @@ astro-planner/
 
 1. Edit `backend/app/api/routes.py` or relevant router
 2. If using native dev: Code reloads automatically
-3. If using Docker: `docker-compose restart astro-planner`
+3. If using Docker: `docker-compose restart astronomus`
 4. Test at http://localhost:9247/docs
 
 ### Add a new Celery task

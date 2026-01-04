@@ -51,7 +51,7 @@ class TestHealthEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-        assert data["service"] == "astro-planner-api"
+        assert data["service"] == "astronomus-api"
         assert "version" in data
 
 

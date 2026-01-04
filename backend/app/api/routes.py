@@ -21,6 +21,8 @@ from app.api.planets import router as planet_router
 from app.api.plans import router as plans_router
 from app.api.processing import router as processing_router
 from app.api.settings import router as settings_router
+from app.api.telescope_features import router as telescope_features_router
+from app.api.user_preferences import router as user_preferences_router
 from app.database import get_db
 from app.models import DSOTarget, ExportFormat, Location, ObservingPlan, PlanRequest, ScheduledTarget
 from app.models.settings_models import SeestarDevice
@@ -40,6 +42,8 @@ router.include_router(plans_router)
 router.include_router(astronomy_router)
 router.include_router(settings_router)
 router.include_router(captures_router)
+router.include_router(telescope_features_router, prefix="/telescope/features", tags=["telescope-features"])
+router.include_router(user_preferences_router, prefix="/user", tags=["user"])
 
 # Telescope control (singleton adapter instance)
 telescope_adapter: Optional[TelescopeAdapter] = None
@@ -1280,7 +1284,7 @@ async def health_check():
     """
     return {
         "status": "healthy",
-        "service": "astro-planner-api",
+        "service": "astronomus-api",
         "version": "1.0.0",
         "telescope_connected": telescope_adapter is not None and telescope_adapter.connected,
     }

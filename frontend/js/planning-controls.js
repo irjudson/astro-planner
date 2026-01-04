@@ -47,6 +47,12 @@ const PlanningControls = {
         if (startExecBtn) {
             startExecBtn.addEventListener('click', () => this.handleStartExecution());
         }
+
+        // Create Custom Plan button
+        const createCustomPlanBtn = document.getElementById('create-custom-plan-btn');
+        if (createCustomPlanBtn) {
+            createCustomPlanBtn.addEventListener('click', () => this.handleCreateCustomPlan());
+        }
     },
 
     /**
@@ -75,7 +81,7 @@ const PlanningControls = {
     },
 
     /**
-     * Set default date/time to tonight
+     * Set default date/time to tonight and load location defaults
      */
     setDefaultDateTime() {
         const dateInput = document.getElementById('plan-date');
@@ -94,6 +100,61 @@ const PlanningControls = {
         if (endTimeInput) {
             endTimeInput.value = '04:00';
         }
+
+        // Load location defaults from preferences
+        this.updateLocationDefaults();
+    },
+
+    /**
+     * Update location fields with defaults from preferences
+     */
+    updateLocationDefaults() {
+        const latInput = document.getElementById('plan-latitude');
+        const lonInput = document.getElementById('plan-longitude');
+        const elevInput = document.getElementById('plan-elevation');
+        const deviceSelect = document.getElementById('plan-device');
+
+        if (latInput && AppState.preferences.latitude !== null) {
+            latInput.value = AppState.preferences.latitude;
+        }
+
+        if (lonInput && AppState.preferences.longitude !== null) {
+            lonInput.value = AppState.preferences.longitude;
+        }
+
+        if (elevInput && AppState.preferences.elevation !== null) {
+            elevInput.value = AppState.preferences.elevation;
+        }
+
+        if (deviceSelect && AppState.preferences.defaultDeviceId) {
+            deviceSelect.value = AppState.preferences.defaultDeviceId;
+        }
+    },
+
+    /**
+     * Handle Create Custom Plan button click
+     */
+    async handleCreateCustomPlan() {
+        // Get selected targets from AppState
+        const selectedTargets = AppState.discovery?.selectedTargets || [];
+
+        if (selectedTargets.length === 0) {
+            alert('Please select at least one target from the catalog');
+            return;
+        }
+
+        // Switch to planning workflow
+        if (window.AppContext) {
+            AppContext.switchContext('planning');
+
+            // Expand Planning workflow section
+            const planningSection = document.getElementById('planning-section');
+            if (planningSection && planningSection.classList.contains('collapsed')) {
+                AppContext.toggleWorkflowSection('planning');
+            }
+        }
+
+        console.log('Creating custom plan with', selectedTargets.length, 'targets');
     },
 
     /**
@@ -102,21 +163,91 @@ const PlanningControls = {
     async handleGeneratePlan() {
         console.log('Generating plan...');
 
-        // TODO: Implement actual plan generation API call
-        // For now, show mock plan summary
-        this.showPlanSummary({
-            total_targets: 5,
-            duration: '6h 30m',
-            start_time: '20:00',
-            end_time: '02:30',
-            date: document.getElementById('plan-date')?.value || new Date().toISOString().split('T')[0]
-        });
+        try {
+            // Gather plan parameters
+            const latitude = parseFloat(document.getElementById('plan-latitude')?.value);
+            const longitude = parseFloat(document.getElementById('plan-longitude')?.value);
+            const elevation = parseFloat(document.getElementById('plan-elevation')?.value) || 0;
+            const date = document.getElementById('plan-date')?.value;
+            const startTime = document.getElementById('plan-start-time')?.value;
+            const endTime = document.getElementById('plan-end-time')?.value;
+            const minAltitude = parseInt(document.getElementById('min-altitude')?.value) || 30;
+            const maxMoonPhase = parseInt(document.getElementById('max-moon-phase')?.value) || 50;
+            const deviceId = parseInt(document.getElementById('plan-device')?.value);
+
+            if (!latitude || !longitude) {
+                alert('Please enter location coordinates');
+                return;
+            }
+
+            if (!date || !startTime || !endTime) {
+                alert('Please enter observation date and time range');
+                return;
+            }
+
+            // Get selected targets
+            const selectedTargets = AppState.discovery?.selectedTargets || [];
+            const targetIds = selectedTargets.map(t => t.id).filter(id => id);
+
+            if (targetIds.length === 0) {
+                alert('Please select targets from the catalog first');
+                return;
+            }
+
+            // Call planning API
+            const response = await fetch('/api/plans/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    location: {
+                        latitude,
+                        longitude,
+                        elevation
+                    },
+                    observation_date: date,
+                    start_time: startTime,
+                    end_time: endTime,
+                    target_ids: targetIds,
+                    constraints: {
+                        min_altitude: minAltitude,
+                        max_moon_illumination: maxMoonPhase / 100
+                    },
+                    device_id: deviceId || null
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Plan generation failed');
+            }
+
+            const planData = await response.json();
+            console.log('Plan generated:', planData);
+
+            // Store plan in AppState
+            AppState.planning.generatedPlan = planData;
+            AppState.save();
+
+            // Show plan results
+            this.showPlanResults(planData);
+
+        } catch (error) {
+            console.error('Error generating plan:', error);
+            alert('Failed to generate plan: ' + error.message);
+        }
     },
 
     /**
-     * Show plan summary
+     * Show plan results
      */
-    showPlanSummary(planData) {
+    showPlanResults(planData) {
+        // Hide empty state
+        const emptyState = document.getElementById('plan-empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+
+        // Show plan summary
         const planSummary = document.getElementById('plan-summary');
         const planDate = document.getElementById('plan-summary-date');
         const totalTargets = document.getElementById('plan-total-targets');
@@ -124,15 +255,72 @@ const PlanningControls = {
         const startTime = document.getElementById('plan-start');
         const endTime = document.getElementById('plan-end');
 
-        if (planDate) planDate.textContent = planData.date;
-        if (totalTargets) totalTargets.textContent = planData.total_targets;
-        if (duration) duration.textContent = planData.duration;
-        if (startTime) startTime.textContent = planData.start_time;
-        if (endTime) endTime.textContent = planData.end_time;
+        if (planDate) planDate.textContent = planData.observation_date || '--';
+        if (totalTargets) totalTargets.textContent = planData.targets?.length || 0;
+        if (duration) duration.textContent = this.calculateDuration(planData.start_time, planData.end_time);
+        if (startTime) startTime.textContent = planData.start_time || '--';
+        if (endTime) endTime.textContent = planData.end_time || '--';
 
         if (planSummary) {
             planSummary.style.display = 'block';
         }
+
+        // Show planned targets table
+        const plannedTargets = document.getElementById('planned-targets');
+        const targetsBody = document.getElementById('planned-targets-body');
+
+        if (targetsBody && planData.targets) {
+            targetsBody.innerHTML = planData.targets.map(target => `
+                <tr>
+                    <td>${target.start_time || '--'}</td>
+                    <td>${this.escapeHtml(target.name || '--')}</td>
+                    <td>${this.escapeHtml(target.type || '--')}</td>
+                    <td>${target.altitude ? target.altitude.toFixed(1) + '°' : '--'}</td>
+                    <td>${target.duration || '--'}</td>
+                    <td>${target.priority || '--'}</td>
+                </tr>
+            `).join('');
+
+            if (plannedTargets) {
+                plannedTargets.style.display = 'block';
+            }
+        }
+    },
+
+    /**
+     * Calculate duration between two times
+     */
+    calculateDuration(startTime, endTime) {
+        if (!startTime || !endTime) return '--';
+
+        try {
+            const [startHour, startMin] = startTime.split(':').map(Number);
+            const [endHour, endMin] = endTime.split(':').map(Number);
+
+            let durationMins = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+
+            // Handle crossing midnight
+            if (durationMins < 0) {
+                durationMins += 24 * 60;
+            }
+
+            const hours = Math.floor(durationMins / 60);
+            const mins = durationMins % 60;
+
+            return `${hours}h ${mins}m`;
+        } catch (e) {
+            return '--';
+        }
+    },
+
+    /**
+     * Escape HTML
+     */
+    escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     /**

@@ -6,22 +6,101 @@ const ConnectionManager = {
     init() {
         this.loadDevices();
         this.setupEventListeners();
+        this.setupModalListeners();
+    },
+
+    setupModalListeners() {
+        const statusCompact = document.getElementById('connection-status-compact');
+        const modal = document.getElementById('connection-modal');
+        const closeBtn = document.getElementById('connection-modal-close');
+        const openSettingsBtn = document.getElementById('open-settings-btn');
+
+        if (statusCompact) {
+            statusCompact.addEventListener('click', () => {
+                this.openModal();
+            });
+        }
+
+        if (closeBtn && modal) {
+            closeBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        }
+
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        if (openSettingsBtn) {
+            openSettingsBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+                const settingsBtn = document.getElementById('settings-btn');
+                if (settingsBtn) {
+                    settingsBtn.click();
+                }
+            });
+        }
+    },
+
+    openModal() {
+        const modal = document.getElementById('connection-modal');
+        if (modal) {
+            this.updateModalDisplay();
+            modal.style.display = 'flex';
+        }
+    },
+
+    updateModalDisplay() {
+        const deviceNameEl = document.getElementById('connection-device-name');
+        const statusIndicatorEl = document.getElementById('connection-indicator-modal');
+        const statusTextEl = document.getElementById('connection-status-text-modal');
+
+        if (deviceNameEl) {
+            deviceNameEl.textContent = AppState.connection.deviceId ?
+                `Device ${AppState.connection.deviceId}` : 'None configured';
+        }
+
+        if (statusIndicatorEl) {
+            statusIndicatorEl.className = AppState.connection.isConnected ?
+                'status-indicator connected' : 'status-indicator disconnected';
+        }
+
+        if (statusTextEl) {
+            statusTextEl.textContent = AppState.connection.isConnected ?
+                'Connected' : 'Disconnected';
+        }
     },
 
     setupEventListeners() {
         const deviceSelect = document.getElementById('device-select');
         const connectBtn = document.getElementById('connect-btn');
+        const connectBtnCompact = document.getElementById('connect-btn-compact');
 
         if (deviceSelect) {
             deviceSelect.addEventListener('change', (e) => {
                 const deviceId = e.target.value;
-                connectBtn.disabled = !deviceId;
+                if (connectBtn) connectBtn.disabled = !deviceId;
+                if (connectBtnCompact) connectBtnCompact.disabled = !deviceId;
                 AppState.connection.deviceId = deviceId;
             });
         }
 
         if (connectBtn) {
             connectBtn.addEventListener('click', () => {
+                if (AppState.connection.isConnected) {
+                    this.disconnect();
+                } else {
+                    this.connect();
+                }
+            });
+        }
+
+        if (connectBtnCompact) {
+            connectBtnCompact.addEventListener('click', () => {
                 if (AppState.connection.isConnected) {
                     this.disconnect();
                 } else {
@@ -46,6 +125,7 @@ const ConnectionManager = {
 
             select.innerHTML = '<option value="">Select device...</option>';
 
+            let defaultDeviceId = null;
             devices.forEach(device => {
                 const option = document.createElement('option');
                 option.value = device.id;
@@ -53,12 +133,24 @@ const ConnectionManager = {
                 option.dataset.port = device.control_port || 4700;
                 option.textContent = `${device.name} (${device.control_host})`;
                 select.appendChild(option);
+
+                if (device.is_default) {
+                    defaultDeviceId = device.id;
+                }
             });
 
-            // Restore selected device if any
+            // Auto-select default device if no device is already selected
+            if (!AppState.connection.deviceId && defaultDeviceId) {
+                AppState.connection.deviceId = defaultDeviceId;
+            }
+
+            // Restore or select default device
             if (AppState.connection.deviceId) {
                 select.value = AppState.connection.deviceId;
-                document.getElementById('connect-btn').disabled = false;
+                const connectBtn = document.getElementById('connect-btn');
+                const connectBtnCompact = document.getElementById('connect-btn-compact');
+                if (connectBtn) connectBtn.disabled = false;
+                if (connectBtnCompact) connectBtnCompact.disabled = false;
             }
         } catch (error) {
             console.error('Failed to load devices:', error);
@@ -93,16 +185,26 @@ const ConnectionManager = {
             this.updateStatus('connected', 'Connected');
 
             const connectBtn = document.getElementById('connect-btn');
+            const connectBtnCompact = document.getElementById('connect-btn-compact');
+
             if (connectBtn) {
                 connectBtn.textContent = 'Disconnect';
                 connectBtn.classList.remove('btn-primary');
                 connectBtn.classList.add('btn-danger');
             }
 
+            if (connectBtnCompact) {
+                connectBtnCompact.title = 'Disconnect';
+                connectBtnCompact.textContent = '⏏';
+            }
+
             // Switch to execution context when device connects
             if (window.AppContext) {
                 AppContext.switchContext('execution');
             }
+
+            // Dispatch event for other components
+            window.dispatchEvent(new Event('telescope-connected'));
         } catch (error) {
             console.error('Connection error:', error);
             this.updateStatus('error', 'Connection failed');
@@ -126,11 +228,21 @@ const ConnectionManager = {
             this.updateStatus('disconnected', 'Disconnected');
 
             const connectBtn = document.getElementById('connect-btn');
+            const connectBtnCompact = document.getElementById('connect-btn-compact');
+
             if (connectBtn) {
                 connectBtn.textContent = 'Connect';
                 connectBtn.classList.remove('btn-danger');
                 connectBtn.classList.add('btn-primary');
             }
+
+            if (connectBtnCompact) {
+                connectBtnCompact.title = 'Connect';
+                connectBtnCompact.textContent = '⚡';
+            }
+
+            // Dispatch event for other components
+            window.dispatchEvent(new Event('telescope-disconnected'));
         } catch (error) {
             console.error('Disconnect error:', error);
             this.showError(error.message || 'Failed to disconnect');
@@ -138,16 +250,20 @@ const ConnectionManager = {
     },
 
     updateStatus(state, text) {
-        const indicator = document.querySelector('.status-indicator');
-        const statusText = document.querySelector('.status-text');
+        // Update compact status bar
+        const compactIndicator = document.querySelector('#connection-status-compact .status-indicator');
+        const compactLabel = document.querySelector('#connection-status-compact .status-label');
 
-        if (indicator) {
-            indicator.className = 'status-indicator ' + state;
+        if (compactIndicator) {
+            compactIndicator.className = 'status-indicator ' + state;
         }
 
-        if (statusText) {
-            statusText.textContent = text;
+        if (compactLabel) {
+            compactLabel.textContent = text;
         }
+
+        // Update modal if open
+        this.updateModalDisplay();
     },
 
     showError(message) {

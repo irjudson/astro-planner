@@ -1,17 +1,17 @@
 services:
   # Main API service
-  astro-planner:
+  astronomus:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: astro-planner
+    container_name: astronomus
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
       - "9247:9247"
     environment:
-      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
-      - TEST_DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/test_astro_planner
+      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
+      - TEST_DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/test_astronomus
       - HOST=0.0.0.0
       - PORT=9247
       - RELOAD=False
@@ -36,14 +36,14 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: astro-planner-worker
+    container_name: astronomus-worker
     runtime: nvidia
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4
     environment:
       - REDIS_URL=redis://:buffalo-jump@redis:6379/1
-      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
       - FITS_DIR=${FITS_DIR:-/fits}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -73,13 +73,13 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: astro-planner-beat
+    container_name: astronomus-beat
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: celery -A app.tasks.celery_app beat --loglevel=info
     environment:
       - REDIS_URL=redis://:buffalo-jump@redis:6379/1
-      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+      - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
       - DEFAULT_LAT=${DEFAULT_LAT:-45.9183}
       - DEFAULT_LON=${DEFAULT_LON:--111.5433}
       - DEFAULT_ELEVATION=${DEFAULT_ELEVATION:-1234}
@@ -102,7 +102,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: astro-planner-flower
+    container_name: astronomus-flower
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: celery -A app.tasks.celery_app flower --port=5555
