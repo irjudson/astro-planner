@@ -76,6 +76,12 @@ const PlanningControls = {
             schedulePlanBtn.addEventListener('click', () => this.handleSchedulePlan());
         }
 
+        // Cancel Edit Plan button
+        const cancelEditBtn = document.getElementById('cancel-edit-plan-btn');
+        if (cancelEditBtn) {
+            cancelEditBtn.addEventListener('click', () => this.handleCancelEditPlan());
+        }
+
         // Observing preference fields - save on change
         const minAltInput = document.getElementById('min-altitude');
         const maxMoonInput = document.getElementById('max-moon-phase');
@@ -946,6 +952,44 @@ const PlanningControls = {
                 AppContext.toggleWorkflowSection('execution');
             }
         }
+    },
+
+    /**
+     * Handle Cancel Edit Plan button - return to viewing the loaded plan
+     */
+    handleCancelEditPlan() {
+        if (!this.currentLoadedPlan) {
+            console.warn('No loaded plan to return to');
+            return;
+        }
+
+        // Hide custom plan targets
+        const customPlanSection = document.getElementById('custom-plan-targets');
+        if (customPlanSection) customPlanSection.style.display = 'none';
+
+        // Show loaded plan summary and targets table again
+        const loadedPlanSummary = document.getElementById('loaded-plan-summary');
+        const plannedTargets = document.getElementById('planned-targets');
+        if (loadedPlanSummary) loadedPlanSummary.style.display = 'block';
+        if (plannedTargets) plannedTargets.style.display = 'block';
+
+        // Clear selected targets to avoid confusion
+        if (window.AppState) {
+            AppState.discovery.selectedTargets = [];
+            AppState.save();
+        }
+
+        // Update catalog search view if available
+        if (window.CatalogSearch && window.CatalogSearch.updateSelectedTargetsList) {
+            CatalogSearch.updateSelectedTargetsList();
+        }
+
+        // Show notification
+        const notification = document.createElement('div');
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+        notification.textContent = 'Edit cancelled - returned to plan view';
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
     },
 
     /**
