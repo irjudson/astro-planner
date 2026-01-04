@@ -36,18 +36,33 @@ const AppContext = {
         const workflowHeaders = document.querySelectorAll('.workflow-header');
 
         workflowHeaders.forEach(header => {
-            header.addEventListener('click', () => {
-                const workflow = header.dataset.workflow;
+            const workflow = header.dataset.workflow;
+            const chevron = header.querySelector('.workflow-chevron');
+            const title = header.querySelector('.workflow-title');
 
-                // Toggle the workflow section
-                this.toggleWorkflowSection(workflow);
+            // Click on chevron - toggle expand/collapse
+            if (chevron) {
+                chevron.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleWorkflowSection(workflow);
+                });
+            }
 
-                // Switch context when workflow is expanded
-                const section = document.getElementById(`${workflow}-section`);
-                if (section && !section.classList.contains('collapsed')) {
+            // Click on title - switch context (and expand if collapsed)
+            if (title) {
+                title.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const section = document.getElementById(`${workflow}-section`);
+
+                    // If section is collapsed, expand it first
+                    if (section && section.classList.contains('collapsed')) {
+                        this.toggleWorkflowSection(workflow);
+                    }
+
+                    // Switch to this context
                     this.switchContext(workflow);
-                }
-            });
+                });
+            }
         });
     },
 

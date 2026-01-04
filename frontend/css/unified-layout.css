@@ -446,21 +446,33 @@ html, body {
     transition: background 200ms;
 }
 
-.workflow-header:hover {
-    background: rgba(0, 217, 255, 0.12);
-}
-
 .workflow-title {
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
     color: #00d9ff;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 200ms;
+    flex: 1;
+}
+
+.workflow-title:hover {
+    background: rgba(0, 217, 255, 0.15);
 }
 
 .workflow-chevron {
     font-size: 12px;
     color: #00d9ff;
-    transition: transform 300ms ease-in-out;
+    transition: transform 300ms ease-in-out, background 200ms;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.workflow-chevron:hover {
+    background: rgba(0, 217, 255, 0.15);
 }
 
 .workflow-section.collapsed .workflow-chevron {
