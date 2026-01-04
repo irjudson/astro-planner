@@ -47,6 +47,7 @@ def execute_observation_plan_task(
     telescope_host: str,
     telescope_port: int = 4700,
     park_when_done: bool = True,
+    saved_plan_id: int = None,
 ):
     """
     Execute an observation plan on the telescope.
@@ -60,6 +61,7 @@ def execute_observation_plan_task(
         telescope_host: Telescope IP address
         telescope_port: Telescope TCP port
         park_when_done: Whether to park telescope when done
+        saved_plan_id: Optional ID of saved plan this execution is based on
     """
     db = SessionLocal()
 
@@ -73,6 +75,7 @@ def execute_observation_plan_task(
             telescope_host=telescope_host,
             telescope_port=telescope_port,
             park_when_done=park_when_done,
+            saved_plan_id=saved_plan_id,
             started_at=datetime.utcnow(),
         )
         db.add(execution)

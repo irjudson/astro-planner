@@ -62,6 +62,7 @@ class TelescopeConnectRequest(BaseModel):
 class ExecutePlanRequest(BaseModel):
     scheduled_targets: List[ScheduledTarget]
     park_when_done: bool = True  # Default to True (park telescope when complete)
+    saved_plan_id: Optional[int] = None  # Optional: link execution to saved plan
 
 
 @router.post("/plan", response_model=ObservingPlan)
@@ -963,6 +964,7 @@ async def execute_plan(request: ExecutePlanRequest):
             telescope_host=telescope_host,
             telescope_port=telescope_port,
             park_when_done=request.park_when_done,
+            saved_plan_id=request.saved_plan_id,
         )
 
         return {
