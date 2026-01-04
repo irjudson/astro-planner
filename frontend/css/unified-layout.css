@@ -23,6 +23,11 @@ html, body {
     box-sizing: border-box;
 }
 
+/* Adjust grid when drawer is open - shrink main content to make room */
+.app-container:has(.app-drawer:not(.closed)) {
+    grid-template-rows: auto minmax(200px, 1fr) 400px;
+}
+
 /* ==========================================
    COMPACT STATUS BAR (Full Width)
    ========================================== */
@@ -190,6 +195,86 @@ html, body {
     color: white;
     margin: 0;
     font-size: 16px;
+}
+
+/* Drawer Section Content */
+.drawer-section {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.drawer-section h4 {
+    color: rgba(0, 217, 255, 0.9);
+    font-size: 14px;
+    margin-bottom: 12px;
+    margin-top: 0;
+}
+
+.filter-grid,
+.constraint-grid,
+.diagnostic-grid,
+.quality-settings {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.filter-item,
+.constraint-item,
+.diagnostic-item,
+.quality-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-item label,
+.constraint-item label,
+.diagnostic-item label,
+.quality-item label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.range-inputs span {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+}
+
+.diagnostic-value {
+    color: rgba(0, 217, 255, 0.9);
+    font-weight: 500;
+}
+
+.batch-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.preview-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.preview-settings label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.preview-settings input[type="checkbox"] {
+    cursor: pointer;
 }
 
 .settings-btn {
