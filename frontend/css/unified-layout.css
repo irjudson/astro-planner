@@ -1034,9 +1034,10 @@ html, body {
     padding: 24px;
 }
 
-.modal-content {
+/* Dark modal override for tron-theme.css light modals */
+.modal-dark.modal-content {
     background: #0a0e27 !important;
-    border: 1px solid rgba(0, 217, 255, 0.3);
+    border: 1px solid rgba(0, 217, 255, 0.3) !important;
     border-radius: 8px;
     max-width: 600px;
     width: 100%;
@@ -1044,9 +1045,20 @@ html, body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    color: #ffffff !important;
 }
 
-.modal-header {
+.modal-dark.modal-content h2,
+.modal-dark.modal-content h3,
+.modal-dark.modal-content h4,
+.modal-dark.modal-content label,
+.modal-dark.modal-content p,
+.modal-dark.modal-content span,
+.modal-dark.modal-content div {
+    color: #ffffff !important;
+}
+
+.modal-dark .modal-header {
     padding: 16px 20px;
     border-bottom: 1px solid rgba(0, 217, 255, 0.3);
     display: flex;
@@ -1055,18 +1067,18 @@ html, body {
     background: #0a0e27 !important;
 }
 
-.modal-header h2 {
+.modal-dark .modal-header h2 {
     margin: 0;
-    color: #ffffff;
+    color: #ffffff !important;
     font-size: 18px;
     font-weight: 600;
     text-decoration: none;
 }
 
-.modal-close {
+.modal-dark .modal-close {
     background: transparent;
     border: none;
-    color: #00d9ff;
+    color: #00d9ff !important;
     font-size: 24px;
     cursor: pointer;
     padding: 0;
@@ -1079,27 +1091,27 @@ html, body {
     transition: background 200ms;
 }
 
-.modal-close:hover {
+.modal-dark .modal-close:hover {
     background: rgba(0, 217, 255, 0.1);
 }
 
-.modal-body {
+.modal-dark .modal-body {
     padding: 20px;
     overflow-y: auto;
     overflow-x: hidden;
     flex: 1;
-    color: white;
-    background: #0a0e27;
+    color: #ffffff !important;
+    background: #0a0e27 !important;
     max-height: calc(90vh - 120px);
 }
 
-.modal-footer {
+.modal-dark .modal-footer {
     padding: 16px 20px;
     border-top: 1px solid rgba(0, 217, 255, 0.3);
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Weather Modal */
