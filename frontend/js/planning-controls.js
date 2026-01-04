@@ -14,6 +14,7 @@ const PlanningControls = {
         this.loadDevicesForPlanning();
         this.setDefaultDateTime();
         this.loadSavedPlans();
+        this.loadObservingPreferences();
     },
 
     /**
@@ -61,6 +62,25 @@ const PlanningControls = {
         const editPlanBtn = document.getElementById('edit-plan-btn');
         if (editPlanBtn) {
             editPlanBtn.addEventListener('click', () => this.handleEditPlan());
+        }
+
+        // Observing preference fields - save on change
+        const minAltInput = document.getElementById('min-altitude');
+        const maxMoonInput = document.getElementById('max-moon-phase');
+        const avoidMoonCheckbox = document.getElementById('avoid-moon');
+        const prioritizeTransitsCheckbox = document.getElementById('prioritize-transits');
+
+        if (minAltInput) {
+            minAltInput.addEventListener('change', () => this.saveObservingPreferences());
+        }
+        if (maxMoonInput) {
+            maxMoonInput.addEventListener('change', () => this.saveObservingPreferences());
+        }
+        if (avoidMoonCheckbox) {
+            avoidMoonCheckbox.addEventListener('change', () => this.saveObservingPreferences());
+        }
+        if (prioritizeTransitsCheckbox) {
+            prioritizeTransitsCheckbox.addEventListener('change', () => this.saveObservingPreferences());
         }
     },
 
@@ -187,6 +207,87 @@ const PlanningControls = {
 
         if (deviceSelect && AppState.preferences.defaultDeviceId) {
             deviceSelect.value = AppState.preferences.defaultDeviceId;
+        }
+    },
+
+    /**
+     * Save observing preferences to database
+     */
+    async saveObservingPreferences() {
+        const minAltInput = document.getElementById('min-altitude');
+        const maxMoonInput = document.getElementById('max-moon-phase');
+        const avoidMoonCheckbox = document.getElementById('avoid-moon');
+        const prioritizeTransitsCheckbox = document.getElementById('prioritize-transits');
+
+        if (!minAltInput || !maxMoonInput || !avoidMoonCheckbox || !prioritizeTransitsCheckbox) {
+            return;
+        }
+
+        const prefs = {
+            min_altitude: parseFloat(minAltInput.value) || 30,
+            max_moon_phase: parseInt(maxMoonInput.value) || 50,
+            avoid_moon: avoidMoonCheckbox.checked,
+            prioritize_transits: prioritizeTransitsCheckbox.checked
+        };
+
+        try {
+            // Get current preferences first
+            const getResponse = await fetch('/api/user/preferences');
+            if (getResponse.ok) {
+                const currentPrefs = await getResponse.json();
+
+                // Merge with observing preferences
+                const updatedPrefs = {
+                    ...currentPrefs,
+                    ...prefs
+                };
+
+                const response = await fetch('/api/user/preferences', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedPrefs)
+                });
+
+                if (response.ok) {
+                    console.log('Observing preferences saved');
+                }
+            }
+        } catch (error) {
+            console.error('Error saving observing preferences:', error);
+        }
+    },
+
+    /**
+     * Load observing preferences from database
+     */
+    async loadObservingPreferences() {
+        try {
+            const response = await fetch('/api/user/preferences');
+            if (!response.ok) return;
+
+            const prefs = await response.json();
+
+            const minAltInput = document.getElementById('min-altitude');
+            const maxMoonInput = document.getElementById('max-moon-phase');
+            const avoidMoonCheckbox = document.getElementById('avoid-moon');
+            const prioritizeTransitsCheckbox = document.getElementById('prioritize-transits');
+
+            if (minAltInput && prefs.min_altitude !== undefined) {
+                minAltInput.value = prefs.min_altitude;
+            }
+            if (maxMoonInput && prefs.max_moon_phase !== undefined) {
+                maxMoonInput.value = prefs.max_moon_phase;
+            }
+            if (avoidMoonCheckbox && prefs.avoid_moon !== undefined) {
+                avoidMoonCheckbox.checked = prefs.avoid_moon;
+            }
+            if (prioritizeTransitsCheckbox && prefs.prioritize_transits !== undefined) {
+                prioritizeTransitsCheckbox.checked = prefs.prioritize_transits;
+            }
+
+            console.log('Observing preferences loaded');
+        } catch (error) {
+            console.error('Error loading observing preferences:', error);
         }
     },
 

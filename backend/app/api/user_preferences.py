@@ -13,11 +13,18 @@ router = APIRouter()
 
 class UserPreferences(BaseModel):
     """User preferences model."""
+    # Location preferences
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     elevation: Optional[float] = None
     units: str = "metric"
     default_device_id: Optional[int] = None
+
+    # Observing preferences
+    min_altitude: float = 30.0
+    max_moon_phase: int = 50
+    avoid_moon: bool = True
+    prioritize_transits: bool = False
 
 
 @router.get("/preferences", response_model=UserPreferences)
@@ -45,6 +52,23 @@ def get_user_preferences(db: Session = Depends(get_db)):
     device_setting = db.query(AppSetting).filter(AppSetting.key == "user.default_device_id").first()
     if device_setting:
         prefs.default_device_id = int(device_setting.value)
+
+    # Load observing preferences
+    min_alt_setting = db.query(AppSetting).filter(AppSetting.key == "user.min_altitude").first()
+    if min_alt_setting:
+        prefs.min_altitude = float(min_alt_setting.value)
+
+    max_moon_setting = db.query(AppSetting).filter(AppSetting.key == "user.max_moon_phase").first()
+    if max_moon_setting:
+        prefs.max_moon_phase = int(max_moon_setting.value)
+
+    avoid_moon_setting = db.query(AppSetting).filter(AppSetting.key == "user.avoid_moon").first()
+    if avoid_moon_setting:
+        prefs.avoid_moon = avoid_moon_setting.value.lower() == "true"
+
+    prioritize_transits_setting = db.query(AppSetting).filter(AppSetting.key == "user.prioritize_transits").first()
+    if prioritize_transits_setting:
+        prefs.prioritize_transits = prioritize_transits_setting.value.lower() == "true"
 
     return prefs
 
@@ -126,6 +150,59 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
                 description="User's default device ID"
             )
             db.add(device_setting)
+
+    # Update observing preferences
+    min_alt_setting = db.query(AppSetting).filter(AppSetting.key == "user.min_altitude").first()
+    if min_alt_setting:
+        min_alt_setting.value = str(preferences.min_altitude)
+    else:
+        min_alt_setting = AppSetting(
+            key="user.min_altitude",
+            value=str(preferences.min_altitude),
+            value_type="float",
+            category="observing",
+            description="Minimum target altitude (degrees)"
+        )
+        db.add(min_alt_setting)
+
+    max_moon_setting = db.query(AppSetting).filter(AppSetting.key == "user.max_moon_phase").first()
+    if max_moon_setting:
+        max_moon_setting.value = str(preferences.max_moon_phase)
+    else:
+        max_moon_setting = AppSetting(
+            key="user.max_moon_phase",
+            value=str(preferences.max_moon_phase),
+            value_type="int",
+            category="observing",
+            description="Maximum acceptable moon illumination (%)"
+        )
+        db.add(max_moon_setting)
+
+    avoid_moon_setting = db.query(AppSetting).filter(AppSetting.key == "user.avoid_moon").first()
+    if avoid_moon_setting:
+        avoid_moon_setting.value = str(preferences.avoid_moon)
+    else:
+        avoid_moon_setting = AppSetting(
+            key="user.avoid_moon",
+            value=str(preferences.avoid_moon),
+            value_type="bool",
+            category="observing",
+            description="Avoid bright moon in planning"
+        )
+        db.add(avoid_moon_setting)
+
+    prioritize_transits_setting = db.query(AppSetting).filter(AppSetting.key == "user.prioritize_transits").first()
+    if prioritize_transits_setting:
+        prioritize_transits_setting.value = str(preferences.prioritize_transits)
+    else:
+        prioritize_transits_setting = AppSetting(
+            key="user.prioritize_transits",
+            value=str(preferences.prioritize_transits),
+            value_type="bool",
+            category="observing",
+            description="Prioritize meridian transits"
+        )
+        db.add(prioritize_transits_setting)
 
     db.commit()
 
