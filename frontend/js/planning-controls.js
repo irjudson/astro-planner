@@ -4,6 +4,8 @@
  */
 
 const PlanningControls = {
+    currentLoadedPlan: null, // Store currently loaded plan for editing
+
     /**
      * Initialize planning controls
      */
@@ -53,6 +55,12 @@ const PlanningControls = {
         const createCustomPlanBtn = document.getElementById('create-custom-plan-btn');
         if (createCustomPlanBtn) {
             createCustomPlanBtn.addEventListener('click', () => this.handleCreateCustomPlan());
+        }
+
+        // Edit Plan button
+        const editPlanBtn = document.getElementById('edit-plan-btn');
+        if (editPlanBtn) {
+            editPlanBtn.addEventListener('click', () => this.handleEditPlan());
         }
     },
 
@@ -614,6 +622,9 @@ const PlanningControls = {
      * Display a loaded plan
      */
     displayLoadedPlan(planData) {
+        // Store plan data for editing
+        this.currentLoadedPlan = planData;
+
         // Hide empty state
         const emptyState = document.getElementById('plan-empty-state');
         const customPlanSection = document.getElementById('custom-plan-targets');
@@ -649,6 +660,101 @@ const PlanningControls = {
                     </tr>
                 `).join('');
             }
+        }
+    },
+
+    /**
+     * Handle Edit Plan button - load plan data into form for modification
+     */
+    handleEditPlan() {
+        if (!this.currentLoadedPlan || !window.AppState) {
+            console.error('No plan loaded or AppState not available');
+            return;
+        }
+
+        const plan = this.currentLoadedPlan.plan;
+
+        // Populate location fields
+        if (plan.location) {
+            const latInput = document.getElementById('plan-latitude');
+            const lonInput = document.getElementById('plan-longitude');
+            const elevInput = document.getElementById('plan-elevation');
+
+            if (latInput) latInput.value = plan.location.latitude;
+            if (lonInput) lonInput.value = plan.location.longitude;
+            if (elevInput) elevInput.value = plan.location.elevation || '';
+        }
+
+        // Populate date/time fields
+        const dateInput = document.getElementById('plan-date');
+        const startTimeInput = document.getElementById('plan-start-time');
+        const endTimeInput = document.getElementById('plan-end-time');
+
+        if (dateInput && this.currentLoadedPlan.observing_date) {
+            dateInput.value = this.currentLoadedPlan.observing_date;
+        }
+
+        if (startTimeInput && plan.session?.imaging_start) {
+            const startTime = new Date(plan.session.imaging_start);
+            startTimeInput.value = startTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        if (endTimeInput && plan.session?.imaging_end) {
+            const endTime = new Date(plan.session.imaging_end);
+            endTimeInput.value = endTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        // Extract targets from scheduled_targets and convert to catalog format
+        if (plan.scheduled_targets && plan.scheduled_targets.length > 0) {
+            AppState.discovery.selectedTargets = plan.scheduled_targets.map(schedTarget => ({
+                catalog_id: schedTarget.target?.catalog_id || schedTarget.catalog_id || '',
+                name: schedTarget.target?.name || schedTarget.name || 'Unknown',
+                type: schedTarget.target?.object_type || schedTarget.type || 'unknown',
+                constellation: schedTarget.target?.constellation || '',
+                magnitude: schedTarget.target?.magnitude,
+                size: schedTarget.target?.size_arcmin ? `${schedTarget.target.size_arcmin.toFixed(1)}'` : '',
+                ra_hours: schedTarget.target?.ra_hours,
+                dec_degrees: schedTarget.target?.dec_degrees
+            }));
+            AppState.save();
+        }
+
+        // Hide plan summary and scheduled targets
+        const planSummary = document.getElementById('plan-summary');
+        const plannedTargets = document.getElementById('planned-targets');
+        if (planSummary) planSummary.style.display = 'none';
+        if (plannedTargets) plannedTargets.style.display = 'none';
+
+        // Show custom plan targets
+        if (AppState.discovery.selectedTargets.length > 0) {
+            this.displayCustomPlanTargets(AppState.discovery.selectedTargets);
+        }
+
+        // Expand the planning panels
+        const locationPanel = document.getElementById('location-device-section');
+        if (locationPanel && locationPanel.classList.contains('collapsed')) {
+            const header = locationPanel.querySelector('.panel-header');
+            if (header) header.click();
+        }
+
+        // Show notification
+        const notification = document.createElement('div');
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+        notification.textContent = `Plan loaded for editing - ${AppState.discovery.selectedTargets.length} targets`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+
+        // Update catalog search view if available
+        if (window.CatalogSearch && window.CatalogSearch.updateSelectedTargetsList) {
+            CatalogSearch.updateSelectedTargetsList();
         }
     },
 
