@@ -108,7 +108,57 @@ const PlanningControls = {
     /**
      * Update location fields with defaults from preferences
      */
-    updateLocationDefaults() {
+    async updateLocationDefaults() {
+        console.log('updateLocationDefaults called');
+
+        // First, try to load fresh preferences from database
+        try {
+            const response = await fetch('/api/user/preferences');
+            if (response.ok) {
+                const prefs = await response.json();
+                console.log('Loaded preferences from API:', prefs);
+
+                // Update AppState
+                if (window.AppState) {
+                    AppState.preferences.latitude = prefs.latitude;
+                    AppState.preferences.longitude = prefs.longitude;
+                    AppState.preferences.elevation = prefs.elevation;
+                    AppState.preferences.defaultDeviceId = prefs.default_device_id;
+                }
+
+                // Update form fields
+                const latInput = document.getElementById('plan-latitude');
+                const lonInput = document.getElementById('plan-longitude');
+                const elevInput = document.getElementById('plan-elevation');
+                const deviceSelect = document.getElementById('plan-device');
+
+                if (latInput && prefs.latitude !== null) {
+                    latInput.value = prefs.latitude;
+                    console.log('Set latitude:', prefs.latitude);
+                }
+
+                if (lonInput && prefs.longitude !== null) {
+                    lonInput.value = prefs.longitude;
+                    console.log('Set longitude:', prefs.longitude);
+                }
+
+                if (elevInput && prefs.elevation !== null) {
+                    elevInput.value = prefs.elevation;
+                    console.log('Set elevation:', prefs.elevation);
+                }
+
+                if (deviceSelect && prefs.default_device_id) {
+                    deviceSelect.value = prefs.default_device_id;
+                    console.log('Set device:', prefs.default_device_id);
+                }
+
+                return;
+            }
+        } catch (error) {
+            console.warn('Failed to load preferences from API, using AppState:', error);
+        }
+
+        // Fallback to AppState if API fails
         const latInput = document.getElementById('plan-latitude');
         const lonInput = document.getElementById('plan-longitude');
         const elevInput = document.getElementById('plan-elevation');
@@ -447,3 +497,6 @@ const PlanningControls = {
 document.addEventListener('DOMContentLoaded', () => {
     PlanningControls.init();
 });
+
+// Make PlanningControls globally accessible
+window.PlanningControls = PlanningControls;

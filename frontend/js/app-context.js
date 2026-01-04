@@ -53,6 +53,11 @@ const AppContext = {
         if (isCollapsed) {
             section.classList.remove('collapsed');
             AppState.workflowSections[workflow].expanded = true;
+
+            // When planning section is expanded, refresh location defaults
+            if (workflow === 'planning' && window.PlanningControls) {
+                PlanningControls.updateLocationDefaults();
+            }
         } else {
             section.classList.add('collapsed');
             AppState.workflowSections[workflow].expanded = false;
@@ -145,6 +150,11 @@ const AppContext = {
 
             // Update drawer content
             this.updateDrawerContent(newContext);
+
+            // When switching to planning, refresh location defaults
+            if (newContext === 'planning' && window.PlanningControls) {
+                PlanningControls.updateLocationDefaults();
+            }
 
             // Update URL hash
             window.location.hash = `/${newContext}`;
