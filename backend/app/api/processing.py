@@ -14,7 +14,7 @@ from app.database import get_db
 from app.models.processing_models import ProcessingFile, ProcessingJob, ProcessingPipeline
 from app.tasks.processing_tasks import auto_process_task, process_file_task
 
-router = APIRouter(prefix="/process", tags=["processing"])
+router = APIRouter(prefix="/processing", tags=["processing"])
 
 
 # Pydantic models for requests/responses
@@ -46,6 +46,32 @@ class ComparisonRequest(BaseModel):
 # Processing data directory
 PROCESSING_DIR = Path(os.getenv("PROCESSING_DIR", "./data/processing"))
 PROCESSING_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@router.get("/files")
+async def list_processing_files():
+    """List all FITS files available for processing."""
+    fits_root = Path(os.getenv("FITS_DIR", "/fits"))
+
+    if not fits_root.exists():
+        return []
+
+    files = []
+
+    # Recursively find all FITS files
+    for fits_file in fits_root.rglob("*.fit*"):
+        if fits_file.is_file() and fits_file.suffix.lower() in [".fit", ".fits"]:
+            files.append({
+                "name": fits_file.name,
+                "path": str(fits_file.relative_to(fits_root)),
+                "size": fits_file.stat().st_size,
+                "modified": fits_file.stat().st_mtime
+            })
+
+    # Sort by modification time (newest first)
+    files.sort(key=lambda f: f["modified"], reverse=True)
+
+    return files
 
 
 @router.get("/browse")
