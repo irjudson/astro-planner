@@ -343,27 +343,41 @@ const CatalogSearch = {
         console.log('Adding to plan:', item);
 
         // Update AppState
-        if (window.AppState) {
-            const exists = AppState.discovery.selectedTargets.find(t => t.name === item.name);
-            if (!exists) {
-                AppState.discovery.selectedTargets.push(item);
-                AppState.save();
-
-                console.log('Target added. Total selected:', AppState.discovery.selectedTargets.length);
-
-                // Update Custom Plan Builder panel
-                this.updateSelectedTargetsList();
-
-                // Show confirmation
-                const notification = document.createElement('div');
-                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
-                notification.textContent = `Added ${item.name} to plan`;
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 2000);
-            } else {
-                alert(`${item.name} is already in your plan`);
-            }
+        if (!window.AppState) {
+            console.error('AppState not found!');
+            alert('Error: Application state not initialized');
+            return;
         }
+
+        console.log('Current selected targets:', AppState.discovery.selectedTargets);
+
+        const exists = AppState.discovery.selectedTargets.find(t => t.name === item.name);
+        if (exists) {
+            console.log('Target already exists in plan');
+            // Show notification instead of alert
+            const notification = document.createElement('div');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(255, 165, 0, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+            notification.textContent = `${item.name} is already in your plan`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2000);
+            return;
+        }
+
+        AppState.discovery.selectedTargets.push(item);
+        AppState.save();
+
+        console.log('Target added. Total selected:', AppState.discovery.selectedTargets.length);
+
+        // Update Custom Plan Builder panel
+        this.updateSelectedTargetsList();
+        console.log('updateSelectedTargetsList() called');
+
+        // Show confirmation
+        const notification = document.createElement('div');
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: rgba(0, 217, 255, 0.9); color: white; padding: 12px 20px; border-radius: 4px; z-index: 10000;';
+        notification.textContent = `Added ${item.name} to plan`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
     },
 
     /**
@@ -472,9 +486,21 @@ const CatalogSearch = {
         const targetsList = document.getElementById('selected-targets-list');
         const createBtn = document.getElementById('create-custom-plan-btn');
 
-        if (!targetsList || !window.AppState) return;
+        console.log('updateSelectedTargetsList: targetsList element found?', !!targetsList);
+        console.log('updateSelectedTargetsList: AppState exists?', !!window.AppState);
+
+        if (!targetsList) {
+            console.error('selected-targets-list element not found!');
+            return;
+        }
+
+        if (!window.AppState) {
+            console.error('AppState not found!');
+            return;
+        }
 
         const selectedTargets = AppState.discovery.selectedTargets || [];
+        console.log('updateSelectedTargetsList: selectedTargets count =', selectedTargets.length);
 
         if (selectedTargets.length === 0) {
             targetsList.innerHTML = '<p class="empty-state">No targets selected</p>';
@@ -488,6 +514,8 @@ const CatalogSearch = {
                 <button class="btn-remove" data-target-name="${this.escapeHtml(target.name)}">&times;</button>
             </div>
         `).join('');
+
+        console.log('updateSelectedTargetsList: Updated targetsList HTML');
 
         if (createBtn) createBtn.disabled = false;
 

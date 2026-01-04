@@ -94,9 +94,12 @@ const AppState = {
                 workflowSections: this.workflowSections,
                 currentContext: this.currentContext,
                 drawer: this.drawer,
-                preferences: this.preferences
+                preferences: this.preferences,
+                discovery: {
+                    selectedTargets: this.discovery.selectedTargets
+                }
             };
-            localStorage.setItem('astro-planner-state', JSON.stringify(stateToPersist));
+            localStorage.setItem('astronomus-state', JSON.stringify(stateToPersist));
         } catch (e) {
             console.warn('Failed to save state:', e);
         }
@@ -105,13 +108,16 @@ const AppState = {
     // Load state from localStorage
     load() {
         try {
-            const saved = localStorage.getItem('astro-planner-state');
+            const saved = localStorage.getItem('astronomus-state');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 this.workflowSections = parsed.workflowSections || this.workflowSections;
                 this.currentContext = parsed.currentContext || this.currentContext;
                 this.drawer = { ...this.drawer, ...parsed.drawer };
                 this.preferences = { ...this.preferences, ...parsed.preferences };
+                if (parsed.discovery && parsed.discovery.selectedTargets) {
+                    this.discovery.selectedTargets = parsed.discovery.selectedTargets;
+                }
             }
         } catch (e) {
             console.warn('Failed to load state:', e);
@@ -121,3 +127,6 @@ const AppState = {
 
 // Load state on init
 AppState.load();
+
+// Make AppState globally accessible
+window.AppState = AppState;
