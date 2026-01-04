@@ -71,6 +71,11 @@ const AppContext = {
                 drawer.classList.toggle('closed');
                 AppState.drawer.isOpen = !drawer.classList.contains('closed');
                 AppState.save();
+
+                // Force content reflow after drawer animation completes (250ms)
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                }, 250);
             });
         }
     },
