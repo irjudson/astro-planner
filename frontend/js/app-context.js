@@ -193,21 +193,98 @@ const AppContext = {
         if (executionView) executionView.style.display = 'none';
         if (processingView) processingView.style.display = 'none';
 
-        // Show appropriate view
+        // Show appropriate view and reset its state
         switch (context) {
             case 'discovery':
-                if (catalogView) catalogView.style.display = 'block';
+                if (catalogView) {
+                    catalogView.style.display = 'block';
+                    this.resetDiscoveryView();
+                }
                 break;
             case 'planning':
-                if (planningView) planningView.style.display = 'block';
+                if (planningView) {
+                    planningView.style.display = 'block';
+                    this.resetPlanningView();
+                }
                 break;
             case 'execution':
-                if (executionView) executionView.style.display = 'block';
+                if (executionView) {
+                    executionView.style.display = 'block';
+                    this.resetExecutionView();
+                }
                 break;
             case 'processing':
-                if (processingView) processingView.style.display = 'block';
+                if (processingView) {
+                    processingView.style.display = 'block';
+                    this.resetProcessingView();
+                }
                 break;
         }
+    },
+
+    // Reset Discovery view to clean state
+    resetDiscoveryView() {
+        // Ensure pagination is visible
+        const pagination = document.getElementById('catalog-pagination');
+        if (pagination) {
+            pagination.style.display = 'flex';
+        }
+
+        // Ensure catalog grid is visible
+        const catalogGrid = document.getElementById('catalog-grid');
+        if (catalogGrid) {
+            catalogGrid.style.display = 'grid';
+        }
+    },
+
+    // Reset Planning view to clean state
+    resetPlanningView() {
+        // Get all plan-related elements
+        const customPlanTargets = document.getElementById('custom-plan-targets');
+        const loadedPlanSummary = document.getElementById('loaded-plan-summary');
+        const plannedTargets = document.getElementById('planned-targets');
+        const planEmptyState = document.getElementById('plan-empty-state');
+        const savedPlansSection = document.getElementById('saved-plans-section');
+
+        // Check what state we should be in
+        const hasLoadedPlan = window.PlanningControls && window.PlanningControls.currentLoadedPlan;
+        const hasCustomTargets = window.AppState?.discovery?.selectedTargets?.length > 0;
+
+        // Hide everything initially
+        if (customPlanTargets) customPlanTargets.style.display = 'none';
+        if (loadedPlanSummary) loadedPlanSummary.style.display = 'none';
+        if (plannedTargets) plannedTargets.style.display = 'none';
+        if (planEmptyState) planEmptyState.style.display = 'none';
+
+        // Always show saved plans section
+        if (savedPlansSection) savedPlansSection.style.display = 'block';
+
+        // Show appropriate content based on state
+        if (hasLoadedPlan) {
+            // We have a loaded plan - show it
+            if (loadedPlanSummary) loadedPlanSummary.style.display = 'block';
+            if (plannedTargets) plannedTargets.style.display = 'block';
+        } else if (hasCustomTargets) {
+            // We have custom targets selected - show them
+            if (customPlanTargets) customPlanTargets.style.display = 'block';
+            // Update the custom targets list if PlanningControls is available
+            if (window.PlanningControls && window.PlanningControls.displayCustomPlanTargets) {
+                PlanningControls.displayCustomPlanTargets(window.AppState.discovery.selectedTargets);
+            }
+        } else {
+            // Nothing selected - show empty state
+            if (planEmptyState) planEmptyState.style.display = 'block';
+        }
+    },
+
+    // Reset Execution view to clean state
+    resetExecutionView() {
+        // Execution view reset logic if needed
+    },
+
+    // Reset Processing view to clean state
+    resetProcessingView() {
+        // Processing view reset logic if needed
     },
 
     // Update drawer content based on context
