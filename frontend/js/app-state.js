@@ -8,7 +8,7 @@ const AppState = {
 
     // Sidebar workflow section states
     workflowSections: {
-        discovery: { expanded: true },
+        discovery: { expanded: false },
         planning: { expanded: false },
         execution: { expanded: false },
         processing: { expanded: false }

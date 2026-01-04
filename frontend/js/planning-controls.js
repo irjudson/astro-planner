@@ -740,9 +740,16 @@ const PlanningControls = {
             loadedPlanSummary.style.display = 'block';
             document.getElementById('plan-summary-date').textContent = planData.observing_date;
             document.getElementById('plan-total-targets').textContent = planData.plan.total_targets || 0;
-            document.getElementById('plan-duration').textContent = `${planData.plan.duration_hours || 0}h`;
-            document.getElementById('plan-start').textContent = planData.plan.session?.start_time || '--';
-            document.getElementById('plan-end').textContent = planData.plan.session?.end_time || '--';
+
+            // Calculate duration from total_imaging_minutes
+            const durationMinutes = planData.plan.session?.total_imaging_minutes || 0;
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = durationMinutes % 60;
+            document.getElementById('plan-duration').textContent = `${hours}h ${minutes}m`;
+
+            // Use imaging_start and imaging_end from session
+            document.getElementById('plan-start').textContent = this.formatTime(planData.plan.session?.imaging_start) || '--';
+            document.getElementById('plan-end').textContent = this.formatTime(planData.plan.session?.imaging_end) || '--';
         }
 
         // Show scheduled targets
