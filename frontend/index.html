@@ -6,8 +6,9 @@
     <title>Astronomus</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="tron-theme.css?v=8">
-    <link rel="stylesheet" href="css/unified-layout.css?v=8">
+    <link rel="stylesheet" href="css/unified-layout.css?v=18">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/masonry-layout@4/dist/masonry.pkgd.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -400,12 +401,6 @@
             <div class="main-content" id="main-content">
                 <!-- Catalog View (Discovery Context) -->
                 <div class="catalog-view" id="catalog-view">
-                    <!-- Catalog Stats Banner -->
-                    <div class="catalog-stats" id="catalog-stats">
-                        <span class="stats-count">0 objects</span>
-                        <span class="stats-filters" id="stats-filters"></span>
-                    </div>
-
                     <!-- Catalog Grid -->
                     <div class="catalog-grid" id="catalog-grid">
                         <!-- Empty state -->
@@ -710,6 +705,11 @@
                     <h3>Advanced Controls</h3>
                     <button class="settings-btn" id="settings-btn" aria-label="Settings">⚙️</button>
                 </div>
+                <!-- Catalog Stats -->
+                <div class="catalog-stats" id="catalog-stats">
+                    <span class="stats-count">0 objects</span>
+                    <span class="stats-filters" id="stats-filters"></span>
+                </div>
                 <div class="drawer-tabs" id="drawer-tabs">
                     <p>Drawer tabs will go here</p>
                 </div>
@@ -875,7 +875,7 @@
     <script src="js/execution-manager.js"></script>
     <script src="js/execution-tabs.js"></script>
     <script src="js/catalog-layout.js"></script>
-    <script src="js/catalog-search.js"></script>
+    <script src="js/catalog-search.js?v=11"></script>
     <script src="js/planning-controls.js"></script>
     <script src="js/processing-controls.js"></script>
     <script src="js/preferences.js"></script>

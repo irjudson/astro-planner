@@ -51,6 +51,10 @@ telescope_adapter: Optional[TelescopeAdapter] = None
 # In-memory storage for shared plans (in production, use Redis or database)
 shared_plans: Dict[str, ObservingPlan] = {}
 
+# Simple TTL cache for catalog queries (cache_key -> (result, expiry_time))
+catalog_cache: Dict[str, tuple[Any, float]] = {}
+CATALOG_CACHE_TTL = 60  # seconds
+
 
 # Request/Response models for telescope endpoints
 class TelescopeConnectRequest(BaseModel):
@@ -514,51 +518,66 @@ async def search_catalog(
         Paginated catalog search results
     """
     try:
+        import time
         from app.models.catalog_models import DSOCatalog
+        from sqlalchemy import or_, func
 
-        # Build query directly from database for constellation access
+        # Create cache key from query parameters
+        cache_key = f"catalog:{search}:{type}:{constellation}:{max_magnitude}:{sort_by}:{page}:{page_size}"
+
+        # Check cache
+        if cache_key in catalog_cache:
+            cached_result, expiry = catalog_cache[cache_key]
+            if time.time() < expiry:
+                return cached_result
+            else:
+                # Remove expired entry
+                del catalog_cache[cache_key]
+
+        # Build query with filters (do NOT call .all() yet!)
         query = db.query(DSOCatalog)
 
-        # Apply filters
+        # Apply type filter
         if type:
             query = query.filter(DSOCatalog.object_type == type)
+
+        # Apply constellation filter
         if constellation:
             query = query.filter(DSOCatalog.constellation == constellation)
+
+        # Apply magnitude filter
         if max_magnitude:
             query = query.filter(DSOCatalog.magnitude <= max_magnitude)
 
-        # Get all results for search and count
-        all_results = query.all()
-
-        # Apply search filter if provided
+        # Apply search filter using SQL ILIKE for case-insensitive search
         if search:
-            search_lower = search.lower()
-            catalog_service = CatalogService(db)
-            # Convert to DSOTarget for name/catalog_id access
-            all_targets = [catalog_service._db_row_to_target(dso) for dso in all_results]
-            filtered_results = [
-                dso for dso, target in zip(all_results, all_targets)
-                if search_lower in target.name.lower() or search_lower in target.catalog_id.lower()
-            ]
-            all_results = filtered_results
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    DSOCatalog.common_name.ilike(search_pattern),
+                    func.concat(DSOCatalog.catalog_name, DSOCatalog.catalog_number).ilike(search_pattern)
+                )
+            )
 
-        # Sort results
+        # Get total count BEFORE pagination (efficient - just counts, doesn't fetch rows)
+        total = query.count()
+
+        # Apply sorting using SQL ORDER BY
         if sort_by == "magnitude":
-            all_results.sort(key=lambda dso: dso.magnitude if dso.magnitude else 99)
+            query = query.order_by(DSOCatalog.magnitude.asc().nullslast())
         elif sort_by == "type":
-            all_results.sort(key=lambda dso: dso.object_type)
+            query = query.order_by(DSOCatalog.object_type.asc())
         else:  # name (default)
-            all_results.sort(key=lambda dso: dso.catalog_name + str(dso.catalog_number))
+            query = query.order_by(DSOCatalog.catalog_name.asc(), DSOCatalog.catalog_number.asc())
 
-        # Calculate pagination
-        total = len(all_results)
+        # Apply pagination using SQL LIMIT/OFFSET
         offset = (page - 1) * page_size
-        paginated = all_results[offset:offset + page_size]
+        paginated_results = query.limit(page_size).offset(offset).all()
 
-        # Convert to response format
+        # Convert ONLY the paginated results to response format
         catalog_service = CatalogService(db)
         items = []
-        for dso in paginated:
+        for dso in paginated_results:
             target = catalog_service._db_row_to_target(dso)
             # Get constellation details
             constellation_details = catalog_service._get_constellation_details(dso.constellation)
@@ -577,12 +596,17 @@ async def search_catalog(
                 "size": f"{target.size_arcmin:.1f}'" if target.size_arcmin and target.size_arcmin > 1 else None,
             })
 
-        return {
+        result = {
             "items": items,
             "total": total,
             "page": page,
             "page_size": page_size,
         }
+
+        # Cache the result
+        catalog_cache[cache_key] = (result, time.time() + CATALOG_CACHE_TTL)
+
+        return result
 
     except Exception as e:
         import traceback
@@ -1405,6 +1429,10 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
         image_service = ImagePreviewService(db=db)
         cache_filename = f"{sanitized_catalog_id}.jpg"
         cache_dir = Path(os.getenv("IMAGE_CACHE_DIR", "/app/data/previews"))
+
+        # Ensure cache directory exists
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
         cache_path = cache_dir / cache_filename
 
         # Check cache first
@@ -1415,7 +1443,7 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
                 headers={"Cache-Control": "public, max-age=2592000"},
             )
 
-        # Fetch from SkyView (this will cache it)
+        # Fetch from multi-source service (this will cache it)
         image_data = image_service._fetch_from_skyview(target)
         if image_data:
             cache_path.write_bytes(image_data)

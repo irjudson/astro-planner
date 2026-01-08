@@ -5,16 +5,103 @@
 
 const CatalogSearch = {
     currentPage: 1,
-    pageSize: 20,
+    pageSize: 20, // Will be calculated dynamically
     totalItems: 0,
+    prefetchCache: new Map(), // Cache for prefetched pages
+    isCalculating: false, // Prevent recalculation loops
+    masonryInstance: null, // Masonry layout instance
 
     /**
      * Initialize catalog search functionality
      */
     init() {
         this.attachEventListeners();
-        this.loadCatalogData(); // Load initial data
+
+        // Calculate page size after DOM is ready and layout has settled
+        setTimeout(() => {
+            this.isCalculating = true;
+            this.calculatePageSize();
+            this.isCalculating = false;
+            this.loadCatalogData(); // Load initial data
+        }, 300); // Give layout time to settle
+
         this.updateSelectedTargetsList(); // Initialize selected targets list
+
+        // Use ResizeObserver to watch main-content for size changes (window resize, drawer expand/collapse, etc.)
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            let resizeTimeout;
+            const resizeObserver = new ResizeObserver(() => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (this.isCalculating) return; // Prevent loops
+
+                    this.isCalculating = true;
+                    const oldPageSize = this.pageSize;
+                    const newPageSize = this.calculatePageSize();
+                    this.isCalculating = false;
+
+                    if (newPageSize !== oldPageSize) {
+                        console.log(`Container resized: page size ${oldPageSize} → ${newPageSize}, reloading...`);
+                        this.currentPage = 1;
+                        this.prefetchCache.clear(); // Clear cache on resize
+                        this.loadCatalogData();
+                    }
+                }, 250);
+            });
+            resizeObserver.observe(mainContent);
+        }
+    },
+
+    /**
+     * Calculate optimal page size to fit viewport without scrolling
+     */
+    calculatePageSize() {
+        const mainContent = document.getElementById('main-content');
+        const catalogGrid = document.getElementById('catalog-grid');
+        const catalogPagination = document.getElementById('catalog-pagination');
+
+        if (!mainContent || !catalogGrid) {
+            this.pageSize = 20;
+            return 20;
+        }
+
+        // Measure the main-content height (the actual available viewport)
+        const mainHeight = mainContent.clientHeight;
+        const paginationHeight = catalogPagination ? catalogPagination.offsetHeight : 50;
+
+        // Available height for grid (subtract pagination and main-content padding)
+        const mainPadding = 48; // 24px top + 24px bottom from .main-content padding
+        const availableHeight = mainHeight - paginationHeight - mainPadding;
+
+        // Use ACTUAL grid width, not window width
+        const gridWidth = catalogGrid.clientWidth;
+
+        // Card dimensions from CSS minmax() - based on SCREEN width media query, not grid width
+        const screenWidth = window.innerWidth;
+        const cardMinWidth = screenWidth > 768 ? 260 : 220;
+        const gap = 16;
+
+        // Calculate how many cards per row (with smart rounding)
+        const exactCardsPerRow = (gridWidth + gap) / (cardMinWidth + gap);
+        // If we can fit >= 0.8 of another column, round up and let CSS grid shrink to fit
+        const cardsPerRow = Math.max(1, exactCardsPerRow % 1 >= 0.8 ? Math.ceil(exactCardsPerRow) : Math.floor(exactCardsPerRow));
+
+        // Card height: 310px min-height + 16px gap = 326px per row
+        const rowHeight = 326;
+
+        // Calculate rows that fit (with smart rounding)
+        const exactRowsThatFit = availableHeight / rowHeight;
+        // If we can fit >= 0.8 of another row, round up and let CSS grid shrink to fit
+        const rowsThatFit = Math.max(1, exactRowsThatFit % 1 >= 0.8 ? Math.ceil(exactRowsThatFit) : Math.floor(exactRowsThatFit));
+        const itemsThatFit = rowsThatFit * cardsPerRow;
+
+        // Use a minimum of 1 row and maximum of 50 items
+        this.pageSize = Math.max(cardsPerRow, Math.min(50, itemsThatFit));
+
+        console.log(`📊 Page size: ${this.pageSize} items (${rowsThatFit} rows × ${cardsPerRow} per row)`);
+        console.log(`   Grid: ${gridWidth}px wide, ${availableHeight}px available height`);
+        return this.pageSize;
     },
 
     /**
@@ -159,6 +246,22 @@ const CatalogSearch = {
     async loadCatalogData() {
         try {
             const filters = this.getFilters();
+            const cacheKey = JSON.stringify(filters);
+
+            // Check cache first
+            if (this.prefetchCache.has(cacheKey)) {
+                const cached = this.prefetchCache.get(cacheKey);
+                console.log(`Using cached data for page ${this.currentPage}`);
+                this.totalItems = cached.total || 0;
+                this.renderCatalogGrid(cached.items || []);
+                this.updateStats(cached.total || 0, filters);
+                this.updatePagination();
+
+                // Still prefetch next page in background
+                this.prefetchNextPage(filters);
+                return;
+            }
+
             const queryParams = new URLSearchParams();
 
             // Only add non-empty params
@@ -176,6 +279,9 @@ const CatalogSearch = {
 
             const data = await response.json();
 
+            // Cache the result
+            this.prefetchCache.set(cacheKey, data);
+
             this.totalItems = data.total || 0;
             this.renderCatalogGrid(data.items || []);
             this.updateStats(data.total || 0, filters);
@@ -188,9 +294,59 @@ const CatalogSearch = {
                 AppState.save();
             }
 
+            // Prefetch next page in background
+            this.prefetchNextPage(filters);
+
         } catch (error) {
             console.error('Error loading catalog data:', error);
             this.showError('Failed to load catalog data. Please try again.');
+        }
+    },
+
+    /**
+     * Prefetch the next page in the background
+     */
+    async prefetchNextPage(currentFilters) {
+        const totalPages = Math.ceil(this.totalItems / this.pageSize);
+        const nextPage = this.currentPage + 1;
+
+        if (nextPage > totalPages) {
+            return; // No next page
+        }
+
+        const nextFilters = { ...currentFilters, page: nextPage };
+        const cacheKey = JSON.stringify(nextFilters);
+
+        // Don't prefetch if already cached
+        if (this.prefetchCache.has(cacheKey)) {
+            return;
+        }
+
+        try {
+            const queryParams = new URLSearchParams();
+            Object.entries(nextFilters).forEach(([key, value]) => {
+                if (value !== '') {
+                    queryParams.append(key, value);
+                }
+            });
+
+            console.log(`Prefetching page ${nextPage}...`);
+            const response = await fetch(`/api/catalog/search?${queryParams.toString()}`);
+
+            if (response.ok) {
+                const data = await response.json();
+                this.prefetchCache.set(cacheKey, data);
+                console.log(`Prefetched page ${nextPage} (${data.items.length} items)`);
+
+                // Limit cache size to 5 pages to avoid memory issues
+                if (this.prefetchCache.size > 5) {
+                    const firstKey = this.prefetchCache.keys().next().value;
+                    this.prefetchCache.delete(firstKey);
+                }
+            }
+        } catch (error) {
+            console.warn('Prefetch failed:', error);
+            // Silent failure - prefetch is non-critical
         }
     },
 
@@ -202,6 +358,12 @@ const CatalogSearch = {
         const emptyState = document.getElementById('catalog-empty-state');
 
         if (!grid) return;
+
+        // Destroy existing masonry instance
+        if (this.masonryInstance) {
+            this.masonryInstance.destroy();
+            this.masonryInstance = null;
+        }
 
         // Clear existing cards (except empty state)
         const cards = grid.querySelectorAll('.catalog-card');
@@ -226,10 +388,19 @@ const CatalogSearch = {
             grid.appendChild(card);
         });
 
-        // Calculate grid height after rendering
-        if (window.CatalogLayout) {
+        // Initialize Masonry layout
+        if (typeof Masonry !== 'undefined') {
             // Use setTimeout to ensure DOM has updated
-            setTimeout(() => CatalogLayout.calculateGridHeight(), 0);
+            setTimeout(() => {
+                this.masonryInstance = new Masonry(grid, {
+                    itemSelector: '.catalog-card',
+                    columnWidth: '.catalog-card',
+                    gutter: 16,
+                    fitWidth: false,
+                    percentPosition: false
+                });
+                console.log('Masonry layout initialized');
+            }, 0);
         }
     },
 
@@ -327,7 +498,7 @@ const CatalogSearch = {
         }
 
         if (item.constellation_common) {
-            return `${this.escapeHtml(item.constellation_full)} (${this.escapeHtml(item.constellation_common)})`;
+            return `<div style="text-align: right;">${this.escapeHtml(item.constellation_full)}<br><span style="font-size: 0.9em; color: rgba(255, 255, 255, 0.6);">(${this.escapeHtml(item.constellation_common)})</span></div>`;
         }
 
         return this.escapeHtml(item.constellation_full);

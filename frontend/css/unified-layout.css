@@ -818,28 +818,11 @@ html, body {
     font-size: 12px;
 }
 
-/* Catalog Grid */
+/* Catalog Grid - Masonry Layout */
 .catalog-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    overflow-y: auto;
-    align-content: start;
     flex: 1 1 auto;
     min-height: 0;
     transition: flex-basis 250ms ease-out;
-}
-
-@media (max-width: 768px) {
-    .catalog-grid {
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    }
-}
-
-@media (max-width: 480px) {
-    .catalog-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Catalog Card */
@@ -852,7 +835,20 @@ html, body {
     transition: transform 200ms, border-color 200ms, box-shadow 200ms;
     display: flex;
     flex-direction: column;
-    min-height: 320px;
+    width: 260px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+    .catalog-card {
+        width: 220px;
+    }
+}
+
+@media (max-width: 480px) {
+    .catalog-card {
+        width: 100%;
+    }
 }
 
 .catalog-card:hover {
@@ -964,8 +960,9 @@ html, body {
     justify-content: center;
     align-items: center;
     gap: 16px;
-    padding: 12px 16px;
+    padding: 12px 16px 0 16px;
     flex-shrink: 0;
+    margin-top: auto;
 }
 
 .page-info {
