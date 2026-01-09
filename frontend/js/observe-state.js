@@ -95,6 +95,18 @@ const observeState = {
     }
   },
 
+  operatorDashboard: {
+    activePanel: null,            // Currently active/focused panel
+    telemetryVisible: true,       // Show/hide telemetry panel
+    liveviewFullscreen: false,    // Fullscreen state for live preview
+    focusPosition: 0,             // Current focus position
+    dewHeaterEnabled: false,      // Dew heater on/off
+    dewHeaterPower: 90,           // Dew heater power level (0-100)
+    dcOutputEnabled: false,       // DC output on/off (Seestar-specific)
+    currentTarget: null,          // Currently executing target
+    queueProgress: 0              // Execution queue progress (0-100)
+  },
+
   ui: {
     activeMainTab: 'execution',  // execution | library | telemetry | live
     drawerOpen: false,
@@ -120,6 +132,7 @@ const stateListeners = {
   library: [],
   telemetry: [],
   controls: [],
+  operatorDashboard: [],
   ui: []
 };
 

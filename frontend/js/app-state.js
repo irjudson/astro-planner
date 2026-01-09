@@ -86,7 +86,8 @@ const AppState = {
         latitude: null,
         longitude: null,
         elevation: null,
-        defaultDeviceId: null
+        defaultDeviceId: null,
+        autoConnect: true  // Auto-connect to default device on load
     },
 
     // Persist state to localStorage

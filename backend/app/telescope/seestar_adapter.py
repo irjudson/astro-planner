@@ -143,14 +143,43 @@ class SeestarAdapter(TelescopeAdapter):
             return False
 
     async def park(self) -> bool:
-        """Park Seestar telescope."""
+        """
+        Park Seestar telescope.
+
+        For Seestar, parking means moving to azimuth=0, altitude=0 (horizon).
+        This is the safest stowed position for the telescope.
+        """
         try:
-            success = await self.client.park()
+            logger.info("Parking Seestar by moving to 0,0")
+            # Move to azimuth=0, altitude=0 (horizon, north)
+            success = await self.client.move_to_horizon(azimuth=0.0, altitude=0.0)
             if success:
-                logger.info("Seestar parked")
+                logger.info("Seestar parked at 0,0")
             return success
         except Exception as e:
             logger.error(f"Failed to park Seestar: {e}")
+            return False
+
+    async def unpark(self) -> bool:
+        """
+        Unpark/activate Seestar telescope.
+
+        For Seestar, there's no explicit unpark command. Instead, we move the
+        telescope to a good starting position (North, 60° altitude) which
+        activates it and prepares it for observing.
+
+        Returns:
+            True if unpark/activation successful
+        """
+        try:
+            logger.info("Unparking Seestar by moving to observing position")
+            # Move to North at 60° altitude - a good starting position
+            success = await self.client.move_to_horizon(azimuth=0.0, altitude=60.0)
+            if success:
+                logger.info("Seestar moved to observing position (unparked)")
+            return success
+        except Exception as e:
+            logger.error(f"Failed to unpark Seestar: {e}")
             return False
 
     @property

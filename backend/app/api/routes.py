@@ -1114,6 +1114,37 @@ async def abort_execution():
         raise HTTPException(status_code=500, detail=f"Abort failed: {str(e)}")
 
 
+@router.post("/telescope/unpark")
+async def unpark_telescope():
+    """
+    Unpark/open telescope and make ready for observing.
+
+    Returns:
+        Unpark status
+    """
+    try:
+        if telescope_adapter is None or not telescope_adapter.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        # Call unpark if available, otherwise try to wake up the telescope
+        if hasattr(telescope_adapter, 'unpark'):
+            success = await telescope_adapter.unpark()
+        else:
+            # Fallback: Some telescopes might not have explicit unpark
+            # For Seestar, we can issue a status check which wakes it up
+            status = await telescope_adapter.get_status()
+            success = status.connected
+
+        if success:
+            return {"status": "active", "message": "Telescope unparked and ready"}
+        else:
+            return {"status": "error", "message": "Failed to unpark telescope"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unpark failed: {str(e)}")
+
+
 @router.post("/telescope/park")
 async def park_telescope():
     """
@@ -1136,6 +1167,129 @@ async def park_telescope():
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Park failed: {str(e)}")
+
+
+@router.post("/telescope/goto")
+async def goto_coordinates(request: dict):
+    """
+    Slew telescope to RA/Dec coordinates.
+
+    Args:
+        request: {"ra": float (hours), "dec": float (degrees), "target_name": str (optional)}
+
+    Returns:
+        Goto status
+    """
+    try:
+        if telescope_adapter is None or not telescope_adapter.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        ra = request.get("ra")
+        dec = request.get("dec")
+        target_name = request.get("target_name", "Manual Target")
+
+        if ra is None or dec is None:
+            raise HTTPException(status_code=400, detail="Must provide ra and dec coordinates")
+
+        success = await telescope_adapter.goto(ra, dec, target_name)
+
+        if success:
+            return {"status": "slewing", "message": f"Slewing to RA={ra}, Dec={dec}"}
+        else:
+            return {"status": "error", "message": "Failed to start goto"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Goto failed: {str(e)}")
+
+
+@router.post("/telescope/stop-slew")
+async def stop_slew():
+    """
+    Stop current slew/goto operation.
+
+    Returns:
+        Stop status
+    """
+    try:
+        if telescope_adapter is None or not telescope_adapter.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        from app.telescope.seestar_adapter import SeestarAdapter
+        if isinstance(telescope_adapter, SeestarAdapter):
+            success = await telescope_adapter.client.stop_slew()
+        else:
+            raise HTTPException(status_code=400, detail="Stop slew not supported by this telescope")
+
+        if success:
+            return {"status": "stopped", "message": "Slew stopped"}
+        else:
+            return {"status": "error", "message": "Failed to stop slew"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stop slew failed: {str(e)}")
+
+
+@router.post("/telescope/start-imaging")
+async def start_imaging(request: dict = None):
+    """
+    Start imaging/stacking.
+
+    Args:
+        request: {"restart": bool (optional, default True)}
+
+    Returns:
+        Imaging status
+    """
+    try:
+        if telescope_adapter is None or not telescope_adapter.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        restart = True if request is None else request.get("restart", True)
+
+        from app.telescope.seestar_adapter import SeestarAdapter
+        if isinstance(telescope_adapter, SeestarAdapter):
+            success = await telescope_adapter.client.start_imaging(restart=restart)
+        else:
+            raise HTTPException(status_code=400, detail="Imaging not supported by this telescope")
+
+        if success:
+            return {"status": "imaging", "message": "Imaging started"}
+        else:
+            return {"status": "error", "message": "Failed to start imaging"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Start imaging failed: {str(e)}")
+
+
+@router.post("/telescope/stop-imaging")
+async def stop_imaging():
+    """
+    Stop current imaging/stacking.
+
+    Returns:
+        Stop status
+    """
+    try:
+        if telescope_adapter is None or not telescope_adapter.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        from app.telescope.seestar_adapter import SeestarAdapter
+        if isinstance(telescope_adapter, SeestarAdapter):
+            success = await telescope_adapter.client.stop_imaging()
+        else:
+            raise HTTPException(status_code=400, detail="Imaging not supported by this telescope")
+
+        if success:
+            return {"status": "stopped", "message": "Imaging stopped"}
+        else:
+            return {"status": "error", "message": "Failed to stop imaging"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stop imaging failed: {str(e)}")
 
 
 @router.get("/telescope/preview")
@@ -1192,6 +1346,64 @@ async def get_telescope_preview():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get preview: {str(e)}")
+
+
+@router.get("/telescope/preview/latest")
+async def get_latest_preview():
+    """
+    Get the latest preview image from telescope as raw image bytes.
+
+    This endpoint returns the most recent JPEG image directly for display
+    in the live preview panel. Polls this endpoint to get updated images.
+
+    Returns:
+        Latest preview image (JPEG bytes)
+    """
+    import os
+    from pathlib import Path
+    from fastapi.responses import Response
+
+    try:
+        # Look for recent JPEG files in /fits directory
+        fits_root = Path(os.getenv("FITS_DIR", "/fits"))
+
+        if not fits_root.exists():
+            raise HTTPException(
+                status_code=503,
+                detail="Telescope image directory not mounted"
+            )
+
+        # Find all JPEG files (Seestar creates preview JPEGs during stacking)
+        jpeg_files = []
+        for ext in ["*.jpg", "*.jpeg", "*.JPG", "*.JPEG"]:
+            jpeg_files.extend(fits_root.rglob(ext))
+
+        if not jpeg_files:
+            raise HTTPException(
+                status_code=404,
+                detail="No preview images available. Start imaging first."
+            )
+
+        # Sort by modification time, get most recent
+        latest_image = max(jpeg_files, key=lambda p: p.stat().st_mtime)
+
+        # Read and return image bytes
+        image_bytes = latest_image.read_bytes()
+
+        return Response(
+            content=image_bytes,
+            media_type="image/jpeg",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get latest preview: {str(e)}")
 
 
 @router.get("/telescope/preview/download")

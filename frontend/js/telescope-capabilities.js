@@ -9,11 +9,11 @@ const TelescopeCapabilities = {
 
     async init() {
         // Load capabilities when telescope connects
-        window.addEventListener('telescope-connected', () => {
+        document.addEventListener('telescope-connected', () => {
             this.loadCapabilities();
         });
 
-        window.addEventListener('telescope-disconnected', () => {
+        document.addEventListener('telescope-disconnected', () => {
             this.clearCapabilities();
         });
 
@@ -44,7 +44,7 @@ const TelescopeCapabilities = {
             });
 
             // Dispatch event for UI components to update
-            window.dispatchEvent(new CustomEvent('telescope-capabilities-loaded', {
+            document.dispatchEvent(new CustomEvent('telescope-capabilities-loaded', {
                 detail: {
                     type: this.telescopeType,
                     capabilities: this.capabilities,
@@ -64,7 +64,7 @@ const TelescopeCapabilities = {
         this.capabilities = null;
         this.features = null;
 
-        window.dispatchEvent(new Event('telescope-capabilities-cleared'));
+        document.dispatchEvent(new Event('telescope-capabilities-cleared'));
     },
 
     hasCapability(capability) {

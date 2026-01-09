@@ -67,6 +67,14 @@ const PreferencesManager = {
                 this.updateDefaultDevice(e.target.value);
             });
         }
+
+        // Auto-connect toggle
+        const autoConnectToggle = document.getElementById('auto-connect-toggle');
+        if (autoConnectToggle) {
+            autoConnectToggle.addEventListener('change', (e) => {
+                this.updateAutoConnect(e.target.checked);
+            });
+        }
     },
 
     openSettings() {
@@ -97,11 +105,17 @@ const PreferencesManager = {
                 AppState.preferences.elevation = prefs.elevation;
                 AppState.preferences.units = prefs.units || 'metric';
                 AppState.preferences.defaultDeviceId = prefs.default_device_id;
+                AppState.preferences.autoConnect = prefs.auto_connect !== undefined ? prefs.auto_connect : true;
 
                 // Update form fields
                 const unitsToggle = document.getElementById('units-toggle');
                 if (unitsToggle) {
                     unitsToggle.value = prefs.units || 'metric';
+                }
+
+                const autoConnectToggle = document.getElementById('auto-connect-toggle');
+                if (autoConnectToggle) {
+                    autoConnectToggle.checked = AppState.preferences.autoConnect;
                 }
 
                 const latInput = document.getElementById('settings-latitude');
@@ -254,7 +268,8 @@ const PreferencesManager = {
                     longitude,
                     elevation,
                     units: AppState.preferences.units,
-                    default_device_id: AppState.preferences.defaultDeviceId
+                    default_device_id: AppState.preferences.defaultDeviceId,
+                    auto_connect: AppState.preferences.autoConnect
                 })
             });
 
@@ -293,7 +308,8 @@ const PreferencesManager = {
                     longitude: AppState.preferences.longitude,
                     elevation: AppState.preferences.elevation,
                     units: AppState.preferences.units,
-                    default_device_id: deviceIdInt
+                    default_device_id: deviceIdInt,
+                    auto_connect: AppState.preferences.autoConnect
                 })
             });
         } catch (error) {
@@ -314,7 +330,8 @@ const PreferencesManager = {
                     longitude: AppState.preferences.longitude,
                     elevation: AppState.preferences.elevation,
                     units: units,
-                    default_device_id: AppState.preferences.defaultDeviceId
+                    default_device_id: AppState.preferences.defaultDeviceId,
+                    auto_connect: AppState.preferences.autoConnect
                 })
             });
         } catch (error) {
@@ -329,6 +346,31 @@ const PreferencesManager = {
         // Future: trigger updates for other components
         // CatalogSearch.updateDisplay();
         // PlanningControls.updateDisplay();
+    },
+
+    async updateAutoConnect(autoConnect) {
+        AppState.preferences.autoConnect = autoConnect;
+        AppState.save();
+
+        try {
+            // Save to database
+            await fetch('/api/user/preferences', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    latitude: AppState.preferences.latitude,
+                    longitude: AppState.preferences.longitude,
+                    elevation: AppState.preferences.elevation,
+                    units: AppState.preferences.units,
+                    default_device_id: AppState.preferences.defaultDeviceId,
+                    auto_connect: autoConnect
+                })
+            });
+
+            console.log('Auto-connect preference saved:', autoConnect);
+        } catch (error) {
+            console.error('Failed to save auto-connect preference:', error);
+        }
     }
 };
 

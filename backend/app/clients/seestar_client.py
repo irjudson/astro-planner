@@ -609,7 +609,10 @@ class SeestarClient:
         return response.get("result") == 0
 
     async def park(self) -> bool:
-        """Park telescope at home position.
+        """Park telescope at home position (azimuth=0, altitude=0).
+
+        For Seestar, there's no explicit park command. Instead, we move
+        to azimuth=0, altitude=0 which is the parked/stowed position.
 
         Returns:
             True if park initiated successfully
@@ -617,11 +620,15 @@ class SeestarClient:
         Raises:
             CommandError: If park command fails
         """
-        self.logger.info("Parking telescope")
+        self.logger.info("Parking telescope (moving to 0,0)")
 
         self._update_status(state=SeestarState.PARKING)
 
-        response = await self._send_command("scope_park")
+        # Move to azimuth=0, altitude=0 (parked position)
+        response = await self._send_command("scope_move_to_horizon", {
+            "azimuth": 0.0,
+            "altitude": 0.0
+        })
 
         self.logger.info(f"Park response: {response}")
         return response.get("result") == 0

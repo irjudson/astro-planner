@@ -383,6 +383,106 @@ const ExecutionManager = {
 
     showError(message) {
         alert(message);
+    },
+
+    /**
+     * Update operator dashboard execution queue and current target
+     * @param {object} executionData - Execution data with plan, targets, and progress
+     */
+    updateOperatorDashboardQueue(executionData) {
+        if (!executionData) {
+            console.warn('ExecutionManager: No execution data provided for dashboard update');
+            return;
+        }
+
+        // Update current target display
+        const currentTargetDisplay = document.getElementById('operator-current-target');
+        const currentTargetName = document.getElementById('current-target-name');
+
+        if (executionData.currentTarget && currentTargetDisplay) {
+            currentTargetDisplay.style.display = 'block';
+
+            if (currentTargetName) {
+                const phase = executionData.currentPhase || 'idle';
+                const phaseText = {
+                    'slewing': 'Slewing',
+                    'focusing': 'Focusing',
+                    'stacking': `Stacking (${executionData.framesCurrent}/${executionData.framesTotal})`,
+                    'complete': 'Complete',
+                    'idle': 'Idle'
+                };
+                currentTargetName.textContent = `${executionData.currentTarget.name || 'Unknown'} - ${phaseText[phase]}`;
+            }
+        } else if (currentTargetDisplay) {
+            currentTargetDisplay.style.display = 'none';
+        }
+
+        // Update progress bar
+        const progressBarFill = document.getElementById('execution-progress');
+        if (progressBarFill && executionData.progress !== undefined) {
+            progressBarFill.style.width = `${executionData.progress}%`;
+        }
+
+        // Update execution queue
+        const queueDisplay = document.getElementById('operator-execution-queue');
+        if (!queueDisplay) {
+            console.warn('ExecutionManager: Queue display element not found');
+            return;
+        }
+
+        // Clear existing queue
+        queueDisplay.innerHTML = '';
+
+        // Check if we have targets
+        if (!executionData.targets || executionData.targets.length === 0) {
+            queueDisplay.innerHTML = '<div class="empty-state">No targets in queue</div>';
+            return;
+        }
+
+        // Populate queue items
+        executionData.targets.forEach((target, index) => {
+            const queueItem = document.createElement('div');
+            queueItem.className = 'queue-item';
+
+            // Mark active target
+            if (index === executionData.currentTargetIndex) {
+                queueItem.classList.add('active');
+            }
+
+            // Create queue item content
+            const itemName = document.createElement('span');
+            itemName.className = 'queue-item-name';
+            itemName.textContent = target.name || `Target ${index + 1}`;
+
+            const itemTime = document.createElement('span');
+            itemTime.className = 'queue-item-time';
+
+            // Show estimated time or status
+            if (index < executionData.currentTargetIndex) {
+                itemTime.textContent = '✓ Complete';
+            } else if (index === executionData.currentTargetIndex) {
+                if (executionData.estimatedRemainingSeconds) {
+                    const minutes = Math.floor(executionData.estimatedRemainingSeconds / 60);
+                    itemTime.textContent = `~${minutes}m remaining`;
+                } else {
+                    itemTime.textContent = 'In progress';
+                }
+            } else {
+                // Future targets - show estimated exposure time if available
+                if (target.exposureTime && target.frameCount) {
+                    const totalMinutes = Math.floor((target.exposureTime * target.frameCount) / 60);
+                    itemTime.textContent = `~${totalMinutes}m`;
+                } else {
+                    itemTime.textContent = 'Queued';
+                }
+            }
+
+            queueItem.appendChild(itemName);
+            queueItem.appendChild(itemTime);
+            queueDisplay.appendChild(queueItem);
+        });
+
+        console.log('ExecutionManager: Operator dashboard queue updated', executionData);
     }
 };
 

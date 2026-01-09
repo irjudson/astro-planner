@@ -26,6 +26,11 @@ class DewHeaterRequest(BaseModel):
     power_level: int = 90
 
 
+class DCOutputRequest(BaseModel):
+    """Request to control DC output."""
+    enabled: bool
+
+
 class FocuserMoveRequest(BaseModel):
     """Request to move focuser."""
     position: Optional[int] = None
@@ -246,6 +251,21 @@ async def move_focuser(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/focuser/factory-reset")
+async def reset_focuser_factory(
+    telescope: TelescopeAdapter = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Reset focuser to factory position (Seestar-specific)."""
+    if not isinstance(telescope, SeestarAdapter):
+        raise HTTPException(status_code=400, detail="Not supported by this telescope")
+
+    try:
+        success = await telescope.client.reset_focuser_to_factory()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ==========================================
 # Hardware Features
 # ==========================================
@@ -281,6 +301,24 @@ async def get_dew_heater_status(
         # Get from device state
         state = await telescope.client.get_device_state(['dew_heater'])
         return state.get('dew_heater', {})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/hardware/dc-output")
+async def control_dc_output(
+    request: DCOutputRequest,
+    telescope: TelescopeAdapter = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Control DC output (Seestar-specific)."""
+    if not isinstance(telescope, SeestarAdapter):
+        raise HTTPException(status_code=400, detail="Not supported by this telescope")
+
+    try:
+        # Use set_dc_output with appropriate config
+        output_config = {"enabled": request.enabled}
+        success = await telescope.client.set_dc_output(output_config)
+        return {"success": success}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

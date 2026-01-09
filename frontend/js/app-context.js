@@ -8,6 +8,7 @@ const AppContext = {
         this.setupWorkflowToggle();
         this.setupDrawerToggle();
         this.setupMobileMenu();
+        this.setupSidebarToggle();
 
         // Restore context from URL hash or AppState
         const hashContext = window.location.hash.replace('#/', '');
@@ -24,6 +25,9 @@ const AppContext = {
         }
 
         this.restoreUIState();
+
+        // Set sidebar label based on context
+        this.updateSidebarLabel(initialContext);
 
         // If switching to planning, refresh location defaults
         if (initialContext === 'planning' && window.PlanningControls) {
@@ -129,6 +133,47 @@ const AppContext = {
         }
     },
 
+    // Setup sidebar collapse/expand toggle
+    setupSidebarToggle() {
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        const sidebar = document.getElementById('app-sidebar');
+
+        if (toggleBtn && sidebar) {
+            // Restore saved state
+            const savedState = localStorage.getItem('sidebarCollapsed');
+            if (savedState === 'true') {
+                sidebar.classList.add('collapsed');
+            }
+
+            // Toggle on button click
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                const isCollapsed = sidebar.classList.contains('collapsed');
+
+                // Save state
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+
+                console.log(`Sidebar ${isCollapsed ? 'collapsed' : 'expanded'}`);
+            });
+        }
+    },
+
+    // Update sidebar label based on context
+    updateSidebarLabel(context) {
+        const sidebar = document.getElementById('app-sidebar');
+        if (!sidebar) return;
+
+        const labels = {
+            'discovery': 'CATALOG',
+            'planning': 'PLANNING',
+            'execution': 'EXECUTION',
+            'observe': 'EXECUTION',
+            'processing': 'PROCESSING'
+        };
+
+        sidebar.setAttribute('data-context-label', labels[context] || 'SIDEBAR');
+    },
+
     // Restore UI state from AppState
     restoreUIState() {
         // Restore workflow section states
@@ -173,6 +218,9 @@ const AppContext = {
 
             // Update drawer content
             this.updateDrawerContent(newContext);
+
+            // Update sidebar label
+            this.updateSidebarLabel(newContext);
 
             // When switching to planning, refresh location defaults
             if (newContext === 'planning' && window.PlanningControls) {
@@ -248,7 +296,15 @@ const AppContext = {
         // Ensure catalog grid is visible
         const catalogGrid = document.getElementById('catalog-grid');
         if (catalogGrid) {
-            catalogGrid.style.display = 'grid';
+            catalogGrid.style.display = 'block'; // Masonry doesn't need grid display
+        }
+
+        // Re-layout Masonry after view becomes visible
+        if (window.CatalogSearch && window.CatalogSearch.masonryInstance) {
+            setTimeout(() => {
+                window.CatalogSearch.masonryInstance.layout();
+                console.log('Masonry layout refreshed after view switch');
+            }, 100); // Small delay to ensure display changes are applied
         }
     },
 

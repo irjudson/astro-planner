@@ -151,6 +151,15 @@ const ConnectionManager = {
                 const connectBtnCompact = document.getElementById('connect-btn-compact');
                 if (connectBtn) connectBtn.disabled = false;
                 if (connectBtnCompact) connectBtnCompact.disabled = false;
+
+                // Auto-connect if enabled and not already connected
+                if (AppState.preferences.autoConnect && !AppState.connection.isConnected) {
+                    console.log('ConnectionManager: Auto-connecting to default device...');
+                    // Small delay to ensure UI is ready
+                    setTimeout(() => {
+                        this.connect();
+                    }, 500);
+                }
             }
         } catch (error) {
             console.error('Failed to load devices:', error);
@@ -204,7 +213,7 @@ const ConnectionManager = {
             }
 
             // Dispatch event for other components
-            window.dispatchEvent(new Event('telescope-connected'));
+            document.dispatchEvent(new Event('telescope-connected'));
         } catch (error) {
             console.error('Connection error:', error);
             this.updateStatus('error', 'Connection failed');
@@ -242,7 +251,7 @@ const ConnectionManager = {
             }
 
             // Dispatch event for other components
-            window.dispatchEvent(new Event('telescope-disconnected'));
+            document.dispatchEvent(new Event('telescope-disconnected'));
         } catch (error) {
             console.error('Disconnect error:', error);
             this.showError(error.message || 'Failed to disconnect');
