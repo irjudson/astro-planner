@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -96,6 +96,7 @@ class SeestarClient:
 
     DEFAULT_PORT = 4700  # Port 4700 for firmware v6.x JSON-RPC
     UDP_DISCOVERY_PORT = 4720
+    FILE_TRANSFER_PORT = 4801  # Port 4801 for file downloads
     CONNECTION_TIMEOUT = 10.0
     COMMAND_TIMEOUT = 10.0
     RECEIVE_BUFFER_SIZE = 4096
@@ -1807,3 +1808,204 @@ class SeestarClient:
         response = await self._send_command("pi_is_verified", {})
 
         return response.get("result", {}).get("is_verified", False)
+
+    # ==========================================
+    # Phase 10: Image Retrieval
+    # ==========================================
+
+    async def list_images(self, image_type: str = "stacked") -> List[Dict[str, Any]]:
+        """List available images on telescope storage.
+
+        Args:
+            image_type: Type of images to list - "stacked", "raw", or "all"
+
+        Returns:
+            List of dicts with {filename, size, timestamp, format}
+
+        Raises:
+            CommandError: If query fails
+        """
+        self.logger.info(f"Listing images of type: {image_type}")
+
+        # Use get_img_file_info to query directory
+        # Seestar stores images in specific paths:
+        # - Stacked images: typically in /mnt/seestar/stack/
+        # - Raw frames: typically in /mnt/seestar/raw/
+
+        images = []
+
+        if image_type in ("stacked", "all"):
+            stack_info = await self.get_image_file_info("/mnt/seestar/stack/")
+            if "files" in stack_info:
+                for file_info in stack_info["files"]:
+                    images.append(
+                        {
+                            "filename": file_info.get("name", ""),
+                            "size": file_info.get("size", 0),
+                            "timestamp": file_info.get("timestamp", ""),
+                            "format": file_info.get("format", "fits"),
+                            "type": "stacked",
+                        }
+                    )
+
+        if image_type in ("raw", "all"):
+            raw_info = await self.get_image_file_info("/mnt/seestar/raw/")
+            if "files" in raw_info:
+                for file_info in raw_info["files"]:
+                    images.append(
+                        {
+                            "filename": file_info.get("name", ""),
+                            "size": file_info.get("size", 0),
+                            "timestamp": file_info.get("timestamp", ""),
+                            "format": file_info.get("format", "fits"),
+                            "type": "raw",
+                        }
+                    )
+
+        self.logger.info(f"Found {len(images)} images")
+        return images
+
+    async def get_stacked_image(self, filename: str) -> bytes:
+        """Download stacked FITS/JPEG image from telescope.
+
+        Uses file transfer protocol on port 4801.
+
+        Args:
+            filename: Name of stacked image file to download
+
+        Returns:
+            Raw image bytes
+
+        Raises:
+            ConnectionError: If file transfer connection fails
+            CommandError: If download fails
+        """
+        self.logger.info(f"Downloading stacked image: {filename}")
+
+        if not self._host:
+            raise ConnectionError("Not connected to telescope")
+
+        # Download file via port 4801
+        image_data = await self._download_file(f"/mnt/seestar/stack/{filename}")
+
+        self.logger.info(f"Downloaded {len(image_data)} bytes")
+        return image_data
+
+    async def get_raw_frame(self, filename: str) -> bytes:
+        """Download individual raw frame from telescope.
+
+        Uses file transfer protocol on port 4801.
+
+        Args:
+            filename: Name of raw frame file to download
+
+        Returns:
+            Raw frame bytes
+
+        Raises:
+            ConnectionError: If file transfer connection fails
+            CommandError: If download fails
+        """
+        self.logger.info(f"Downloading raw frame: {filename}")
+
+        if not self._host:
+            raise ConnectionError("Not connected to telescope")
+
+        # Download file via port 4801
+        frame_data = await self._download_file(f"/mnt/seestar/raw/{filename}")
+
+        self.logger.info(f"Downloaded {len(frame_data)} bytes")
+        return frame_data
+
+    async def delete_image(self, filename: str) -> bool:
+        """Delete image from telescope storage.
+
+        Args:
+            filename: Full path to image file to delete
+
+        Returns:
+            True if deletion successful
+
+        Raises:
+            CommandError: If deletion fails
+        """
+        self.logger.info(f"Deleting image: {filename}")
+
+        # Use system command to delete file
+        # Note: This requires appropriate permissions and may not be available in all firmware versions
+        response = await self._send_command("pi_execute_cmd", {"cmd": f"rm {filename}"})
+
+        success = response.get("result") == 0
+        self.logger.info(f"Delete {'successful' if success else 'failed'}")
+        return success
+
+    async def get_live_preview(self) -> bytes:
+        """Capture current preview frame (RTMP stream frame grab).
+
+        Note: This method requires RTMP stream access on ports 4554/4555.
+        Currently returns empty bytes as RTMP handling requires additional dependencies.
+
+        Returns:
+            Preview frame bytes (currently empty - RTMP support pending)
+
+        Raises:
+            NotImplementedError: RTMP stream handling not yet implemented
+        """
+        self.logger.warning("Live preview via RTMP stream not yet implemented")
+        raise NotImplementedError(
+            "Live preview requires RTMP stream handling. " "Use get_stacked_image() for completed images instead."
+        )
+
+    async def _download_file(self, remote_path: str) -> bytes:
+        """Download file from telescope via port 4801.
+
+        Internal method for file transfer protocol.
+
+        Args:
+            remote_path: Full path to file on telescope
+
+        Returns:
+            File contents as bytes
+
+        Raises:
+            ConnectionError: If connection to file server fails
+            CommandError: If file not found or transfer fails
+        """
+        if not self._host:
+            raise ConnectionError("Not connected to telescope")
+
+        self.logger.info(f"Opening file transfer connection to {self._host}:{self.FILE_TRANSFER_PORT}")
+
+        try:
+            # Open TCP connection to file transfer port
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self._host, self.FILE_TRANSFER_PORT), timeout=self.CONNECTION_TIMEOUT
+            )
+
+            # Send file request (protocol may vary - this is a basic implementation)
+            # Format: JSON request with file path
+            request = json.dumps({"file": remote_path}) + "\n"
+            writer.write(request.encode("utf-8"))
+            await writer.drain()
+
+            # Read file data
+            file_data = b""
+            while True:
+                chunk = await reader.read(self.RECEIVE_BUFFER_SIZE)
+                if not chunk:
+                    break
+                file_data += chunk
+
+            writer.close()
+            await writer.wait_closed()
+
+            if not file_data:
+                raise CommandError(f"File not found or empty: {remote_path}")
+
+            self.logger.info(f"Downloaded {len(file_data)} bytes from {remote_path}")
+            return file_data
+
+        except asyncio.TimeoutError:
+            raise ConnectionError(f"Timeout connecting to file server on port {self.FILE_TRANSFER_PORT}")
+        except Exception as e:
+            raise CommandError(f"File download failed: {str(e)}")
