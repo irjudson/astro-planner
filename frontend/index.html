@@ -594,29 +594,6 @@
                             <div id="control-status" class="status-message"></div>
                         </div>
 
-                        <!-- Advanced Controls (Collapsible) -->
-                        <div class="control-panel" id="advanced-panel">
-                            <button id="advanced-toggle-btn" class="btn btn-secondary btn-sm" disabled>▶ Show Advanced</button>
-                            <div id="advanced-controls" style="display: none;">
-                                <h4>Advanced Controls</h4>
-
-                                <div class="advanced-section">
-                                    <label>
-                                        <input type="checkbox" id="dew-heater-toggle">
-                                        Dew Heater
-                                    </label>
-                                </div>
-
-                                <div class="advanced-section">
-                                    <h5>Images</h5>
-                                    <button id="refresh-images-btn" class="btn btn-sm btn-secondary">Refresh List</button>
-                                    <div id="image-list" class="image-list">
-                                        <p class="text-secondary">No images</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
 
@@ -762,6 +739,28 @@
                             <span class="info-value" id="device-signal">--</span>
                         </div>
                         <button class="btn btn-secondary btn-block" id="operator-disconnect-btn" disabled style="margin-top: 12px;">Disconnect</button>
+                    </div>
+
+                    <!-- Telescope Advanced Controls -->
+                    <div class="device-info" style="padding: 16px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; margin-top: 16px;">
+                        <h4 style="margin-top: 0; margin-bottom: 12px; color: rgba(255, 255, 255, 0.8);">Telescope Features</h4>
+
+                        <div class="info-row" style="margin-bottom: 12px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="dew-heater-toggle" style="margin-right: 8px;">
+                                <span>Dew Heater</span>
+                            </label>
+                        </div>
+
+                        <div style="margin-top: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <h5 style="margin: 0; color: rgba(255, 255, 255, 0.7); font-size: 14px;">Images</h5>
+                                <button id="refresh-images-btn" class="btn btn-sm btn-secondary">Refresh</button>
+                            </div>
+                            <div id="image-list" class="image-list" style="max-height: 200px; overflow-y: auto;">
+                                <p class="text-secondary">No images</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

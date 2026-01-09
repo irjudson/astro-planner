@@ -3496,41 +3496,7 @@ html, body {
     border: 1px solid rgba(255, 50, 50, 0.3);
 }
 
-/* Advanced Controls */
-#advanced-panel {
-    grid-column: 1 / -1;
-}
-
-#advanced-toggle-btn {
-    width: 100%;
-    margin-bottom: 12px;
-    text-align: left;
-}
-
-#advanced-controls {
-    padding-top: 12px;
-}
-
-.advanced-section {
-    margin-bottom: 16px;
-    padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
-.advanced-section label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.advanced-section input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-}
-
-/* Image List */
+/* Image List (in bottom drawer) */
 .image-list {
     max-height: 200px;
     overflow-y: auto;

@@ -42,8 +42,7 @@ const TelescopeControls = {
         this.on('stop-imaging-btn', () => this.handleStopImaging());
         this.on('auto-focus-btn', () => this.handleAutoFocus());
 
-        // Advanced controls
-        this.on('advanced-toggle-btn', () => this.toggleAdvancedControls());
+        // Advanced controls (in bottom drawer)
         this.on('dew-heater-toggle', () => this.handleDewHeater());
         this.on('refresh-images-btn', () => this.handleRefreshImages());
     },
@@ -223,19 +222,6 @@ const TelescopeControls = {
     // ADVANCED CONTROLS
     // ==========================================
 
-    toggleAdvancedControls() {
-        const panel = document.getElementById('advanced-controls');
-        const btn = document.getElementById('advanced-toggle-btn');
-
-        if (panel.style.display === 'none') {
-            panel.style.display = 'block';
-            btn.textContent = '▼ Hide Advanced';
-        } else {
-            panel.style.display = 'none';
-            btn.textContent = '▶ Show Advanced';
-        }
-    },
-
     async handleDewHeater() {
         const toggle = document.getElementById('dew-heater-toggle');
         const enabled = toggle?.checked || false;
@@ -333,7 +319,6 @@ const TelescopeControls = {
         this.setDisabled('park-telescope-btn', false);
         this.setDisabled('start-imaging-btn', false);
         this.setDisabled('auto-focus-btn', false);
-        this.setDisabled('advanced-toggle-btn', false);
     },
 
     disableAllControls() {
@@ -343,7 +328,6 @@ const TelescopeControls = {
         this.setDisabled('start-imaging-btn', true);
         this.setDisabled('stop-imaging-btn', true);
         this.setDisabled('auto-focus-btn', true);
-        this.setDisabled('advanced-toggle-btn', true);
     },
 
     setText(id, text) {
