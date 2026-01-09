@@ -291,6 +291,35 @@ const TelescopeControls = {
 
         // Target
         this.setText('current-target', status.current_target || 'None');
+
+        // Update control states based on telescope state
+        this.updateControlStates(status.state);
+    },
+
+    updateControlStates(state) {
+        // Define which states allow which operations
+        const idleStates = ['connected', 'tracking', 'parked'];
+        const busyStates = ['slewing', 'focusing', 'imaging', 'parking'];
+        const isIdle = idleStates.includes(state);
+        const isBusy = busyStates.includes(state);
+        const isImaging = state === 'imaging';
+        const isSlewing = state === 'slewing';
+
+        // Movement controls (enabled when idle)
+        this.setDisabled('slew-to-target-btn', !isIdle);
+        this.setDisabled('park-telescope-btn', !isIdle);
+
+        // Stop motion (enabled when slewing)
+        this.setDisabled('stop-motion-btn', !isSlewing);
+
+        // Imaging controls
+        this.setDisabled('start-imaging-btn', !isIdle || isImaging);
+        this.setDisabled('stop-imaging-btn', !isImaging);
+        this.setDisabled('auto-focus-btn', !isIdle);
+
+        // Sidebar controls (if they exist)
+        this.setDisabled('sidebar-goto-target-btn', !isIdle);
+        this.setDisabled('sidebar-park-telescope-btn', !isIdle);
     },
 
     formatRA(hours) {
