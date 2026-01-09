@@ -61,12 +61,14 @@ async def list_processing_files():
     # Recursively find all FITS files
     for fits_file in fits_root.rglob("*.fit*"):
         if fits_file.is_file() and fits_file.suffix.lower() in [".fit", ".fits"]:
-            files.append({
-                "name": fits_file.name,
-                "path": str(fits_file.relative_to(fits_root)),
-                "size": fits_file.stat().st_size,
-                "modified": fits_file.stat().st_mtime
-            })
+            files.append(
+                {
+                    "name": fits_file.name,
+                    "path": str(fits_file.relative_to(fits_root)),
+                    "size": fits_file.stat().st_size,
+                    "modified": fits_file.stat().st_mtime,
+                }
+            )
 
     # Sort by modification time (newest first)
     files.sort(key=lambda f: f["modified"], reverse=True)

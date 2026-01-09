@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 class TelescopeState(Enum):
     """Generic telescope states."""
+
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -26,6 +27,7 @@ class TelescopeState(Enum):
 @dataclass
 class TelescopeStatus:
     """Generic telescope status information."""
+
     connected: bool
     state: TelescopeState
     firmware_version: Optional[str] = None
@@ -44,6 +46,7 @@ class TelescopeStatus:
 @dataclass
 class ExposureSettings:
     """Settings for an exposure."""
+
     target_name: str
     ra: float  # degrees
     dec: float  # degrees

@@ -20,25 +20,30 @@ router = APIRouter()
 # Request Models
 # ==========================================
 
+
 class DewHeaterRequest(BaseModel):
     """Request to control dew heater."""
+
     enabled: bool
     power_level: int = 90
 
 
 class DCOutputRequest(BaseModel):
     """Request to control DC output."""
+
     enabled: bool
 
 
 class FocuserMoveRequest(BaseModel):
     """Request to move focuser."""
+
     position: Optional[int] = None
     offset: Optional[int] = None
 
 
 class ExposureSettingsRequest(BaseModel):
     """Request to set exposure settings."""
+
     exposure_ms: Optional[float] = None
     gain: Optional[float] = None
     stack_exposure_ms: Optional[int] = None
@@ -47,6 +52,7 @@ class ExposureSettingsRequest(BaseModel):
 
 class DitherConfigRequest(BaseModel):
     """Request to configure dithering."""
+
     enabled: bool = True
     pixels: int = 50
     interval: int = 10
@@ -54,12 +60,14 @@ class DitherConfigRequest(BaseModel):
 
 class WiFiConnectRequest(BaseModel):
     """Request to connect to WiFi."""
+
     ssid: str
     password: Optional[str] = None
 
 
 class WiFiSaveRequest(BaseModel):
     """Request to save WiFi network."""
+
     ssid: str
     password: str
     security: str = "WPA2-PSK"
@@ -67,12 +75,14 @@ class WiFiSaveRequest(BaseModel):
 
 class LocationRequest(BaseModel):
     """Request to set telescope location."""
+
     latitude: float
     longitude: float
 
 
 class HorizonMoveRequest(BaseModel):
     """Request to move to horizon coordinates."""
+
     azimuth: float
     altitude: float
 
@@ -81,10 +91,9 @@ class HorizonMoveRequest(BaseModel):
 # Seestar-Specific Endpoints
 # ==========================================
 
+
 @router.get("/capabilities")
-async def get_telescope_capabilities(
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
-) -> Dict[str, Any]:
+async def get_telescope_capabilities(telescope: TelescopeAdapter = Depends(get_current_telescope)) -> Dict[str, Any]:
     """
     Get telescope capabilities and features.
 
@@ -162,10 +171,10 @@ async def _get_telescope_features(telescope: TelescopeAdapter) -> Dict[str, Any]
 # Imaging Features
 # ==========================================
 
+
 @router.post("/imaging/exposure")
 async def set_exposure_settings(
-    request: ExposureSettingsRequest,
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
+    request: ExposureSettingsRequest, telescope: TelescopeAdapter = Depends(get_current_telescope)
 ) -> Dict[str, Any]:
     """Set exposure settings (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
@@ -173,14 +182,10 @@ async def set_exposure_settings(
 
     try:
         if request.exposure_ms is not None and request.gain is not None:
-            success = await telescope.client.set_manual_exposure(
-                request.exposure_ms,
-                request.gain
-            )
+            success = await telescope.client.set_manual_exposure(request.exposure_ms, request.gain)
         elif request.stack_exposure_ms is not None:
             success = await telescope.client.set_exposure(
-                request.stack_exposure_ms,
-                request.continuous_exposure_ms or 500
+                request.stack_exposure_ms, request.continuous_exposure_ms or 500
             )
         else:
             raise HTTPException(status_code=400, detail="Must provide exposure_ms+gain or stack_exposure_ms")
@@ -192,28 +197,21 @@ async def set_exposure_settings(
 
 @router.post("/imaging/dither")
 async def configure_dithering(
-    request: DitherConfigRequest,
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
+    request: DitherConfigRequest, telescope: TelescopeAdapter = Depends(get_current_telescope)
 ) -> Dict[str, Any]:
     """Configure dithering (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
 
     try:
-        success = await telescope.client.configure_dither(
-            request.enabled,
-            request.pixels,
-            request.interval
-        )
+        success = await telescope.client.configure_dither(request.enabled, request.pixels, request.interval)
         return {"success": success}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/imaging/autofocus")
-async def start_autofocus(
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
-) -> Dict[str, Any]:
+async def start_autofocus(telescope: TelescopeAdapter = Depends(get_current_telescope)) -> Dict[str, Any]:
     """Start autofocus (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
@@ -229,10 +227,10 @@ async def start_autofocus(
 # Focuser Features
 # ==========================================
 
+
 @router.post("/focuser/move")
 async def move_focuser(
-    request: FocuserMoveRequest,
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
+    request: FocuserMoveRequest, telescope: TelescopeAdapter = Depends(get_current_telescope)
 ) -> Dict[str, Any]:
     """Move focuser (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
@@ -252,9 +250,7 @@ async def move_focuser(
 
 
 @router.post("/focuser/factory-reset")
-async def reset_focuser_factory(
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
-) -> Dict[str, Any]:
+async def reset_focuser_factory(telescope: TelescopeAdapter = Depends(get_current_telescope)) -> Dict[str, Any]:
     """Reset focuser to factory position (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
@@ -270,45 +266,39 @@ async def reset_focuser_factory(
 # Hardware Features
 # ==========================================
 
+
 @router.post("/hardware/dew-heater")
 async def control_dew_heater(
-    request: DewHeaterRequest,
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
+    request: DewHeaterRequest, telescope: TelescopeAdapter = Depends(get_current_telescope)
 ) -> Dict[str, Any]:
     """Control dew heater (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
 
     try:
-        success = await telescope.client.set_dew_heater(
-            request.enabled,
-            request.power_level
-        )
+        success = await telescope.client.set_dew_heater(request.enabled, request.power_level)
         return {"success": success}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/hardware/dew-heater/status")
-async def get_dew_heater_status(
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
-) -> Dict[str, Any]:
+async def get_dew_heater_status(telescope: TelescopeAdapter = Depends(get_current_telescope)) -> Dict[str, Any]:
     """Get dew heater status (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
 
     try:
         # Get from device state
-        state = await telescope.client.get_device_state(['dew_heater'])
-        return state.get('dew_heater', {})
+        state = await telescope.client.get_device_state(["dew_heater"])
+        return state.get("dew_heater", {})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/hardware/dc-output")
 async def control_dc_output(
-    request: DCOutputRequest,
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
+    request: DCOutputRequest, telescope: TelescopeAdapter = Depends(get_current_telescope)
 ) -> Dict[str, Any]:
     """Control DC output (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
@@ -327,10 +317,9 @@ async def control_dc_output(
 # WiFi Features
 # ==========================================
 
+
 @router.get("/wifi/scan")
-async def scan_wifi_networks(
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
-) -> Dict[str, Any]:
+async def scan_wifi_networks(telescope: TelescopeAdapter = Depends(get_current_telescope)) -> Dict[str, Any]:
     """Scan for WiFi networks (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
@@ -343,8 +332,7 @@ async def scan_wifi_networks(
 
 @router.post("/wifi/connect")
 async def connect_to_wifi(
-    request: WiFiConnectRequest,
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
+    request: WiFiConnectRequest, telescope: TelescopeAdapter = Depends(get_current_telescope)
 ) -> Dict[str, Any]:
     """Connect to WiFi network (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
@@ -358,9 +346,7 @@ async def connect_to_wifi(
 
 
 @router.get("/wifi/saved")
-async def list_saved_wifi_networks(
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
-) -> Dict[str, Any]:
+async def list_saved_wifi_networks(telescope: TelescopeAdapter = Depends(get_current_telescope)) -> Dict[str, Any]:
     """List saved WiFi networks (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
@@ -375,10 +361,9 @@ async def list_saved_wifi_networks(
 # System Features
 # ==========================================
 
+
 @router.get("/system/info")
-async def get_system_info(
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
-) -> Dict[str, Any]:
+async def get_system_info(telescope: TelescopeAdapter = Depends(get_current_telescope)) -> Dict[str, Any]:
     """Get system information (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
@@ -396,18 +381,14 @@ async def get_system_info(
 
 @router.post("/system/location")
 async def set_telescope_location(
-    request: LocationRequest,
-    telescope: TelescopeAdapter = Depends(get_current_telescope)
+    request: LocationRequest, telescope: TelescopeAdapter = Depends(get_current_telescope)
 ) -> Dict[str, Any]:
     """Set telescope location (Seestar-specific)."""
     if not isinstance(telescope, SeestarAdapter):
         raise HTTPException(status_code=400, detail="Not supported by this telescope")
 
     try:
-        success = await telescope.client.set_location(
-            request.longitude,
-            request.latitude
-        )
+        success = await telescope.client.set_location(request.longitude, request.latitude)
         return {"success": success}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

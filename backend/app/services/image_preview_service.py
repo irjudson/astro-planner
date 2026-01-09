@@ -104,7 +104,7 @@ class ImagePreviewService:
 
         # Get sources ordered by priority
         sources = self._get_ordered_sources()
-        logger.debug("Sources to try: %s", [s['name'] for s in sources])
+        logger.debug("Sources to try: %s", [s["name"] for s in sources])
 
         # Make parallel requests using ThreadPoolExecutor
         results = []
@@ -113,13 +113,8 @@ class ImagePreviewService:
                 # Submit all fetches
                 future_to_source = {
                     executor.submit(
-                        self._fetch_single,
-                        source['name'],
-                        ra_deg,
-                        dec_deg,
-                        fov_arcmin,
-                        target.catalog_id
-                    ): source['name']
+                        self._fetch_single, source["name"], ra_deg, dec_deg, fov_arcmin, target.catalog_id
+                    ): source["name"]
                     for source in sources
                 }
 
@@ -127,17 +122,21 @@ class ImagePreviewService:
                 for future in as_completed(future_to_source):
                     try:
                         result = future.result()
-                        if result and result.get('data'):
+                        if result and result.get("data"):
                             results.append(result)
                     except Exception as e:
                         logger.debug("Future failed for %s: %s", future_to_source[future], e)
 
             # Find best result
             if results:
-                best_result = max(results, key=lambda r: r['quality_score'])
-                logger.info("Fetched %s from %s (quality: %.2f)",
-                           target.catalog_id, best_result['source'], best_result['quality_score'])
-                return best_result['data']
+                best_result = max(results, key=lambda r: r["quality_score"])
+                logger.info(
+                    "Fetched %s from %s (quality: %.2f)",
+                    target.catalog_id,
+                    best_result["source"],
+                    best_result["quality_score"],
+                )
+                return best_result["data"]
 
         except Exception as e:
             logger.error("Parallel fetch failed for %s: %s", target.catalog_id, e)
@@ -149,19 +148,15 @@ class ImagePreviewService:
         if not self.db:
             # Fallback to default order if no DB
             return [
-                {'name': 'sdss', 'priority': 100.0},
-                {'name': 'panstarrs', 'priority': 90.0},
-                {'name': 'eso', 'priority': 85.0},
-                {'name': 'skyview_dss', 'priority': 80.0},
+                {"name": "sdss", "priority": 100.0},
+                {"name": "panstarrs", "priority": 90.0},
+                {"name": "eso", "priority": 85.0},
+                {"name": "skyview_dss", "priority": 80.0},
             ]
 
-        sources = (
-            self.db.query(ImageSourceStats)
-            .order_by(ImageSourceStats.priority_score.desc().nullslast())
-            .all()
-        )
+        sources = self.db.query(ImageSourceStats).order_by(ImageSourceStats.priority_score.desc().nullslast()).all()
 
-        return [{'name': s.source_name, 'priority': s.priority_score or 50.0} for s in sources]
+        return [{"name": s.source_name, "priority": s.priority_score or 50.0} for s in sources]
 
     def _fetch_single(
         self, source_name: str, ra_deg: float, dec_deg: float, fov_arcmin: float, catalog_id: str
@@ -185,13 +180,13 @@ class ImagePreviewService:
 
         try:
             # Dispatch to appropriate fetcher
-            if source_name == 'sdss':
+            if source_name == "sdss":
                 data = self._fetch_from_sdss(ra_deg, dec_deg, fov_arcmin)
-            elif source_name == 'panstarrs':
+            elif source_name == "panstarrs":
                 data = self._fetch_from_panstarrs(ra_deg, dec_deg, fov_arcmin)
-            elif source_name == 'eso':
+            elif source_name == "eso":
                 data = self._fetch_from_eso(ra_deg, dec_deg, fov_arcmin)
-            elif source_name == 'skyview_dss':
+            elif source_name == "skyview_dss":
                 data = self._fetch_from_skyview_dss(ra_deg, dec_deg, fov_arcmin)
 
             success = data is not None
@@ -208,10 +203,10 @@ class ImagePreviewService:
             self._update_source_stats(source_name, success, response_time_ms, quality_score)
 
         return {
-            'source': source_name,
-            'data': data,
-            'quality_score': quality_score,
-            'response_time_ms': response_time_ms,
+            "source": source_name,
+            "data": data,
+            "quality_score": quality_score,
+            "response_time_ms": response_time_ms,
         }
 
     def _score_image_quality(self, data: bytes) -> float:
@@ -232,7 +227,7 @@ class ImagePreviewService:
         size_score = min(size_kb / 100, 1.0) * 50  # Max 50 points for size
 
         # Check if it's actually a JPEG (simple check)
-        format_score = 25 if data[:2] == b'\xff\xd8' else 0
+        format_score = 25 if data[:2] == b"\xff\xd8" else 0
 
         # Penalize very small images (likely errors or placeholders)
         if size_kb < 5:
@@ -259,11 +254,7 @@ class ImagePreviewService:
             return
 
         try:
-            stats = (
-                self.db.query(ImageSourceStats)
-                .filter(ImageSourceStats.source_name == source_name)
-                .first()
-            )
+            stats = self.db.query(ImageSourceStats).filter(ImageSourceStats.source_name == source_name).first()
 
             if not stats:
                 # Create new stats entry
@@ -286,9 +277,7 @@ class ImagePreviewService:
             # Update averages (running average)
             if success and response_time_ms > 0:
                 if stats.avg_response_time_ms:
-                    stats.avg_response_time_ms = (
-                        stats.avg_response_time_ms * 0.8 + response_time_ms * 0.2
-                    )
+                    stats.avg_response_time_ms = stats.avg_response_time_ms * 0.8 + response_time_ms * 0.2
                 else:
                     stats.avg_response_time_ms = response_time_ms
 
@@ -300,11 +289,7 @@ class ImagePreviewService:
 
             # Update priority score based on success rate, speed, and quality
             success_rate = stats.successful_requests / stats.total_requests if stats.total_requests > 0 else 0
-            speed_score = (
-                max(0, 100 - (stats.avg_response_time_ms or 1000) / 50)
-                if stats.avg_response_time_ms
-                else 50
-            )
+            speed_score = max(0, 100 - (stats.avg_response_time_ms or 1000) / 50) if stats.avg_response_time_ms else 50
             quality = stats.avg_quality_score or 50
             stats.priority_score = (success_rate * 40) + (speed_score * 0.3) + (quality * 0.3)
 

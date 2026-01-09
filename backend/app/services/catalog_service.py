@@ -95,9 +95,9 @@ class CatalogService:
 
         if constellation:
             return {
-                'abbreviation': constellation.abbreviation,
-                'full_name': constellation.full_name,
-                'common_name': constellation.common_name
+                "abbreviation": constellation.abbreviation,
+                "full_name": constellation.full_name,
+                "common_name": constellation.common_name,
             }
         return None
 

@@ -13,6 +13,7 @@ router = APIRouter()
 
 class UserPreferences(BaseModel):
     """User preferences model."""
+
     # Location preferences
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -88,7 +89,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
                 value=str(preferences.latitude),
                 value_type="float",
                 category="user",
-                description="User's latitude"
+                description="User's latitude",
             )
             db.add(lat_setting)
 
@@ -103,7 +104,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
                 value=str(preferences.longitude),
                 value_type="float",
                 category="user",
-                description="User's longitude"
+                description="User's longitude",
             )
             db.add(lon_setting)
 
@@ -118,7 +119,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
                 value=str(preferences.elevation),
                 value_type="float",
                 category="user",
-                description="User's elevation (meters)"
+                description="User's elevation (meters)",
             )
             db.add(elev_setting)
 
@@ -132,7 +133,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
             value=preferences.units,
             value_type="string",
             category="user",
-            description="User's preferred units (metric/imperial)"
+            description="User's preferred units (metric/imperial)",
         )
         db.add(units_setting)
 
@@ -147,7 +148,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
                 value=str(preferences.default_device_id),
                 value_type="int",
                 category="user",
-                description="User's default device ID"
+                description="User's default device ID",
             )
             db.add(device_setting)
 
@@ -161,7 +162,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
             value=str(preferences.min_altitude),
             value_type="float",
             category="observing",
-            description="Minimum target altitude (degrees)"
+            description="Minimum target altitude (degrees)",
         )
         db.add(min_alt_setting)
 
@@ -174,7 +175,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
             value=str(preferences.max_moon_phase),
             value_type="int",
             category="observing",
-            description="Maximum acceptable moon illumination (%)"
+            description="Maximum acceptable moon illumination (%)",
         )
         db.add(max_moon_setting)
 
@@ -187,7 +188,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
             value=str(preferences.avoid_moon),
             value_type="bool",
             category="observing",
-            description="Avoid bright moon in planning"
+            description="Avoid bright moon in planning",
         )
         db.add(avoid_moon_setting)
 
@@ -200,7 +201,7 @@ def update_user_preferences(preferences: UserPreferences, db: Session = Depends(
             value=str(preferences.prioritize_transits),
             value_type="bool",
             category="observing",
-            description="Prioritize meridian transits"
+            description="Prioritize meridian transits",
         )
         db.add(prioritize_transits_setting)
 

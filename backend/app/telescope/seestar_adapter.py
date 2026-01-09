@@ -70,7 +70,7 @@ class SeestarAdapter(TelescopeAdapter):
             SeestarState.TRACKING: TelescopeState.TRACKING,
             SeestarState.FOCUSING: TelescopeState.SLEWING,  # Map focusing to slewing
             SeestarState.IMAGING: TelescopeState.EXPOSING,  # Map imaging to exposing
-            SeestarState.PARKING: TelescopeState.SLEWING,   # Map parking to slewing
+            SeestarState.PARKING: TelescopeState.SLEWING,  # Map parking to slewing
             SeestarState.PARKED: TelescopeState.PARKED,
             SeestarState.ERROR: TelescopeState.ERROR,
         }

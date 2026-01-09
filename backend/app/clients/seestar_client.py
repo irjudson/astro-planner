@@ -625,10 +625,7 @@ class SeestarClient:
         self._update_status(state=SeestarState.PARKING)
 
         # Move to azimuth=0, altitude=0 (parked position)
-        response = await self._send_command("scope_move_to_horizon", {
-            "azimuth": 0.0,
-            "altitude": 0.0
-        })
+        response = await self._send_command("scope_move_to_horizon", {"azimuth": 0.0, "altitude": 0.0})
 
         self.logger.info(f"Park response: {response}")
         return response.get("result") == 0

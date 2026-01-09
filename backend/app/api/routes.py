@@ -555,7 +555,7 @@ async def search_catalog(
             query = query.filter(
                 or_(
                     DSOCatalog.common_name.ilike(search_pattern),
-                    func.concat(DSOCatalog.catalog_name, DSOCatalog.catalog_number).ilike(search_pattern)
+                    func.concat(DSOCatalog.catalog_name, DSOCatalog.catalog_number).ilike(search_pattern),
                 )
             )
 
@@ -582,19 +582,23 @@ async def search_catalog(
             # Get constellation details
             constellation_details = catalog_service._get_constellation_details(dso.constellation)
 
-            items.append({
-                "id": target.catalog_id,
-                "name": target.name,
-                "common_name": dso.common_name,  # Include common_name from database
-                "type": target.object_type,
-                "constellation": dso.constellation,
-                "constellation_full": constellation_details['full_name'] if constellation_details else dso.constellation,
-                "constellation_common": constellation_details['common_name'] if constellation_details else None,
-                "magnitude": target.magnitude,
-                "ra": target.ra_hours * 15,  # Convert hours to degrees
-                "dec": target.dec_degrees,
-                "size": f"{target.size_arcmin:.1f}'" if target.size_arcmin and target.size_arcmin > 1 else None,
-            })
+            items.append(
+                {
+                    "id": target.catalog_id,
+                    "name": target.name,
+                    "common_name": dso.common_name,  # Include common_name from database
+                    "type": target.object_type,
+                    "constellation": dso.constellation,
+                    "constellation_full": (
+                        constellation_details["full_name"] if constellation_details else dso.constellation
+                    ),
+                    "constellation_common": constellation_details["common_name"] if constellation_details else None,
+                    "magnitude": target.magnitude,
+                    "ra": target.ra_hours * 15,  # Convert hours to degrees
+                    "dec": target.dec_degrees,
+                    "size": f"{target.size_arcmin:.1f}'" if target.size_arcmin and target.size_arcmin > 1 else None,
+                }
+            )
 
         result = {
             "items": items,
@@ -610,6 +614,7 @@ async def search_catalog(
 
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error searching catalog: {str(e)}")
 
@@ -821,8 +826,7 @@ async def connect_telescope(request: TelescopeConnectRequest, db: Session = Depe
 
             if not device.is_control_enabled:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Device '{device.name}' control is not enabled. Enable in settings first."
+                    status_code=400, detail=f"Device '{device.name}' control is not enabled. Enable in settings first."
                 )
 
             # Create adapter from device configuration
@@ -845,10 +849,7 @@ async def connect_telescope(request: TelescopeConnectRequest, db: Session = Depe
             port = request.port or 4700
 
         else:
-            raise HTTPException(
-                status_code=400,
-                detail="Must provide either device_id or host parameter"
-            )
+            raise HTTPException(status_code=400, detail="Must provide either device_id or host parameter")
 
         # Connect using adapter
         success = await telescope_adapter.connect()
@@ -874,6 +875,7 @@ async def connect_telescope(request: TelescopeConnectRequest, db: Session = Depe
         raise
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         telescope_adapter = None  # Reset on any error
         raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
@@ -1127,7 +1129,7 @@ async def unpark_telescope():
             raise HTTPException(status_code=400, detail="Telescope not connected")
 
         # Call unpark if available, otherwise try to wake up the telescope
-        if hasattr(telescope_adapter, 'unpark'):
+        if hasattr(telescope_adapter, "unpark"):
             success = await telescope_adapter.unpark()
         else:
             # Fallback: Some telescopes might not have explicit unpark
@@ -1216,6 +1218,7 @@ async def stop_slew():
             raise HTTPException(status_code=400, detail="Telescope not connected")
 
         from app.telescope.seestar_adapter import SeestarAdapter
+
         if isinstance(telescope_adapter, SeestarAdapter):
             success = await telescope_adapter.client.stop_slew()
         else:
@@ -1249,6 +1252,7 @@ async def start_imaging(request: dict = None):
         restart = True if request is None else request.get("restart", True)
 
         from app.telescope.seestar_adapter import SeestarAdapter
+
         if isinstance(telescope_adapter, SeestarAdapter):
             success = await telescope_adapter.client.start_imaging(restart=restart)
         else:
@@ -1277,6 +1281,7 @@ async def stop_imaging():
             raise HTTPException(status_code=400, detail="Telescope not connected")
 
         from app.telescope.seestar_adapter import SeestarAdapter
+
         if isinstance(telescope_adapter, SeestarAdapter):
             success = await telescope_adapter.client.stop_imaging()
         else:
@@ -1368,10 +1373,7 @@ async def get_latest_preview():
         fits_root = Path(os.getenv("FITS_DIR", "/fits"))
 
         if not fits_root.exists():
-            raise HTTPException(
-                status_code=503,
-                detail="Telescope image directory not mounted"
-            )
+            raise HTTPException(status_code=503, detail="Telescope image directory not mounted")
 
         # Find all JPEG files (Seestar creates preview JPEGs during stacking)
         jpeg_files = []
@@ -1379,10 +1381,7 @@ async def get_latest_preview():
             jpeg_files.extend(fits_root.rglob(ext))
 
         if not jpeg_files:
-            raise HTTPException(
-                status_code=404,
-                detail="No preview images available. Start imaging first."
-            )
+            raise HTTPException(status_code=404, detail="No preview images available. Start imaging first.")
 
         # Sort by modification time, get most recent
         latest_image = max(jpeg_files, key=lambda p: p.stat().st_mtime)
@@ -1393,11 +1392,7 @@ async def get_latest_preview():
         return Response(
             content=image_bytes,
             media_type="image/jpeg",
-            headers={
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0"
-            }
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"},
         )
 
     except HTTPException:
@@ -1595,10 +1590,11 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
         # Try to parse catalog ID format
         import re
         import logging
+
         logger = logging.getLogger(__name__)
 
         # Match patterns like M31, NGC224, IC434, C80
-        match = re.match(r'([A-Z]+)(\d+)', sanitized_catalog_id)
+        match = re.match(r"([A-Z]+)(\d+)", sanitized_catalog_id)
         if match:
             catalog_name = match.group(1)
             catalog_number = int(match.group(2))
@@ -1609,22 +1605,19 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
             from app.models.catalog_models import DSOCatalog
 
             # Handle special cases
-            if catalog_name == 'M':
+            if catalog_name == "M":
                 # Messier objects - find by common_name starting with M
-                dso = db.query(DSOCatalog).filter(
-                    DSOCatalog.common_name.like(f'M%{catalog_number:03d}')
-                ).first()
-            elif catalog_name == 'C':
+                dso = db.query(DSOCatalog).filter(DSOCatalog.common_name.like(f"M%{catalog_number:03d}")).first()
+            elif catalog_name == "C":
                 # Caldwell objects - find by caldwell_number
-                dso = db.query(DSOCatalog).filter(
-                    DSOCatalog.caldwell_number == catalog_number
-                ).first()
+                dso = db.query(DSOCatalog).filter(DSOCatalog.caldwell_number == catalog_number).first()
             else:
                 # NGC, IC, etc. - find by catalog_name and catalog_number
-                dso = db.query(DSOCatalog).filter(
-                    DSOCatalog.catalog_name == catalog_name,
-                    DSOCatalog.catalog_number == catalog_number
-                ).first()
+                dso = (
+                    db.query(DSOCatalog)
+                    .filter(DSOCatalog.catalog_name == catalog_name, DSOCatalog.catalog_number == catalog_number)
+                    .first()
+                )
                 logger.info(f"DSO query result for {catalog_name}{catalog_number}: {dso is not None}")
 
             if dso:
