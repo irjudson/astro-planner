@@ -32,10 +32,14 @@ const TelescopeControls = {
         this.on('telescope-panel-connect-btn', () => this.handleConnect());
         this.on('telescope-panel-disconnect-btn', () => this.handleDisconnect());
 
-        // Telescope control
+        // Telescope control - main panel
         this.on('slew-to-target-btn', () => this.handleSlewToTarget());
         this.on('stop-motion-btn', () => this.handleStopMotion());
         this.on('park-telescope-btn', () => this.handlePark());
+
+        // Telescope control - sidebar
+        this.on('sidebar-goto-target-btn', () => this.handleSlewToTarget());
+        this.on('sidebar-park-telescope-btn', () => this.handlePark());
 
         // Imaging
         this.on('start-imaging-btn', () => this.handleStartImaging());
@@ -44,6 +48,7 @@ const TelescopeControls = {
 
         // Advanced controls (in bottom drawer)
         this.on('dew-heater-toggle', () => this.handleDewHeater());
+        this.on('toggle-dew-heater-btn', () => this.handleDewHeater());
         this.on('refresh-images-btn', () => this.handleRefreshImages());
     },
 
