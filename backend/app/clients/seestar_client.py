@@ -148,6 +148,16 @@ class SeestarClient:
         """Get current telescope status."""
         return self._status
 
+    @property
+    def host(self) -> Optional[str]:
+        """Get connected host."""
+        return self._host
+
+    @property
+    def port(self) -> int:
+        """Get connected port."""
+        return self._port
+
     def set_status_callback(self, callback: Callable[[SeestarStatus], None]) -> None:
         """Set callback function for status updates.
 

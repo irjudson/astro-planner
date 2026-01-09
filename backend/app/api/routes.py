@@ -1174,7 +1174,7 @@ async def goto_coordinates(request: dict):
         if ra is None or dec is None:
             raise HTTPException(status_code=400, detail="Must provide ra and dec coordinates")
 
-        success = await seestar_client.goto(ra, dec, target_name)
+        success = await seestar_client.goto_target(ra, dec, target_name)
 
         if success:
             return {"status": "slewing", "message": f"Slewing to RA={ra}, Dec={dec}"}
