@@ -279,6 +279,9 @@ const TelescopeControls = {
     },
 
     updateTelemetry(status) {
+        // Log all telescope status updates to browser console
+        console.log('[TELESCOPE STATUS]', status);
+
         // State and tracking
         this.setText('telescope-state', status.state || 'Unknown');
         this.setText('tracking-status', status.is_tracking ? 'Tracking' : 'Not tracking');
@@ -304,6 +307,22 @@ const TelescopeControls = {
         const isBusy = busyStates.includes(state);
         const isImaging = state === 'imaging';
         const isSlewing = state === 'slewing';
+
+        console.log('[CONTROL STATES]', {
+            state,
+            isIdle,
+            isBusy,
+            isImaging,
+            isSlewing,
+            controls: {
+                'slew-to-target-btn': !isIdle ? 'disabled' : 'enabled',
+                'park-telescope-btn': !isIdle ? 'disabled' : 'enabled',
+                'stop-motion-btn': !isSlewing ? 'disabled' : 'enabled',
+                'start-imaging-btn': (!isIdle || isImaging) ? 'disabled' : 'enabled',
+                'stop-imaging-btn': !isImaging ? 'disabled' : 'enabled',
+                'auto-focus-btn': !isIdle ? 'disabled' : 'enabled'
+            }
+        });
 
         // Movement controls (enabled when idle)
         this.setDisabled('slew-to-target-btn', !isIdle);
