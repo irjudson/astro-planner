@@ -362,7 +362,20 @@ const AppContext = {
     // Update drawer content based on context
     updateDrawerContent(context) {
         const drawerTabs = document.getElementById('drawer-tabs');
+        const catalogStats = document.getElementById('catalog-stats');
         if (!drawerTabs) return;
+
+        // Show/hide catalog stats only in discovery view
+        if (catalogStats) {
+            catalogStats.style.display = (context === 'discovery') ? 'block' : 'none';
+        }
+
+        // For execution view, check if telescope capabilities are loaded
+        // If so, let telescope-capabilities manage the drawer content
+        if (context === 'execution' && window.TelescopeCapabilities && window.TelescopeCapabilities.features) {
+            // Telescope capabilities will manage the drawer - don't replace
+            return;
+        }
 
         // Context-specific drawer content
         const drawerContent = {
@@ -373,6 +386,16 @@ const AppContext = {
         };
 
         drawerTabs.innerHTML = drawerContent[context] || '';
+
+        // After setting execution content, trigger capabilities refresh if available
+        if (context === 'execution' && window.TelescopeCapabilities) {
+            // Give it a moment for DOM to update, then refresh capabilities
+            setTimeout(() => {
+                if (window.TelescopeCapabilities.features) {
+                    window.TelescopeCapabilities.updateAdvancedFeatures();
+                }
+            }, 100);
+        }
     },
 
     getDiscoveryDrawerContent() {
@@ -439,34 +462,56 @@ const AppContext = {
 
     getExecutionDrawerContent() {
         return `
-            <div class="drawer-section">
-                <h4>System Diagnostics</h4>
-                <div class="diagnostic-grid">
-                    <div class="diagnostic-item">
-                        <label>CPU Usage:</label>
-                        <span class="diagnostic-value">--</span>
+            <!-- Device Status -->
+            <div class="device-info" style="padding: 16px; background: rgba(0, 0, 0, 0.3); border-radius: 4px;">
+                <h4 style="margin-top: 0; margin-bottom: 12px; color: rgba(255, 255, 255, 0.8);">Device Status</h4>
+                <div class="info-row">
+                    <span class="info-label">Device:</span>
+                    <span class="info-value" id="device-name">Not Connected</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Firmware:</span>
+                    <span class="info-value" id="device-firmware">--</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Signal:</span>
+                    <span class="info-value" id="device-signal">--</span>
+                </div>
+                <button class="btn btn-secondary btn-block" id="operator-disconnect-btn" disabled style="margin-top: 12px;">Disconnect</button>
+            </div>
+
+            <!-- Telescope Advanced Controls -->
+            <div class="device-info" style="padding: 16px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; margin-top: 16px;">
+                <h4 style="margin-top: 0; margin-bottom: 12px; color: rgba(255, 255, 255, 0.8);">Telescope Features</h4>
+
+                <div class="info-row" style="margin-bottom: 12px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="dew-heater-toggle" style="margin-right: 8px;">
+                        <span>Dew Heater</span>
+                    </label>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h5 style="margin: 0; color: rgba(255, 255, 255, 0.7); font-size: 14px;">Images</h5>
+                        <button id="refresh-images-btn" class="btn btn-sm btn-secondary">Refresh</button>
                     </div>
-                    <div class="diagnostic-item">
-                        <label>Memory:</label>
-                        <span class="diagnostic-value">--</span>
-                    </div>
-                    <div class="diagnostic-item">
-                        <label>Disk Space:</label>
-                        <span class="diagnostic-value">--</span>
-                    </div>
-                    <div class="diagnostic-item">
-                        <label>Network:</label>
-                        <span class="diagnostic-value">--</span>
+                    <div id="image-list" class="image-list" style="max-height: 200px; overflow-y: auto;">
+                        <p class="text-secondary">No images</p>
                     </div>
                 </div>
-                <h4 style="margin-top: 20px;">Image Preview Settings</h4>
+            </div>
+
+            <!-- Image Preview Settings -->
+            <div class="device-info" style="padding: 16px; background: rgba(0, 0, 0, 0.3); border-radius: 4px; margin-top: 16px;">
+                <h4 style="margin-top: 0; margin-bottom: 12px; color: rgba(255, 255, 255, 0.8);">Preview Settings</h4>
                 <div class="preview-settings">
-                    <label>
-                        <input type="checkbox" id="auto-stretch" checked>
+                    <label style="display: block; margin-bottom: 8px;">
+                        <input type="checkbox" id="auto-stretch" checked style="margin-right: 8px;">
                         Auto-stretch preview images
                     </label>
-                    <label>
-                        <input type="checkbox" id="show-stats">
+                    <label style="display: block;">
+                        <input type="checkbox" id="show-stats" style="margin-right: 8px;">
                         Show image statistics overlay
                     </label>
                 </div>
