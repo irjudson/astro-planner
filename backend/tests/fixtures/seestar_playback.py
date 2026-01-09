@@ -6,11 +6,12 @@ Simulates telescope behavior by replaying captured TCP interactions.
 
 import asyncio
 import json
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from loguru import logger
-
 from tests.fixtures.seestar_recorder import Interaction, RecordingMetadata
+
+logger = logging.getLogger(__name__)
 
 
 class SeestarPlaybackServer:
