@@ -366,6 +366,23 @@ const TelescopeCapabilities = {
                 <button class="btn btn-secondary" id="reboot-btn">Reboot</button>
             </div>
         `;
+
+        // Wire up event listeners
+        document.getElementById('get-system-info-btn')?.addEventListener('click', () => {
+            this.getSystemInfo();
+        });
+
+        document.getElementById('shutdown-btn')?.addEventListener('click', () => {
+            if (confirm('Shutdown telescope? This will power off the device.')) {
+                this.shutdownTelescope();
+            }
+        });
+
+        document.getElementById('reboot-btn')?.addEventListener('click', () => {
+            if (confirm('Reboot telescope? This will restart the device.')) {
+                this.rebootTelescope();
+            }
+        });
     },
 
     renderAdvancedTab(container) {
@@ -396,6 +413,84 @@ const TelescopeCapabilities = {
         } catch (error) {
             console.error('WiFi scan failed:', error);
             alert('WiFi scan failed: ' + error.message);
+        }
+    },
+
+    async getSystemInfo() {
+        const displayEl = document.getElementById('system-info-display');
+        if (!displayEl) return;
+
+        displayEl.textContent = 'Loading system information...';
+
+        try {
+            const response = await fetch('/api/telescope/features/system/info');
+            if (!response.ok) throw new Error('Failed to get system info');
+
+            const data = await response.json();
+
+            // Format the system info nicely
+            let html = '<div class="system-info-grid">';
+
+            if (data.device_name) {
+                html += `<div class="info-row"><label>Device:</label><span>${data.device_name}</span></div>`;
+            }
+            if (data.firmware_version) {
+                html += `<div class="info-row"><label>Firmware:</label><span>${data.firmware_version}</span></div>`;
+            }
+            if (data.hardware_version) {
+                html += `<div class="info-row"><label>Hardware:</label><span>${data.hardware_version}</span></div>`;
+            }
+            if (data.serial_number) {
+                html += `<div class="info-row"><label>Serial:</label><span>${data.serial_number}</span></div>`;
+            }
+            if (data.uptime_seconds !== undefined) {
+                const hours = Math.floor(data.uptime_seconds / 3600);
+                const minutes = Math.floor((data.uptime_seconds % 3600) / 60);
+                html += `<div class="info-row"><label>Uptime:</label><span>${hours}h ${minutes}m</span></div>`;
+            }
+            if (data.temperature_c !== undefined) {
+                html += `<div class="info-row"><label>Temperature:</label><span>${data.temperature_c.toFixed(1)}°C</span></div>`;
+            }
+            if (data.storage_used_mb !== undefined && data.storage_total_mb !== undefined) {
+                const usedGB = (data.storage_used_mb / 1024).toFixed(2);
+                const totalGB = (data.storage_total_mb / 1024).toFixed(2);
+                const percent = ((data.storage_used_mb / data.storage_total_mb) * 100).toFixed(1);
+                html += `<div class="info-row"><label>Storage:</label><span>${usedGB}GB / ${totalGB}GB (${percent}%)</span></div>`;
+            }
+
+            html += '</div>';
+            displayEl.innerHTML = html;
+        } catch (error) {
+            console.error('Failed to get system info:', error);
+            displayEl.textContent = 'Failed to load system information: ' + error.message;
+        }
+    },
+
+    async shutdownTelescope() {
+        try {
+            const response = await fetch('/api/telescope/features/system/shutdown', {
+                method: 'POST'
+            });
+            if (!response.ok) throw new Error('Shutdown command failed');
+
+            alert('Shutdown command sent successfully');
+        } catch (error) {
+            console.error('Failed to shutdown telescope:', error);
+            alert('Failed to shutdown: ' + error.message);
+        }
+    },
+
+    async rebootTelescope() {
+        try {
+            const response = await fetch('/api/telescope/features/system/reboot', {
+                method: 'POST'
+            });
+            if (!response.ok) throw new Error('Reboot command failed');
+
+            alert('Reboot command sent successfully');
+        } catch (error) {
+            console.error('Failed to reboot telescope:', error);
+            alert('Failed to reboot: ' + error.message);
         }
     }
 };
