@@ -29,8 +29,8 @@ const TelescopeControls = {
 
     setupControlHandlers() {
         // Connection
-        this.on('connect-btn', () => this.handleConnect());
-        this.on('disconnect-btn', () => this.handleDisconnect());
+        this.on('telescope-panel-connect-btn', () => this.handleConnect());
+        this.on('telescope-panel-disconnect-btn', () => this.handleDisconnect());
 
         // Telescope control
         this.on('slew-to-target-btn', () => this.handleSlewToTarget());
@@ -100,8 +100,8 @@ const TelescopeControls = {
 
         // Update UI
         document.getElementById('connection-panel')?.classList.add('connected');
-        document.getElementById('connect-btn').disabled = true;
-        document.getElementById('disconnect-btn').disabled = false;
+        document.getElementById('telescope-panel-connect-btn').disabled = true;
+        document.getElementById('telescope-panel-disconnect-btn').disabled = false;
     },
 
     onDisconnected() {
@@ -111,8 +111,8 @@ const TelescopeControls = {
 
         // Update UI
         document.getElementById('connection-panel')?.classList.remove('connected');
-        document.getElementById('connect-btn').disabled = false;
-        document.getElementById('disconnect-btn').disabled = true;
+        document.getElementById('telescope-panel-connect-btn').disabled = false;
+        document.getElementById('telescope-panel-disconnect-btn').disabled = true;
     },
 
     // ==========================================
