@@ -6,6 +6,7 @@ const TelescopeCapabilities = {
     capabilities: null,
     features: null,
     telescopeType: null,
+    currentTab: null,
 
     async init() {
         // Load capabilities when telescope connects
@@ -309,6 +310,10 @@ const TelescopeCapabilities = {
     switchDrawerTab(tab) {
         const contentEl = document.getElementById('drawer-tab-content');
         if (!contentEl) return;
+
+        // Don't re-render if already on this tab
+        if (this.currentTab === tab) return;
+        this.currentTab = tab;
 
         switch (tab) {
             case 'wifi':
