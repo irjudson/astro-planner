@@ -77,6 +77,27 @@ class TimeoutError(SeestarClientError):
     pass
 
 
+class EventType(Enum):
+    """Known event types from S50."""
+
+    PROGRESS_UPDATE = "progress"  # Frame count, percentage updates
+    STATE_CHANGE = "state"  # Device state transitions
+    ERROR = "error"  # Operation errors
+    IMAGE_READY = "image"  # Stacking complete, image available
+    OPERATION_COMPLETE = "complete"  # Goto/focus/imaging done
+    UNKNOWN = "unknown"  # Unrecognized event type
+
+
+@dataclass
+class SeestarEvent:
+    """Represents unsolicited event from telescope."""
+
+    event_type: EventType
+    timestamp: datetime
+    data: Dict[str, Any]
+    source_command: Optional[str] = None
+
+
 class SeestarClient:
     """TCP client for Seestar S50 smart telescope.
 
@@ -139,6 +160,13 @@ class SeestarClient:
         # Callbacks
         self._status_callback: Optional[Callable[[SeestarStatus], None]] = None
 
+        # Event streaming
+        self._event_callbacks: Dict[EventType, List[Callable[[SeestarEvent], None]]] = {
+            event_type: [] for event_type in EventType
+        }
+        self._all_events_callbacks: List[Callable[[SeestarEvent], None]] = []
+        self._progress_callbacks: List[Callable[[float, Dict[str, Any]], None]] = []
+
     @property
     def connected(self) -> bool:
         """Check if connected to telescope."""
@@ -166,6 +194,70 @@ class SeestarClient:
             callback: Function to call when status changes
         """
         self._status_callback = callback
+
+    def subscribe_event(self, event_type: EventType, callback: Callable[[SeestarEvent], None]) -> None:
+        """Register callback for specific event type.
+
+        Args:
+            event_type: Type of event to listen for
+            callback: Function to call when event occurs
+        """
+        if callback not in self._event_callbacks[event_type]:
+            self._event_callbacks[event_type].append(callback)
+            self.logger.debug(f"Subscribed to {event_type.value} events")
+
+    def unsubscribe_event(self, event_type: EventType, callback: Callable[[SeestarEvent], None]) -> None:
+        """Remove event callback.
+
+        Args:
+            event_type: Type of event to stop listening for
+            callback: Function to remove
+        """
+        if callback in self._event_callbacks[event_type]:
+            self._event_callbacks[event_type].remove(callback)
+            self.logger.debug(f"Unsubscribed from {event_type.value} events")
+
+    def subscribe_all_events(self, callback: Callable[[SeestarEvent], None]) -> None:
+        """Receive all telescope events.
+
+        Args:
+            callback: Function to call for any event
+        """
+        if callback not in self._all_events_callbacks:
+            self._all_events_callbacks.append(callback)
+            self.logger.debug("Subscribed to all events")
+
+    def unsubscribe_all_events(self, callback: Callable[[SeestarEvent], None]) -> None:
+        """Stop receiving all events.
+
+        Args:
+            callback: Function to remove
+        """
+        if callback in self._all_events_callbacks:
+            self._all_events_callbacks.remove(callback)
+            self.logger.debug("Unsubscribed from all events")
+
+    def subscribe_progress(self, callback: Callable[[float, Dict[str, Any]], None]) -> None:
+        """Convenience method for progress updates only.
+
+        Callback signature: (percent_complete: float, details: dict)
+
+        Args:
+            callback: Function to call with progress updates
+        """
+        if callback not in self._progress_callbacks:
+            self._progress_callbacks.append(callback)
+            self.logger.debug("Subscribed to progress updates")
+
+    def unsubscribe_progress(self, callback: Callable[[float, Dict[str, Any]], None]) -> None:
+        """Stop receiving progress updates.
+
+        Args:
+            callback: Function to remove
+        """
+        if callback in self._progress_callbacks:
+            self._progress_callbacks.remove(callback)
+            self.logger.debug("Unsubscribed from progress updates")
 
     def _update_status(self, **kwargs) -> None:
         """Update internal status and trigger callback."""
@@ -437,9 +529,255 @@ class SeestarClient:
             future = self._pending_responses.pop(msg_id)
             if not future.done():
                 future.set_result(message)
+            return  # This was a command response, not an event
 
-        # Update internal state based on events
-        # (Could parse Event messages here if needed)
+        # Parse and dispatch as unsolicited event
+        event = self._parse_event(message)
+        if event:
+            await self._dispatch_event(event)
+
+    def _parse_event(self, message: Dict[str, Any]) -> Optional[SeestarEvent]:
+        """Parse message as telescope event.
+
+        Args:
+            message: Raw message dict from telescope
+
+        Returns:
+            SeestarEvent if recognized, None otherwise
+        """
+        # Determine event type based on message structure
+        method = message.get("method", "")
+        result = message.get("result", {})
+
+        event_type = EventType.UNKNOWN
+        event_data = {}
+
+        # Parse different event types
+        if "progress" in result or "percent" in result:
+            event_type = EventType.PROGRESS_UPDATE
+            event_data = {
+                "progress": result.get("progress", 0),
+                "percent": result.get("percent", 0),
+                "frame": result.get("frame", 0),
+                "total_frames": result.get("total_frames", 0),
+            }
+
+        elif "state" in result:
+            event_type = EventType.STATE_CHANGE
+            event_data = {"state": result.get("state"), "stage": result.get("stage")}
+
+        elif "error" in message or message.get("code", 0) != 0:
+            event_type = EventType.ERROR
+            event_data = {
+                "error": message.get("error", "Unknown error"),
+                "code": message.get("code", 0),
+            }
+
+        elif "stacked" in result or "image_ready" in result:
+            event_type = EventType.IMAGE_READY
+            event_data = {"filename": result.get("filename"), "path": result.get("path")}
+
+        elif result.get("stage") == "Idle" or result.get("complete"):
+            event_type = EventType.OPERATION_COMPLETE
+            event_data = {"operation": result.get("operation"), "success": result.get("success", True)}
+
+        # Create event
+        return SeestarEvent(event_type=event_type, timestamp=datetime.now(), data=event_data, source_command=method)
+
+    async def _dispatch_event(self, event: SeestarEvent) -> None:
+        """Dispatch event to registered callbacks.
+
+        Args:
+            event: Event to dispatch
+        """
+        # Call all-events callbacks
+        for callback in self._all_events_callbacks:
+            try:
+                callback(event)
+            except Exception as e:
+                self.logger.error(f"Error in all-events callback: {e}")
+
+        # Call event-type-specific callbacks
+        for callback in self._event_callbacks.get(event.event_type, []):
+            try:
+                callback(event)
+            except Exception as e:
+                self.logger.error(f"Error in {event.event_type.value} callback: {e}")
+
+        # Handle progress events specially for progress callbacks
+        if event.event_type == EventType.PROGRESS_UPDATE:
+            percent = event.data.get("percent", 0)
+            details = event.data
+            for progress_cb in self._progress_callbacks:
+                try:
+                    progress_cb(percent, details)
+                except Exception as e:
+                    self.logger.error(f"Error in progress callback: {e}")
+
+    async def wait_for_goto_complete(self, timeout: float = 180.0) -> bool:
+        """Wait for slew/goto operation to complete using events (not polling).
+
+        Subscribes to STATE_CHANGE events and waits for telescope to enter
+        TRACKING state, indicating the goto is complete.
+
+        Args:
+            timeout: Maximum time to wait in seconds (default: 3 minutes)
+
+        Returns:
+            True if goto completed successfully, False on timeout
+
+        Example:
+            await client.goto_target(10.0, 45.0, "M31")
+            success = await client.wait_for_goto_complete(timeout=120.0)
+            if success:
+                print("Goto completed, telescope is tracking")
+        """
+        completion_event = asyncio.Event()
+        success = False
+
+        def state_callback(event: SeestarEvent):
+            nonlocal success
+            state = event.data.get("state")
+            if state == SeestarState.TRACKING.value or state == "tracking":
+                success = True
+                completion_event.set()
+            elif state in (SeestarState.CONNECTED.value, "connected", SeestarState.PARKED.value, "parked"):
+                # Goto failed or was stopped
+                success = False
+                completion_event.set()
+
+        # Subscribe to state change events
+        self.subscribe_event(EventType.STATE_CHANGE, state_callback)
+
+        try:
+            # Wait for completion or timeout
+            await asyncio.wait_for(completion_event.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.warning(f"Goto operation timed out after {timeout}s")
+            success = False
+        finally:
+            # Clean up subscription
+            self.unsubscribe_event(EventType.STATE_CHANGE, state_callback)
+
+        return success
+
+    async def wait_for_focus_complete(self, timeout: float = 120.0) -> tuple[bool, Optional[float]]:
+        """Wait for autofocus operation to complete using events.
+
+        Subscribes to OPERATION_COMPLETE events and waits for autofocus to finish.
+
+        Args:
+            timeout: Maximum time to wait in seconds (default: 2 minutes)
+
+        Returns:
+            Tuple of (success: bool, focus_position: Optional[float])
+            - success: True if autofocus completed successfully
+            - focus_position: Final focus position if available, None otherwise
+
+        Example:
+            await client.auto_focus()
+            success, position = await client.wait_for_focus_complete(timeout=90.0)
+            if success:
+                print(f"Autofocus complete at position {position}")
+        """
+        completion_event = asyncio.Event()
+        success = False
+        focus_position = None
+
+        def operation_callback(event: SeestarEvent):
+            nonlocal success, focus_position
+            operation = event.data.get("operation", "")
+            if "focus" in operation.lower() or event.source_command == "auto_focus":
+                success = event.data.get("success", True)
+                focus_position = event.data.get("position")
+                completion_event.set()
+
+        # Subscribe to operation complete events
+        self.subscribe_event(EventType.OPERATION_COMPLETE, operation_callback)
+
+        try:
+            # Wait for completion or timeout
+            await asyncio.wait_for(completion_event.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.warning(f"Autofocus operation timed out after {timeout}s")
+            success = False
+        finally:
+            # Clean up subscription
+            self.unsubscribe_event(EventType.OPERATION_COMPLETE, operation_callback)
+
+        return success, focus_position
+
+    async def wait_for_imaging_complete(
+        self,
+        expected_frames: int,
+        progress_callback: Optional[Callable[[int, int, float], None]] = None,
+        timeout: float = 3600.0,
+    ) -> bool:
+        """Wait for imaging session to reach expected frame count.
+
+        Subscribes to PROGRESS_UPDATE events and tracks frame completion.
+        Optionally calls progress_callback after each frame.
+
+        Args:
+            expected_frames: Number of frames to wait for
+            progress_callback: Optional callback(frame_num, total_frames, percent)
+                called after each frame is stacked
+            timeout: Maximum time to wait in seconds (default: 1 hour)
+
+        Returns:
+            True if expected frames reached, False on timeout or error
+
+        Example:
+            def on_progress(current, total, percent):
+                print(f"Stacked {current}/{total} frames ({percent:.1f}%)")
+
+            await client.start_imaging(restart=True)
+            success = await client.wait_for_imaging_complete(
+                expected_frames=50,
+                progress_callback=on_progress,
+                timeout=1800.0
+            )
+        """
+        completion_event = asyncio.Event()
+        success = False
+        current_frame = 0
+
+        def imaging_progress_callback(event: SeestarEvent):
+            nonlocal success, current_frame
+            frame = event.data.get("frame", 0)
+            total = event.data.get("total_frames", expected_frames)
+            percent = event.data.get("percent", 0)
+
+            current_frame = frame
+
+            # Call user's progress callback if provided
+            if progress_callback:
+                try:
+                    progress_callback(frame, total, percent)
+                except Exception as e:
+                    self.logger.error(f"Error in user progress callback: {e}")
+
+            # Check if we've reached expected frames
+            if frame >= expected_frames:
+                success = True
+                completion_event.set()
+
+        # Subscribe to progress events
+        self.subscribe_event(EventType.PROGRESS_UPDATE, imaging_progress_callback)
+
+        try:
+            # Wait for completion or timeout
+            await asyncio.wait_for(completion_event.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.warning(
+                f"Imaging session timed out after {timeout}s " f"(reached {current_frame}/{expected_frames} frames)"
+            )
+            success = False
+        finally:
+            # Clean up subscription
+            self.unsubscribe_event(EventType.PROGRESS_UPDATE, imaging_progress_callback)
+
+        return success
 
     async def _send_command(self, method: str, params: Any = None, timeout: Optional[float] = None) -> Dict[str, Any]:
         """Send command to telescope and wait for response.
