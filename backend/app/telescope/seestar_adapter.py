@@ -4,16 +4,11 @@ Seestar S-50 telescope adapter.
 Wraps the SeestarClient to provide the generic telescope interface.
 """
 
-from typing import Optional, Dict, Any
 import logging
+from typing import Any, Dict, Optional
 
-from app.telescope.base_adapter import (
-    TelescopeAdapter,
-    TelescopeStatus,
-    TelescopeState,
-    ExposureSettings,
-)
 from app.clients.seestar_client import SeestarClient, SeestarState
+from app.telescope.base_adapter import ExposureSettings, TelescopeAdapter, TelescopeState, TelescopeStatus
 
 logger = logging.getLogger(__name__)
 

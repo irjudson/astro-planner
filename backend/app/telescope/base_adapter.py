@@ -6,9 +6,9 @@ regardless of the underlying telescope hardware or control protocol.
 """
 
 from abc import ABC, abstractmethod
-from enum import Enum
-from typing import Optional, Dict, Any
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class TelescopeState(Enum):

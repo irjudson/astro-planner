@@ -3,8 +3,9 @@ API dependencies.
 """
 
 from fastapi import HTTPException
-from app.telescope.base_adapter import TelescopeAdapter
+
 from app.api import routes
+from app.telescope.base_adapter import TelescopeAdapter
 
 
 def get_current_telescope() -> TelescopeAdapter:

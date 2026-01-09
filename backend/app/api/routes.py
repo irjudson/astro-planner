@@ -519,8 +519,10 @@ async def search_catalog(
     """
     try:
         import time
+
+        from sqlalchemy import func, or_
+
         from app.models.catalog_models import DSOCatalog
-        from sqlalchemy import or_, func
 
         # Create cache key from query parameters
         cache_key = f"catalog:{search}:{type}:{constellation}:{max_magnitude}:{sort_by}:{page}:{page_size}"
@@ -1366,6 +1368,7 @@ async def get_latest_preview():
     """
     import os
     from pathlib import Path
+
     from fastapi.responses import Response
 
     try:
@@ -1588,8 +1591,8 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
         target = None
 
         # Try to parse catalog ID format
-        import re
         import logging
+        import re
 
         logger = logging.getLogger(__name__)
 

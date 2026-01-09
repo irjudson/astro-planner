@@ -5,8 +5,9 @@ Provides dynamic endpoints for telescope-specific functionality
 that goes beyond the generic telescope adapter interface.
 """
 
-from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.api.deps import get_current_telescope
