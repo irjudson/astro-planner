@@ -54,7 +54,7 @@ class TestTelescopeEndpoints:
 
     def test_connect_success(self, client, mock_seestar_client):
         """Test successful telescope connection."""
-        with patch("app.api.routes.seestar_client", mock_seestar_client):
+        with patch("app.api.routes.SeestarClient", return_value=mock_seestar_client):
             mock_seestar_client.connected = True
             mock_seestar_client.status = SeestarStatus(
                 connected=True, state=SeestarState.CONNECTED, firmware_version="5.50"
@@ -68,11 +68,12 @@ class TestTelescopeEndpoints:
             assert data["host"] == "192.168.2.47"
             assert data["port"] == 4700
             assert "message" in data
+            mock_seestar_client.connect.assert_called_once_with("192.168.2.47", 4700)
 
     def test_connect_failure(self, client, mock_seestar_client):
         """Test failed telescope connection."""
-        with patch("app.api.routes.seestar_client", mock_seestar_client):
-            mock_seestar_client.connect.side_effect = Exception("Connection failed")
+        with patch("app.api.routes.SeestarClient", return_value=mock_seestar_client):
+            mock_seestar_client.connect = AsyncMock(side_effect=Exception("Connection failed"))
 
             response = client.post("/api/telescope/connect", json={"host": "invalid.host", "port": 4700})
 
