@@ -114,10 +114,19 @@ const TelescopeControls = {
         this.disableAllControls();
         this.stopTelemetryPolling();
 
-        // Update UI
+        // Update UI with disconnected state
+        this.setText('telescope-state', 'Disconnected');
+        this.setText('tracking-status', 'Not tracking');
+        this.setText('current-ra', '--:--:--');
+        this.setText('current-dec', '--°--\'--"');
+        this.setText('current-target', 'None');
+
+        // Update connection buttons
         document.getElementById('connection-panel')?.classList.remove('connected');
         document.getElementById('telescope-panel-connect-btn').disabled = false;
         document.getElementById('telescope-panel-disconnect-btn').disabled = true;
+
+        this.showStatus('Telescope disconnected', 'warning');
     },
 
     // ==========================================
@@ -286,6 +295,12 @@ const TelescopeControls = {
     updateTelemetry(status) {
         // Log all telescope status updates to browser console
         console.log('[TELESCOPE STATUS]', status);
+
+        // Check if telescope is disconnected
+        if (!status.connected) {
+            this.onDisconnected();
+            return;
+        }
 
         // State and tracking
         this.setText('telescope-state', status.state || 'Unknown');
