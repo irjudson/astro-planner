@@ -523,58 +523,60 @@
                         <div class="control-panel" id="main-controls">
                             <h3>Telescope Control</h3>
 
+                            <!-- Target Input -->
                             <div class="control-section">
                                 <label class="control-label">Target Coordinates</label>
-                                <div class="coord-inputs">
-                                    <input type="text" id="target-name" placeholder="Target Name" class="form-control">
+                                <input type="text" id="target-name" placeholder="Target Name (optional)" class="form-control" style="margin-bottom: 8px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
                                     <input type="text" id="target-ra" placeholder="RA (HH:MM:SS)" class="form-control">
                                     <input type="text" id="target-dec" placeholder="Dec (±DD:MM:SS)" class="form-control">
                                 </div>
-                                <div class="button-row">
-                                    <button id="slew-to-target-btn" class="btn btn-primary" disabled>Slew to Target</button>
-                                    <button id="stop-motion-btn" class="btn btn-secondary" disabled>Stop</button>
-                                    <button id="park-telescope-btn" class="btn btn-secondary" disabled>Park</button>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <button id="slew-to-target-btn" class="btn btn-primary" disabled style="width: 100%;">Slew to Target</button>
+                                    <button id="stop-motion-btn" class="btn btn-warning" disabled style="width: 100%;">Stop Motion</button>
                                 </div>
+                                <button id="park-telescope-btn" class="btn btn-secondary" disabled style="width: 100%; margin-top: 8px;">Park Telescope</button>
                             </div>
 
-                            <div class="control-section">
+                            <!-- Imaging -->
+                            <div class="control-section" style="margin-top: 20px;">
                                 <label class="control-label">Imaging</label>
-                                <div class="imaging-controls">
-                                    <div class="input-group">
-                                        <label>Exposure (sec):</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                    <div>
+                                        <label style="font-size: 0.9em; margin-bottom: 4px; display: block;">Exposure (sec)</label>
                                         <input type="number" id="exposure-time" value="10" min="0.1" max="600" step="0.1" class="form-control">
                                     </div>
-                                    <div class="input-group">
-                                        <label>Gain:</label>
+                                    <div>
+                                        <label style="font-size: 0.9em; margin-bottom: 4px; display: block;">Gain</label>
                                         <input type="number" id="gain-value" value="80" min="0" max="200" class="form-control">
                                     </div>
                                 </div>
-                                <div class="button-row">
-                                    <button id="auto-focus-btn" class="btn btn-success" disabled>Auto Focus</button>
-                                    <button id="start-imaging-btn" class="btn btn-primary" disabled>Start Imaging</button>
-                                    <button id="stop-imaging-btn" class="btn btn-secondary" disabled>Stop Imaging</button>
+                                <button id="auto-focus-btn" class="btn btn-success" disabled style="width: 100%; margin-bottom: 8px;">Auto Focus</button>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <button id="start-imaging-btn" class="btn btn-primary" disabled style="width: 100%;">Start Imaging</button>
+                                    <button id="stop-imaging-btn" class="btn btn-danger" disabled style="width: 100%;">Stop Imaging</button>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Status Display -->
-                        <div class="control-panel" id="status-panel">
-                            <h3>Status</h3>
-                            <div class="telemetry-display">
-                                <div class="telem-item">
-                                    <span class="label">RA:</span>
-                                    <span id="current-ra" class="value">--:--:--</span>
+                            <!-- Current Position -->
+                            <div class="control-section" style="margin-top: 20px;">
+                                <label class="control-label">Current Position</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-family: monospace;">
+                                    <div>
+                                        <span style="opacity: 0.7; font-size: 0.9em;">RA:</span>
+                                        <span id="current-ra" style="margin-left: 8px;">--:--:--</span>
+                                    </div>
+                                    <div>
+                                        <span style="opacity: 0.7; font-size: 0.9em;">Dec:</span>
+                                        <span id="current-dec" style="margin-left: 8px;">--°--'--"</span>
+                                    </div>
                                 </div>
-                                <div class="telem-item">
-                                    <span class="label">Dec:</span>
-                                    <span id="current-dec" class="value">--°--'--"</span>
+                                <div style="margin-top: 8px;">
+                                    <span style="opacity: 0.7; font-size: 0.9em;">Tracking:</span>
+                                    <span id="tracking-status" style="margin-left: 8px;">Not tracking</span>
                                 </div>
-                                <div class="telem-item">
-                                    <span class="label">Tracking:</span>
-                                    <span id="tracking-status" class="value">Inactive</span>
-                                </div>
+                                <div id="control-status" class="status-message" style="margin-top: 12px;"></div>
                             </div>
-                            <div id="control-status" class="status-message"></div>
                         </div>
 
                     </div>
