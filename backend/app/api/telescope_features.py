@@ -355,3 +355,25 @@ async def set_telescope_location(
         return {"success": success}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/system/shutdown")
+async def shutdown_telescope_endpoint(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Shutdown telescope device (Seestar-specific)."""
+
+    try:
+        success = await telescope.shutdown_telescope()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/system/reboot")
+async def reboot_telescope_endpoint(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Reboot telescope device (Seestar-specific)."""
+
+    try:
+        success = await telescope.reboot_telescope()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -261,6 +261,10 @@ class SeestarClient:
 
     def _update_status(self, **kwargs) -> None:
         """Update internal status and trigger callback."""
+        # Log status changes to console for debugging
+        if kwargs:
+            self.logger.info(f"[TELESCOPE STATUS UPDATE] {kwargs}")
+
         for key, value in kwargs.items():
             if hasattr(self._status, key):
                 setattr(self._status, key, value)
