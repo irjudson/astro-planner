@@ -262,37 +262,32 @@ class TestTelescopeEndpoints:
             assert "message" in data
             mock_abort_task.delay.assert_called_once_with("test-123")
 
-    def test_park_telescope_success(self, client, mock_seestar_client, mock_telescope_service):
+    def test_park_telescope_success(self, client, mock_seestar_client):
         """Test successful telescope parking."""
-        with (
-            patch("app.api.routes.seestar_client", mock_seestar_client),
-            patch("app.api.routes.telescope_service", mock_telescope_service),
-        ):
-            # Fixed: Mock connected state
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
+            # Mock connected state and park method
             mock_seestar_client.connected = True
+            mock_seestar_client.park = AsyncMock(return_value=True)
 
             response = client.post("/api/telescope/park")
 
             assert response.status_code == 200
             data = response.json()
-            # Fixed: API returns {"status": "parking", "message": ...}
+            # API returns {"status": "parking", "message": ...}
             assert data["status"] == "parking"
             assert "message" in data
-            mock_telescope_service.park_telescope.assert_called_once()
+            mock_seestar_client.park.assert_called_once()
 
-    def test_park_telescope_failure(self, client, mock_seestar_client, mock_telescope_service):
+    def test_park_telescope_failure(self, client, mock_seestar_client):
         """Test failed telescope parking."""
-        with (
-            patch("app.api.routes.seestar_client", mock_seestar_client),
-            patch("app.api.routes.telescope_service", mock_telescope_service),
-        ):
-            # Fixed: Mock connected state
+        with patch("app.api.routes.seestar_client", mock_seestar_client):
+            # Mock connected state and park method returning False
             mock_seestar_client.connected = True
-            mock_telescope_service.park_telescope.return_value = False
+            mock_seestar_client.park = AsyncMock(return_value=False)
 
             response = client.post("/api/telescope/park")
 
-            # Fixed: API returns 200 with error status, not 500
+            # API returns 200 with error status, not 500
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "error"
@@ -300,7 +295,7 @@ class TestTelescopeEndpoints:
 
     def test_connect_with_custom_port(self, client, mock_seestar_client):
         """Test connection with custom port."""
-        with patch("app.api.routes.seestar_client", mock_seestar_client):
+        with patch("app.api.routes.SeestarClient", return_value=mock_seestar_client):
             mock_seestar_client.connected = True
             mock_seestar_client.status = SeestarStatus(
                 connected=True, state=SeestarState.CONNECTED, firmware_version="4.50"
@@ -313,7 +308,7 @@ class TestTelescopeEndpoints:
 
     def test_connect_with_default_port(self, client, mock_seestar_client):
         """Test connection uses default port 4700."""
-        with patch("app.api.routes.seestar_client", mock_seestar_client):
+        with patch("app.api.routes.SeestarClient", return_value=mock_seestar_client):
             mock_seestar_client.connected = True
             mock_seestar_client.status = SeestarStatus(
                 connected=True, state=SeestarState.CONNECTED, firmware_version="5.50"
@@ -323,7 +318,7 @@ class TestTelescopeEndpoints:
 
             # Should use default port 4700
             assert response.status_code == 200
-            mock_seestar_client.connect.assert_called_once()
+            mock_seestar_client.connect.assert_called_once_with("192.168.2.47", 4700)
 
 
 # Integration-style tests could be added with:
