@@ -25,7 +25,9 @@
       "message": {
         "jsonrpc": "2.0",
         "method": "get_verify_str",
-        "result": "abc123def456",
+        "result": {
+          "str": "abc123def456"
+        },
         "code": 0,
         "id": 10000
       },
