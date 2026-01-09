@@ -512,205 +512,106 @@
                     </div>
                 </div>
 
-                <!-- Execution View (Operator Dashboard) -->
+                <!-- Execution View (Simplified Telescope Control) -->
                 <div class="execution-view" id="execution-view" style="display: none;">
-                    <div class="operator-dashboard-grid">
+                    <div class="telescope-control-layout">
 
-                        <!-- Panel 1: Live Preview (spans 2 columns) -->
-                        <div class="operator-panel live-preview-panel" id="operator-liveview-panel">
-                            <div class="panel-header">
-                                <h3>Live Preview</h3>
-                                <div class="liveview-controls-inline">
-                                    <button class="btn btn-sm btn-primary" id="operator-start-preview-btn" disabled>Start</button>
-                                    <button class="btn btn-sm btn-secondary" id="operator-stop-preview-btn" disabled>Stop</button>
-                                    <button class="btn btn-sm btn-secondary" id="operator-snapshot-btn" disabled>Snapshot</button>
-                                    <button class="btn btn-sm btn-secondary" id="operator-fullscreen-btn" disabled>Fullscreen</button>
-                                </div>
+                        <!-- Connection Panel -->
+                        <div class="control-panel" id="connection-panel">
+                            <h3>Connection</h3>
+                            <div class="connection-controls">
+                                <input type="text" id="telescope-host" placeholder="192.168.2.47" value="192.168.2.47" class="form-control">
+                                <button id="connect-btn" class="btn btn-primary">Connect</button>
+                                <button id="disconnect-btn" class="btn btn-secondary" disabled>Disconnect</button>
                             </div>
-                            <div class="panel-body">
-                                <div class="liveview-frame" id="operator-liveview-frame">
-                                    <p class="text-secondary">Connect to telescope to view live preview</p>
+                            <div id="connection-status" class="status-display">
+                                <div class="status-item">
+                                    <span class="label">State:</span>
+                                    <span id="telescope-state" class="value">Disconnected</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="label">Target:</span>
+                                    <span id="current-target" class="value">None</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Panel 2: Manual Telescope Control -->
-                        <div class="operator-panel" id="operator-telescope-panel" data-capability="goto">
-                            <div class="panel-header">
-                                <h3>Telescope Control</h3>
+                        <!-- Main Controls -->
+                        <div class="control-panel" id="main-controls">
+                            <h3>Telescope Control</h3>
+
+                            <div class="control-section">
+                                <label class="control-label">Target Coordinates</label>
+                                <div class="coord-inputs">
+                                    <input type="text" id="target-name" placeholder="Target Name" class="form-control">
+                                    <input type="text" id="target-ra" placeholder="RA (HH:MM:SS)" class="form-control">
+                                    <input type="text" id="target-dec" placeholder="Dec (±DD:MM:SS)" class="form-control">
+                                </div>
+                                <div class="button-row">
+                                    <button id="slew-to-target-btn" class="btn btn-primary" disabled>Slew to Target</button>
+                                    <button id="stop-motion-btn" class="btn btn-secondary" disabled>Stop</button>
+                                    <button id="park-telescope-btn" class="btn btn-secondary" disabled>Park</button>
+                                </div>
                             </div>
-                            <div class="panel-body">
-                                <div class="form-group">
-                                    <label>RA (HH:MM:SS or decimal hours)</label>
-                                    <input type="text" class="form-control" id="goto-ra" placeholder="12:34:56">
+
+                            <div class="control-section">
+                                <label class="control-label">Imaging</label>
+                                <div class="imaging-controls">
+                                    <div class="input-group">
+                                        <label>Exposure (sec):</label>
+                                        <input type="number" id="exposure-time" value="10" min="0.1" max="600" step="0.1" class="form-control">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>Gain:</label>
+                                        <input type="number" id="gain-value" value="80" min="0" max="200" class="form-control">
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label>Dec (±DD:MM:SS or decimal °)</label>
-                                    <input type="text" class="form-control" id="goto-dec" placeholder="+45:30:00">
-                                </div>
-                                <div class="button-group">
-                                    <button class="btn btn-primary" id="goto-btn" disabled>Goto</button>
-                                    <button class="btn btn-secondary" id="stop-slew-btn" disabled>Stop</button>
-                                </div>
-                                <div class="button-group" style="margin-top: 8px;">
-                                    <button class="btn btn-success" id="open-btn" disabled>Open / Unpark</button>
-                                    <button class="btn btn-secondary" id="park-btn" disabled>Park</button>
+                                <div class="button-row">
+                                    <button id="auto-focus-btn" class="btn btn-success" disabled>Auto Focus</button>
+                                    <button id="start-imaging-btn" class="btn btn-primary" disabled>Start Imaging</button>
+                                    <button id="stop-imaging-btn" class="btn btn-secondary" disabled>Stop Imaging</button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Panel 3: Focus Control -->
-                        <div class="operator-panel" id="operator-focus-panel" data-capability="autofocus">
-                            <div class="panel-header">
-                                <h3>Focus Control</h3>
-                            </div>
-                            <div class="panel-body">
-                                <button class="btn btn-primary btn-block" id="autofocus-btn" disabled>Auto Focus</button>
-                                <div class="manual-focus-controls">
-                                    <label>Manual Adjustment</label>
-                                    <div class="button-group">
-                                        <button class="btn btn-secondary btn-sm" id="focus-minus-100" disabled>-100</button>
-                                        <button class="btn btn-secondary btn-sm" id="focus-minus-10" disabled>-10</button>
-                                        <button class="btn btn-secondary btn-sm" id="focus-plus-10" disabled>+10</button>
-                                        <button class="btn btn-secondary btn-sm" id="focus-plus-100" disabled>+100</button>
-                                    </div>
+                        <!-- Status Display -->
+                        <div class="control-panel" id="status-panel">
+                            <h3>Status</h3>
+                            <div class="telemetry-display">
+                                <div class="telem-item">
+                                    <span class="label">RA:</span>
+                                    <span id="current-ra" class="value">--:--:--</span>
                                 </div>
-                                <div class="seestar-feature" data-feature="focuser.factory_reset">
-                                    <button class="btn btn-secondary btn-block btn-sm" id="focus-reset-btn" disabled>Factory Reset</button>
+                                <div class="telem-item">
+                                    <span class="label">Dec:</span>
+                                    <span id="current-dec" class="value">--°--'--"</span>
+                                </div>
+                                <div class="telem-item">
+                                    <span class="label">Tracking:</span>
+                                    <span id="tracking-status" class="value">Inactive</span>
                                 </div>
                             </div>
+                            <div id="control-status" class="status-message"></div>
                         </div>
 
-                        <!-- Panel 4: Imaging Settings -->
-                        <div class="operator-panel" id="operator-imaging-panel" data-capability="exposure">
-                            <div class="panel-header">
-                                <h3>Imaging Settings</h3>
-                            </div>
-                            <div class="panel-body">
-                                <div class="form-group">
-                                    <label>Exposure (seconds)</label>
-                                    <input type="number" class="form-control" id="imaging-exposure" value="10" min="0.1" max="600" step="0.1">
-                                </div>
-                                <div class="form-group">
-                                    <label>Gain (0-200)</label>
-                                    <input type="number" class="form-control" id="imaging-gain" value="80" min="0" max="200">
-                                </div>
-                                <div class="seestar-feature" data-feature="imaging.manual_exposure">
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="checkbox" id="manual-exposure-checkbox">
-                                            Manual Exposure Mode
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="seestar-feature" data-feature="imaging.dithering">
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="checkbox" id="dithering-enabled">
-                                            Enable Dithering
-                                        </label>
-                                    </div>
-                                </div>
-                                <button class="btn btn-primary btn-block" id="apply-imaging-btn" disabled>Apply Settings</button>
-                            </div>
-                        </div>
+                        <!-- Advanced Controls (Collapsible) -->
+                        <div class="control-panel" id="advanced-panel">
+                            <button id="advanced-toggle-btn" class="btn btn-secondary btn-sm" disabled>▶ Show Advanced</button>
+                            <div id="advanced-controls" style="display: none;">
+                                <h4>Advanced Controls</h4>
 
-                        <!-- Panel 5: Plan Execution & Tracking -->
-                        <div class="operator-panel" id="operator-execution-panel">
-                            <div class="panel-header">
-                                <h3>Plan Execution</h3>
-                            </div>
-                            <div class="panel-body">
-                                <div id="operator-execution-queue" class="execution-queue">
-                                    <p class="text-secondary">No targets in queue</p>
+                                <div class="advanced-section">
+                                    <label>
+                                        <input type="checkbox" id="dew-heater-toggle">
+                                        Dew Heater
+                                    </label>
                                 </div>
-                                <div id="operator-current-target" class="current-target" style="display: none;">
-                                    <strong>Current:</strong> <span id="current-target-name">--</span>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" id="execution-progress" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                                <div class="button-group">
-                                    <button class="btn btn-primary" id="start-execution-btn" disabled>Start</button>
-                                    <button class="btn btn-secondary" id="pause-execution-btn" disabled>Pause</button>
-                                    <button class="btn btn-secondary" id="stop-execution-btn" disabled>Stop</button>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Panel 6: Hardware Controls (Seestar-specific) -->
-                        <div class="operator-panel seestar-feature" id="operator-hardware-panel" data-feature="hardware.dew_heater">
-                            <div class="panel-header">
-                                <h3>Hardware Controls</h3>
-                            </div>
-                            <div class="panel-body">
-                                <div class="form-group">
-                                    <label>Dew Heater</label>
-                                    <div class="button-group">
-                                        <button class="btn btn-secondary" id="dew-heater-on-btn" disabled>On</button>
-                                        <button class="btn btn-secondary" id="dew-heater-off-btn" disabled>Off</button>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label>Power Level: <span id="dew-heater-power-display">90</span>%</label>
-                                    <input type="range" class="form-control-range" id="dew-heater-power" min="0" max="100" value="90" disabled>
-                                </div>
-                                <div class="seestar-feature" data-feature="hardware.dc_output">
-                                    <div class="form-group">
-                                        <label>DC Output</label>
-                                        <div class="button-group">
-                                            <button class="btn btn-secondary" id="dc-output-on-btn" disabled>On</button>
-                                            <button class="btn btn-secondary" id="dc-output-off-btn" disabled>Off</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Panel 7: Live Telemetry -->
-                        <div class="operator-panel" id="operator-telemetry-panel">
-                            <div class="panel-header">
-                                <h3>Live Telemetry</h3>
-                            </div>
-                            <div class="panel-body">
-                                <div class="telemetry-grid">
-                                    <div class="telemetry-item">
-                                        <span class="telemetry-label">RA:</span>
-                                        <span class="telemetry-value" id="operator-telem-ra">--:--:--</span>
-                                    </div>
-                                    <div class="telemetry-item">
-                                        <span class="telemetry-label">Dec:</span>
-                                        <span class="telemetry-value" id="operator-telem-dec">--°--'--"</span>
-                                    </div>
-                                    <div class="telemetry-item">
-                                        <span class="telemetry-label">Alt:</span>
-                                        <span class="telemetry-value" id="operator-telem-alt">--°</span>
-                                    </div>
-                                    <div class="telemetry-item">
-                                        <span class="telemetry-label">Az:</span>
-                                        <span class="telemetry-value" id="operator-telem-az">--°</span>
-                                    </div>
-                                    <div class="telemetry-item">
-                                        <span class="telemetry-label">Tracking:</span>
-                                        <span class="telemetry-value" id="operator-tracking-status">Inactive</span>
-                                    </div>
-                                    <div class="telemetry-item">
-                                        <span class="telemetry-label">Temp:</span>
-                                        <span class="telemetry-value" id="operator-temp">--°C</span>
-                                    </div>
-                                </div>
-                                <div class="session-stats">
-                                    <div class="stat-item">
-                                        <span class="stat-label">Targets:</span>
-                                        <span class="stat-value" id="operator-targets-completed">0 / 0</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">Exposure:</span>
-                                        <span class="stat-value" id="operator-total-exposure">0h 0m</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <span class="stat-label">Duration:</span>
-                                        <span class="stat-value" id="operator-session-duration">0h 0m</span>
+                                <div class="advanced-section">
+                                    <h5>Images</h5>
+                                    <button id="refresh-images-btn" class="btn btn-sm btn-secondary">Refresh List</button>
+                                    <div id="image-list" class="image-list">
+                                        <p class="text-secondary">No images</p>
                                     </div>
                                 </div>
                             </div>
@@ -1031,8 +932,7 @@
     <script src="js/telescope-capabilities.js"></script>
     <script src="js/execution-manager.js"></script>
     <script src="js/execution-tabs.js"></script>
-    <script src="js/operator-dashboard.js"></script>
-    <script src="js/operator-panels.js"></script>
+    <script src="js/telescope-controls.js"></script>
     <script src="js/catalog-layout.js"></script>
     <script src="js/catalog-search.js?v=13"></script>
     <script src="js/planning-controls.js"></script>

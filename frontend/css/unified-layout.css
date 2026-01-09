@@ -3310,3 +3310,326 @@ html, body {
 .queue-item.active {
     animation: queue-pulse 2s infinite;
 }
+
+/* ==========================================
+   SIMPLIFIED TELESCOPE CONTROL LAYOUT
+   ========================================== */
+
+.telescope-control-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.control-panel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.control-panel h3 {
+    margin: 0 0 16px 0;
+    color: #00d9ff;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.control-panel h4 {
+    margin: 16px 0 12px 0;
+    color: #00d9ff;
+    font-size: 16px;
+}
+
+.control-panel h5 {
+    margin: 12px 0 8px 0;
+    color: rgba(0, 217, 255, 0.8);
+    font-size: 14px;
+}
+
+/* Connection Panel */
+.connection-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.connection-controls input {
+    flex: 1;
+}
+
+.status-display {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.status-item .label {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.status-item .value {
+    color: #00d9ff;
+    font-weight: 500;
+}
+
+#connection-panel.connected {
+    border-color: rgba(0, 255, 100, 0.5);
+}
+
+#connection-panel.connected h3 {
+    color: #00ff64;
+}
+
+/* Control Sections */
+.control-section {
+    margin-bottom: 24px;
+}
+
+.control-section:last-child {
+    margin-bottom: 0;
+}
+
+.control-label {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+.coord-inputs {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.imaging-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.input-group label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+
+.button-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Status Panel */
+.telemetry-display {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.telem-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border-left: 2px solid rgba(0, 217, 255, 0.3);
+}
+
+.telem-item .label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+}
+
+.telem-item .value {
+    color: #00d9ff;
+    font-weight: 600;
+}
+
+.status-message {
+    padding: 12px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.status-message.status-info {
+    background: rgba(0, 217, 255, 0.1);
+    color: #00d9ff;
+    border: 1px solid rgba(0, 217, 255, 0.3);
+}
+
+.status-message.status-success {
+    background: rgba(0, 255, 100, 0.1);
+    color: #00ff64;
+    border: 1px solid rgba(0, 255, 100, 0.3);
+}
+
+.status-message.status-warning {
+    background: rgba(255, 200, 0, 0.1);
+    color: #ffc800;
+    border: 1px solid rgba(255, 200, 0, 0.3);
+}
+
+.status-message.status-error {
+    background: rgba(255, 50, 50, 0.1);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 50, 50, 0.3);
+}
+
+/* Advanced Controls */
+#advanced-panel {
+    grid-column: 1 / -1;
+}
+
+#advanced-toggle-btn {
+    width: 100%;
+    margin-bottom: 12px;
+    text-align: left;
+}
+
+#advanced-controls {
+    padding-top: 12px;
+}
+
+.advanced-section {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.advanced-section label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.advanced-section input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+/* Image List */
+.image-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.image-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border-left: 2px solid rgba(0, 217, 255, 0.3);
+}
+
+.image-item span {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive Layout */
+@media (max-width: 1200px) {
+    .telescope-control-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .imaging-controls {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Form Controls Overrides */
+.control-panel .form-control {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 217, 255, 0.2);
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.control-panel .form-control:focus {
+    outline: none;
+    border-color: #00d9ff;
+    box-shadow: 0 0 0 2px rgba(0, 217, 255, 0.1);
+}
+
+.control-panel .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Button Styles */
+.control-panel .btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.control-panel .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.control-panel .btn-primary {
+    background: #00d9ff;
+    color: #0a0e27;
+    border: none;
+}
+
+.control-panel .btn-primary:hover:not(:disabled) {
+    background: #00b8e6;
+    box-shadow: 0 0 12px rgba(0, 217, 255, 0.4);
+}
+
+.control-panel .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-panel .btn-secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.control-panel .btn-success {
+    background: #00ff64;
+    color: #0a0e27;
+    border: none;
+}
+
+.control-panel .btn-success:hover:not(:disabled) {
+    background: #00e658;
+    box-shadow: 0 0 12px rgba(0, 255, 100, 0.4);
+}
+
+.control-panel .btn-sm {
+    padding: 6px 12px;
+    font-size: 14px;
+}
