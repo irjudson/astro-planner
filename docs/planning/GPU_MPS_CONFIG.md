@@ -1,10 +1,10 @@
 # GPU and MPS Configuration
 
-This document describes the NVIDIA GPU and Multi-Process Service (MPS) configuration for the astro-planner worker container.
+This document describes the NVIDIA GPU and Multi-Process Service (MPS) configuration for the astronomus worker container.
 
 ## Overview
 
-The Celery worker container (`astro-planner-worker`) is configured to use NVIDIA GPU acceleration with MPS for efficient GPU sharing. This allows multiple Celery worker processes to share the GPU simultaneously, improving throughput for parallel processing tasks like image stacking.
+The Celery worker container (`astronomus-worker`) is configured to use NVIDIA GPU acceleration with MPS for efficient GPU sharing. This allows multiple Celery worker processes to share the GPU simultaneously, improving throughput for parallel processing tasks like image stacking.
 
 ## Hardware
 
@@ -102,10 +102,10 @@ echo "get_server_list" | CUDA_MPS_PIPE_DIRECTORY=/tmp/nvidia-mps nvidia-cuda-mps
 
 ```bash
 # Check GPU access
-docker exec astro-planner-worker nvidia-smi
+docker exec astronomus-worker nvidia-smi
 
 # Test CuPy
-docker exec astro-planner-worker python3 -c "
+docker exec astronomus-worker python3 -c "
 import cupy as cp
 print(f'CUDA available: {cp.cuda.is_available()}')
 print(f'Device count: {cp.cuda.runtime.getDeviceCount()}')
@@ -116,7 +116,7 @@ print(f'Device count: {cp.cuda.runtime.getDeviceCount()}')
 
 ```bash
 # Test GPU-enabled stacking
-docker exec astro-planner-worker python3 -c "
+docker exec astronomus-worker python3 -c "
 from app.services.stacking_service import StackingService
 
 service = StackingService(use_gpu=True)
@@ -186,17 +186,17 @@ docker info | grep -i runtime
 nvidia-ctk --version
 
 # Check container GPU access
-docker exec astro-planner-worker nvidia-smi
+docker exec astronomus-worker nvidia-smi
 ```
 
 ### CuPy Import Errors
 
 ```bash
 # Verify CuPy installation
-docker exec astro-planner-worker python3 -c "import cupy; print(cupy.__version__)"
+docker exec astronomus-worker python3 -c "import cupy; print(cupy.__version__)"
 
 # Check CUDA version match
-docker exec astro-planner-worker python3 -c "
+docker exec astronomus-worker python3 -c "
 import cupy as cp
 print(f'CUDA Runtime: {cp.cuda.runtime.runtimeGetVersion()}')
 print(f'CUDA Driver: {cp.cuda.runtime.driverGetVersion()}')
@@ -207,10 +207,10 @@ print(f'CUDA Driver: {cp.cuda.runtime.driverGetVersion()}')
 
 ```bash
 # Verify MPS directory is mounted
-docker exec astro-planner-worker ls -la /tmp/nvidia-mps/
+docker exec astronomus-worker ls -la /tmp/nvidia-mps/
 
 # Check environment variable
-docker exec astro-planner-worker env | grep CUDA_MPS_PIPE_DIRECTORY
+docker exec astronomus-worker env | grep CUDA_MPS_PIPE_DIRECTORY
 ```
 
 ## Environment Variables
@@ -234,12 +234,12 @@ celery-worker:
   build:
     context: .
     dockerfile: docker/Dockerfile
-  container_name: astro-planner-worker
+  container_name: astronomus-worker
   runtime: nvidia
   command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=4
   environment:
     - REDIS_URL=redis://:buffalo-jump@redis:6379/1
-    - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+    - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
     - FITS_DIR=/fits
     - NVIDIA_VISIBLE_DEVICES=all
     - NVIDIA_DRIVER_CAPABILITIES=compute,utility

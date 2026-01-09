@@ -174,7 +174,7 @@ GET /api/health
 ```json
 {
   "status": "healthy",
-  "service": "astro-planner-api",
+  "service": "astronomus-api",
   "version": "1.0.0"
 }
 ```

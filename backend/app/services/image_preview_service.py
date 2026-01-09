@@ -2,11 +2,16 @@
 
 import logging
 import os
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import httpx
+from sqlalchemy.orm import Session
 
+from app.models.catalog_models import ImageSourceStats
 from app.models.models import DSOTarget
 
 logger = logging.getLogger(__name__)
@@ -15,8 +20,14 @@ logger = logging.getLogger(__name__)
 class ImagePreviewService:
     """Service for managing DSO preview images."""
 
-    def __init__(self):
-        """Initialize with cache directory."""
+    def __init__(self, db: Optional[Session] = None):
+        """Initialize with cache directory and optional database session.
+
+        Args:
+            db: Database session for tracking source performance (optional)
+        """
+        self.db = db
+
         # Cache directory is mounted from host via Docker volume
         self.cache_dir = Path(os.getenv("IMAGE_CACHE_DIR", "/app/data/previews"))
         self.cache_available = False
@@ -67,41 +78,229 @@ class ImagePreviewService:
 
     def _fetch_from_skyview(self, target: DSOTarget) -> Optional[bytes]:
         """
-        Fetch color image from multiple sources (SDSS, Pan-STARRS, then SkyView).
+        Fetch image from multiple sources in parallel, choosing best quality.
 
-        Tries sources in order:
-        1. SDSS - best color images for northern sky
-        2. Pan-STARRS - good color images for most of sky
-        3. SkyView DSS - grayscale fallback
+        Makes parallel requests to all sources, scores results by quality,
+        and tracks performance statistics for future prioritization.
 
         Args:
             target: DSO target
 
         Returns:
-            Image bytes or None
+            Image bytes from best source, or None if all fail
         """
+        logger.info("Fetching image for %s", target.catalog_id)
+
         # Convert RA/Dec to degrees
         ra_deg = target.ra_hours * 15.0
         dec_deg = target.dec_degrees
 
+        logger.debug("Coordinates: RA=%.2f°, Dec=%.2f°", ra_deg, dec_deg)
+
         # Calculate field of view in arcminutes (with padding)
         fov_arcmin = max(target.size_arcmin * 2.0, 12.0)  # At least 12 arcmin
 
-        # Try SDSS first (best color images, but limited coverage)
-        image_data = self._fetch_from_sdss(ra_deg, dec_deg, fov_arcmin)
-        if image_data:
-            logger.info("Fetched %s from SDSS", target.catalog_id)
-            return image_data
+        logger.debug("FOV: %.2f arcmin", fov_arcmin)
 
-        # Try Pan-STARRS second (wider coverage, good quality)
-        image_data = self._fetch_from_panstarrs(ra_deg, dec_deg, fov_arcmin)
-        if image_data:
-            logger.info("Fetched %s from Pan-STARRS", target.catalog_id)
-            return image_data
+        # Get sources ordered by priority
+        sources = self._get_ordered_sources()
+        logger.debug("Sources to try: %s", [s["name"] for s in sources])
 
-        # Fallback to SkyView DSS2 (grayscale but always available)
-        logger.info("Using SkyView DSS fallback for %s", target.catalog_id)
-        return self._fetch_from_skyview_dss(ra_deg, dec_deg, fov_arcmin)
+        # Make parallel requests using ThreadPoolExecutor
+        results = []
+        try:
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                # Submit all fetches
+                future_to_source = {
+                    executor.submit(
+                        self._fetch_single, source["name"], ra_deg, dec_deg, fov_arcmin, target.catalog_id
+                    ): source["name"]
+                    for source in sources
+                }
+
+                # Collect results as they complete
+                for future in as_completed(future_to_source):
+                    try:
+                        result = future.result()
+                        if result and result.get("data"):
+                            results.append(result)
+                    except Exception as e:
+                        logger.debug("Future failed for %s: %s", future_to_source[future], e)
+
+            # Find best result
+            if results:
+                best_result = max(results, key=lambda r: r["quality_score"])
+                logger.info(
+                    "Fetched %s from %s (quality: %.2f)",
+                    target.catalog_id,
+                    best_result["source"],
+                    best_result["quality_score"],
+                )
+                return best_result["data"]
+
+        except Exception as e:
+            logger.error("Parallel fetch failed for %s: %s", target.catalog_id, e)
+
+        return None
+
+    def _get_ordered_sources(self) -> list[dict]:
+        """Get sources ordered by priority score (highest first)."""
+        if not self.db:
+            # Fallback to default order if no DB
+            return [
+                {"name": "sdss", "priority": 100.0},
+                {"name": "panstarrs", "priority": 90.0},
+                {"name": "eso", "priority": 85.0},
+                {"name": "skyview_dss", "priority": 80.0},
+            ]
+
+        sources = self.db.query(ImageSourceStats).order_by(ImageSourceStats.priority_score.desc().nullslast()).all()
+
+        return [{"name": s.source_name, "priority": s.priority_score or 50.0} for s in sources]
+
+    def _fetch_single(
+        self, source_name: str, ra_deg: float, dec_deg: float, fov_arcmin: float, catalog_id: str
+    ) -> dict:
+        """
+        Fetch from a single source, tracking performance.
+
+        Args:
+            source_name: Name of source (sdss, panstarrs, etc.)
+            ra_deg: RA in degrees
+            dec_deg: Dec in degrees
+            fov_arcmin: Field of view in arcminutes
+            catalog_id: Target catalog ID for logging
+
+        Returns:
+            Dict with source, data, quality_score, response_time_ms
+        """
+        start_time = time.time()
+        data = None
+        success = False
+
+        try:
+            # Dispatch to appropriate fetcher
+            if source_name == "sdss":
+                data = self._fetch_from_sdss(ra_deg, dec_deg, fov_arcmin)
+            elif source_name == "panstarrs":
+                data = self._fetch_from_panstarrs(ra_deg, dec_deg, fov_arcmin)
+            elif source_name == "eso":
+                data = self._fetch_from_eso(ra_deg, dec_deg, fov_arcmin)
+            elif source_name == "skyview_dss":
+                data = self._fetch_from_skyview_dss(ra_deg, dec_deg, fov_arcmin)
+
+            success = data is not None
+
+        except Exception as e:
+            logger.debug("%s fetch failed for %s: %s", source_name, catalog_id, e)
+
+        # Calculate metrics
+        response_time_ms = (time.time() - start_time) * 1000
+        quality_score = self._score_image_quality(data) if data else 0.0
+
+        # Update statistics
+        if self.db:
+            self._update_source_stats(source_name, success, response_time_ms, quality_score)
+
+        return {
+            "source": source_name,
+            "data": data,
+            "quality_score": quality_score,
+            "response_time_ms": response_time_ms,
+        }
+
+    def _score_image_quality(self, data: bytes) -> float:
+        """
+        Score image quality based on size and characteristics.
+
+        Args:
+            data: Image bytes
+
+        Returns:
+            Quality score (0-100)
+        """
+        if not data:
+            return 0.0
+
+        # Base score on size (larger generally means better quality)
+        size_kb = len(data) / 1024
+        size_score = min(size_kb / 100, 1.0) * 50  # Max 50 points for size
+
+        # Check if it's actually a JPEG (simple check)
+        format_score = 25 if data[:2] == b"\xff\xd8" else 0
+
+        # Penalize very small images (likely errors or placeholders)
+        if size_kb < 5:
+            return 10.0
+
+        # Bonus for larger images (likely higher resolution)
+        size_bonus = min(size_kb / 500, 1.0) * 25
+
+        return min(size_score + format_score + size_bonus, 100.0)
+
+    def _update_source_stats(
+        self, source_name: str, success: bool, response_time_ms: float, quality_score: float
+    ) -> None:
+        """
+        Update statistics for a source after a fetch attempt.
+
+        Args:
+            source_name: Name of source
+            success: Whether fetch was successful
+            response_time_ms: Response time in milliseconds
+            quality_score: Quality score (0-100)
+        """
+        if not self.db:
+            return
+
+        try:
+            stats = self.db.query(ImageSourceStats).filter(ImageSourceStats.source_name == source_name).first()
+
+            if not stats:
+                # Create new stats entry
+                stats = ImageSourceStats(
+                    source_name=source_name,
+                    total_requests=0,
+                    successful_requests=0,
+                    failed_requests=0,
+                    priority_score=50.0,
+                )
+                self.db.add(stats)
+
+            # Update counts
+            stats.total_requests += 1
+            if success:
+                stats.successful_requests += 1
+            else:
+                stats.failed_requests += 1
+
+            # Update averages (running average)
+            if success and response_time_ms > 0:
+                if stats.avg_response_time_ms:
+                    stats.avg_response_time_ms = stats.avg_response_time_ms * 0.8 + response_time_ms * 0.2
+                else:
+                    stats.avg_response_time_ms = response_time_ms
+
+            if success and quality_score > 0:
+                if stats.avg_quality_score:
+                    stats.avg_quality_score = stats.avg_quality_score * 0.8 + quality_score * 0.2
+                else:
+                    stats.avg_quality_score = quality_score
+
+            # Update priority score based on success rate, speed, and quality
+            success_rate = stats.successful_requests / stats.total_requests if stats.total_requests > 0 else 0
+            speed_score = max(0, 100 - (stats.avg_response_time_ms or 1000) / 50) if stats.avg_response_time_ms else 50
+            quality = stats.avg_quality_score or 50
+            stats.priority_score = (success_rate * 40) + (speed_score * 0.3) + (quality * 0.3)
+
+            stats.last_used = datetime.utcnow()
+            stats.updated_at = datetime.utcnow()
+
+            self.db.commit()
+
+        except Exception as e:
+            logger.error("Failed to update stats for %s: %s", source_name, e)
+            self.db.rollback()
 
     def _fetch_from_sdss(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
         """Fetch color image from SDSS DR17."""
@@ -154,6 +353,33 @@ class ImagePreviewService:
                     return response.content
         except Exception as e:
             logger.debug("Pan-STARRS fetch error: %s", e)
+        return None
+
+    def _fetch_from_eso(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:
+        """Fetch color image from ESO DSS (Digital Sky Survey)."""
+        # ESO DSS Online service
+        # Convert FOV to arcseconds
+        fov_arcsec = int(fov_arcmin * 60)
+        fov_arcsec = min(fov_arcsec, 1800)  # Max 30 arcmin
+
+        # ESO DSS cutout service
+        url = "http://archive.eso.org/dss/dss"
+        params = {
+            "ra": ra_deg,
+            "dec": dec_deg,
+            "x": fov_arcsec,
+            "y": fov_arcsec,
+            "Sky-Survey": "DSS2-red",
+            "mime-type": "image/jpeg",
+        }
+
+        try:
+            with httpx.Client(timeout=30.0, follow_redirects=True) as client:
+                response = client.get(url, params=params)
+                if response.status_code == 200 and "image" in response.headers.get("content-type", ""):
+                    return response.content
+        except Exception as e:
+            logger.debug("ESO fetch error: %s", e)
         return None
 
     def _fetch_from_skyview_dss(self, ra_deg: float, dec_deg: float, fov_arcmin: float) -> Optional[bytes]:

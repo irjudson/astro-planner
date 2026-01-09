@@ -88,7 +88,7 @@ If you see "Connection failed: Connection refused":
 3. **Docker networking issue**
    - Try running backend locally instead of in Docker:
    ```bash
-   cd /home/irjudson/Projects/astro-planner/backend
+   cd /home/irjudson/Projects/astronomus/backend
    python -m uvicorn app.main:app --host 0.0.0.0 --port 9247 --reload
    ```
 
@@ -223,7 +223,7 @@ If Docker can't reach the Seestar on your local network, you can use host networ
 Edit `docker-compose.yml`:
 ```yaml
 services:
-  astro-planner:
+  astronomus:
     network_mode: host
     # Remove the ports section when using host mode
 ```
@@ -280,7 +280,7 @@ Once basic testing works:
 If something isn't working:
 
 1. Check the browser console (F12 → Console tab)
-2. Check Docker logs: `docker-compose logs astro-planner`
+2. Check Docker logs: `docker-compose logs astronomus`
 3. Verify Seestar is accessible: `ping 192.168.2.47`
 4. Test TCP connection: `nc -zv 192.168.2.47 5555`
 5. Try running backend locally instead of in Docker

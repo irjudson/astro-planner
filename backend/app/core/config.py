@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Database Configuration
-    database_url: str = "postgresql://pg:buffalo-jump@host.docker.internal:5432/astro-planner"
-    test_database_url: str = "postgresql://pg:buffalo-jump@localhost:5432/test_astro_planner"
+    database_url: str = "postgresql://pg:buffalo-jump@host.docker.internal:5432/astronomus"
+    test_database_url: str = "postgresql://pg:buffalo-jump@localhost:5432/test_astronomus"
 
     # Server Configuration
     host: str = "0.0.0.0"

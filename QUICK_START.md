@@ -97,7 +97,7 @@ After starting with Docker, you'll have:
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| **astro-planner** | 9247 | Main API and web interface |
+| **astronomus** | 9247 | Main API and web interface |
 | **redis** | 6379 | Message broker (internal) |
 | **postgres** | 5432 | Database (internal) |
 | **celery-worker** | - | Background task processor |
@@ -110,11 +110,11 @@ After starting with Docker, you'll have:
 docker-compose logs -f
 
 # View specific service logs
-docker-compose logs -f astro-planner
+docker-compose logs -f astronomus
 docker-compose logs -f celery-worker
 
 # Restart a service
-docker-compose restart astro-planner
+docker-compose restart astronomus
 
 # Stop everything
 ./scripts/docker-stop.sh
@@ -167,7 +167,7 @@ docker-compose up -d
 docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
 
 # Check worker GPU access
-docker exec astro-planner-worker nvidia-smi
+docker exec astronomus-worker nvidia-smi
 ```
 
 For comprehensive Docker documentation, see [Docker Setup Guide](docs/development/DOCKER_SETUP.md)
@@ -188,8 +188,8 @@ For comprehensive Docker documentation, see [Docker Setup Guide](docs/developmen
 
 ```bash
 # 1. Clone repository (if not already done)
-git clone https://github.com/irjudson/astro-planner.git
-cd astro-planner
+git clone https://github.com/irjudson/astronomus.git
+cd astronomus
 
 # 2. Install backend dependencies
 cd backend
@@ -388,10 +388,10 @@ alembic upgrade head
 **Docker:**
 ```bash
 # Backup database
-docker exec astro-planner-postgres pg_dump -U pg astro_planner > backup.sql
+docker exec astronomus-postgres pg_dump -U pg astro_planner > backup.sql
 
 # Backup saved plans
-docker exec astro-planner cp -r /app/data ./backup-data
+docker exec astronomus cp -r /app/data ./backup-data
 ```
 
 **Native:**
@@ -460,7 +460,7 @@ See [Daily Planning Guide](DAILY_PLANNING.md) for details.
 - **[Troubleshooting Guide](docs/development/TESTING_GUIDE.md)**
 
 ### Support
-- **GitHub Issues**: https://github.com/irjudson/astro-planner/issues
+- **GitHub Issues**: https://github.com/irjudson/astronomus/issues
 - **Discussions**: GitHub Discussions (for questions)
 
 ### Community

@@ -5,11 +5,11 @@ set -e
 
 echo "Cleaning up native Astro Planner processes..."
 
-# Find and kill uvicorn processes for astro-planner
+# Find and kill uvicorn processes for astronomus
 echo "Stopping native API server..."
 pkill -f "uvicorn app.main:app" || echo "No native API server running"
 
-# Find and kill celery processes for astro-planner
+# Find and kill celery processes for astronomus
 echo "Stopping native Celery workers..."
 pkill -f "celery.*app.tasks.celery_app" || echo "No native Celery workers running"
 

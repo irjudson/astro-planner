@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -21,13 +21,15 @@ from app.api.planets import router as planet_router
 from app.api.plans import router as plans_router
 from app.api.processing import router as processing_router
 from app.api.settings import router as settings_router
+from app.api.telescope_features import router as telescope_features_router
+from app.api.user_preferences import router as user_preferences_router
 from app.clients.seestar_client import SeestarClient
 from app.database import get_db
 from app.models import DSOTarget, ExportFormat, Location, ObservingPlan, PlanRequest, ScheduledTarget
+from app.models.settings_models import SeestarDevice
 from app.services.catalog_service import CatalogService
 from app.services.light_pollution_service import LightPollutionService
 from app.services.planner_service import PlannerService
-from app.services.telescope_service import TelescopeService
 
 router = APIRouter()
 
@@ -39,24 +41,31 @@ router.include_router(plans_router)
 router.include_router(astronomy_router)
 router.include_router(settings_router)
 router.include_router(captures_router)
+router.include_router(telescope_features_router, prefix="/telescope/features", tags=["telescope-features"])
+router.include_router(user_preferences_router, prefix="/user", tags=["user"])
 
-# Telescope control (singleton instances)
-seestar_client = SeestarClient()
-telescope_service = TelescopeService(seestar_client)
+# Telescope control (singleton seestar client instance)
+seestar_client: Optional[SeestarClient] = None
 
 # In-memory storage for shared plans (in production, use Redis or database)
 shared_plans: Dict[str, ObservingPlan] = {}
 
+# Simple TTL cache for catalog queries (cache_key -> (result, expiry_time))
+catalog_cache: Dict[str, tuple[Any, float]] = {}
+CATALOG_CACHE_TTL = 60  # seconds
+
 
 # Request/Response models for telescope endpoints
 class TelescopeConnectRequest(BaseModel):
-    host: str = "seestar.local"
-    port: int = 4700  # Port 4700 for firmware v5.x
+    host: Optional[str] = None  # Optional: can specify host directly
+    port: Optional[int] = None  # Optional: can specify port directly
+    device_id: Optional[int] = None  # Optional: or specify device_id to load from database
 
 
 class ExecutePlanRequest(BaseModel):
     scheduled_targets: List[ScheduledTarget]
     park_when_done: bool = True  # Default to True (park telescope when complete)
+    saved_plan_id: Optional[int] = None  # Optional: link execution to saved plan
 
 
 @router.post("/plan", response_model=ObservingPlan)
@@ -478,6 +487,139 @@ async def list_caldwell_targets(
         raise HTTPException(status_code=500, detail=f"Error fetching Caldwell targets: {str(e)}")
 
 
+@router.get("/catalog/search")
+async def search_catalog(
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None, description="Search by object name or catalog ID"),
+    type: Optional[str] = Query(None, description="Filter by object type"),
+    constellation: Optional[str] = Query(None, description="Filter by constellation"),
+    max_magnitude: Optional[float] = Query(None, description="Maximum magnitude (fainter limit)"),
+    sort_by: str = Query("name", description="Sort by: name, magnitude, or type"),
+    page: int = Query(1, description="Page number (1-indexed)", ge=1),
+    page_size: int = Query(20, description="Items per page", ge=1, le=100),
+):
+    """
+    Search and filter catalog objects for discovery workflow.
+
+    This endpoint is specifically designed for the catalog search interface,
+    providing paginated results with search and filter capabilities.
+
+    Args:
+        search: Free text search (matches object name or catalog ID)
+        type: Object type filter (galaxy, nebula, cluster, etc.)
+        constellation: Constellation filter (3-letter abbreviation)
+        max_magnitude: Maximum magnitude filter
+        sort_by: Sort field (name, magnitude, type)
+        page: Page number (1-indexed)
+        page_size: Number of items per page
+
+    Returns:
+        Paginated catalog search results
+    """
+    try:
+        import time
+
+        from sqlalchemy import func, or_
+
+        from app.models.catalog_models import DSOCatalog
+
+        # Create cache key from query parameters
+        cache_key = f"catalog:{search}:{type}:{constellation}:{max_magnitude}:{sort_by}:{page}:{page_size}"
+
+        # Check cache
+        if cache_key in catalog_cache:
+            cached_result, expiry = catalog_cache[cache_key]
+            if time.time() < expiry:
+                return cached_result
+            else:
+                # Remove expired entry
+                del catalog_cache[cache_key]
+
+        # Build query with filters (do NOT call .all() yet!)
+        query = db.query(DSOCatalog)
+
+        # Apply type filter
+        if type:
+            query = query.filter(DSOCatalog.object_type == type)
+
+        # Apply constellation filter
+        if constellation:
+            query = query.filter(DSOCatalog.constellation == constellation)
+
+        # Apply magnitude filter
+        if max_magnitude:
+            query = query.filter(DSOCatalog.magnitude <= max_magnitude)
+
+        # Apply search filter using SQL ILIKE for case-insensitive search
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                or_(
+                    DSOCatalog.common_name.ilike(search_pattern),
+                    func.concat(DSOCatalog.catalog_name, DSOCatalog.catalog_number).ilike(search_pattern),
+                )
+            )
+
+        # Get total count BEFORE pagination (efficient - just counts, doesn't fetch rows)
+        total = query.count()
+
+        # Apply sorting using SQL ORDER BY
+        if sort_by == "magnitude":
+            query = query.order_by(DSOCatalog.magnitude.asc().nullslast())
+        elif sort_by == "type":
+            query = query.order_by(DSOCatalog.object_type.asc())
+        else:  # name (default)
+            query = query.order_by(DSOCatalog.catalog_name.asc(), DSOCatalog.catalog_number.asc())
+
+        # Apply pagination using SQL LIMIT/OFFSET
+        offset = (page - 1) * page_size
+        paginated_results = query.limit(page_size).offset(offset).all()
+
+        # Convert ONLY the paginated results to response format
+        catalog_service = CatalogService(db)
+        items = []
+        for dso in paginated_results:
+            target = catalog_service._db_row_to_target(dso)
+            # Get constellation details
+            constellation_details = catalog_service._get_constellation_details(dso.constellation)
+
+            items.append(
+                {
+                    "id": target.catalog_id,
+                    "name": target.name,
+                    "common_name": dso.common_name,  # Include common_name from database
+                    "type": target.object_type,
+                    "constellation": dso.constellation,
+                    "constellation_full": (
+                        constellation_details["full_name"] if constellation_details else dso.constellation
+                    ),
+                    "constellation_common": constellation_details["common_name"] if constellation_details else None,
+                    "magnitude": target.magnitude,
+                    "ra": target.ra_hours * 15,  # Convert hours to degrees
+                    "dec": target.dec_degrees,
+                    "size": f"{target.size_arcmin:.1f}'" if target.size_arcmin and target.size_arcmin > 1 else None,
+                }
+            )
+
+        result = {
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+        # Cache the result
+        catalog_cache[cache_key] = (result, time.time() + CATALOG_CACHE_TTL)
+
+        return result
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error searching catalog: {str(e)}")
+
+
 @router.get("/catalog/stats")
 async def get_catalog_stats(db: Session = Depends(get_db)):
     """
@@ -658,29 +800,70 @@ async def get_shared_plan(plan_id: str):
 
 
 @router.post("/telescope/connect")
-async def connect_telescope(request: TelescopeConnectRequest):
+async def connect_telescope(request: TelescopeConnectRequest, db: Session = Depends(get_db)):
     """
-    Connect to Seestar S50 telescope.
+    Connect to Seestar telescope.
+
+    Can connect either by:
+    1. Specifying device_id (loads configuration from database)
+    2. Specifying host and port directly
 
     Args:
-        request: Connection details (host and port)
+        request: Connection details (device_id OR host/port)
+        db: Database session
 
     Returns:
         Connection status and telescope info
     """
+    global seestar_client
+
     try:
-        await seestar_client.connect(request.host, request.port)
-        status = seestar_client.status
+        # Determine which device to connect to
+        if request.device_id is not None:
+            # Load device from database
+            device = db.query(SeestarDevice).filter(SeestarDevice.id == request.device_id).first()
+            if not device:
+                raise HTTPException(status_code=404, detail=f"Device {request.device_id} not found")
+
+            if not device.is_control_enabled:
+                raise HTTPException(
+                    status_code=400, detail=f"Device '{device.name}' control is not enabled. Enable in settings first."
+                )
+
+            host = device.control_host
+            port = device.control_port
+
+        elif request.host is not None:
+            host = request.host
+            port = request.port or 4700
+
+        else:
+            raise HTTPException(status_code=400, detail="Must provide either device_id or host parameter")
+
+        # Create client and connect
+        seestar_client = SeestarClient()
+        success = await seestar_client.connect(host, port)
+
+        if not success:
+            seestar_client = None  # Reset on failure
+            raise HTTPException(status_code=500, detail="Connection failed")
 
         return {
             "connected": True,
-            "host": request.host,
-            "port": request.port,
-            "state": status.state.value,
-            "firmware_version": status.firmware_version,
-            "message": "Connected to Seestar S50",
+            "host": host,
+            "port": port,
+            "state": seestar_client.status.state.value,
+            "firmware_version": seestar_client.status.firmware_version,
+            "message": f"Connected to Seestar at {host}:{port}",
         }
+    except HTTPException:
+        seestar_client = None  # Reset on any error
+        raise
     except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        seestar_client = None  # Reset on any error
         raise HTTPException(status_code=500, detail=f"Connection failed: {str(e)}")
 
 
@@ -692,8 +875,15 @@ async def disconnect_telescope():
     Returns:
         Disconnection status
     """
+    global seestar_client
+
     try:
+        if seestar_client is None:
+            return {"connected": False, "message": "No telescope connected"}
+
         await seestar_client.disconnect()
+        seestar_client = None
+
         return {"connected": False, "message": "Disconnected from telescope"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Disconnect failed: {str(e)}")
@@ -707,17 +897,28 @@ async def get_telescope_status():
     Returns:
         Telescope connection and state information
     """
-    status = seestar_client.status
+    if seestar_client is None:
+        return {
+            "connected": False,
+            "state": "disconnected",
+            "message": "No telescope connected",
+        }
 
-    return {
-        "connected": status.connected,
-        "state": status.state.value if status.state else "unknown",
-        "current_target": status.current_target,
-        "firmware_version": status.firmware_version,
-        "is_tracking": status.is_tracking,
-        "last_update": status.last_update.isoformat() if status.last_update else None,
-        "last_error": status.last_error,
-    }
+    try:
+        status = seestar_client.status
+
+        return {
+            "connected": status.connected,
+            "state": status.state.value if status.state else "unknown",
+            "firmware_version": status.firmware_version,
+            "is_tracking": status.is_tracking,
+            "current_target": status.current_target,
+            "current_ra_hours": status.current_ra_hours,
+            "current_dec_degrees": status.current_dec_degrees,
+            "last_error": status.last_error,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get status: {str(e)}")
 
 
 @router.post("/telescope/execute")
@@ -735,7 +936,7 @@ async def execute_plan(request: ExecutePlanRequest):
         Execution ID and initial status
     """
     try:
-        if not seestar_client.connected:
+        if seestar_client is None or not seestar_client.connected:
             raise HTTPException(
                 status_code=400, detail="Telescope not connected. Connect first using /telescope/connect"
             )
@@ -776,6 +977,7 @@ async def execute_plan(request: ExecutePlanRequest):
             telescope_host=telescope_host,
             telescope_port=telescope_port,
             park_when_done=request.park_when_done,
+            saved_plan_id=request.saved_plan_id,
         )
 
         return {
@@ -895,6 +1097,37 @@ async def abort_execution():
         raise HTTPException(status_code=500, detail=f"Abort failed: {str(e)}")
 
 
+@router.post("/telescope/unpark")
+async def unpark_telescope():
+    """
+    Unpark/open telescope and make ready for observing.
+
+    Returns:
+        Unpark status
+    """
+    try:
+        if seestar_client is None or not seestar_client.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        # Call unpark if available, otherwise try to wake up the telescope
+        if hasattr(seestar_client, "unpark"):
+            success = await seestar_client.unpark()
+        else:
+            # Fallback: Some telescopes might not have explicit unpark
+            # For Seestar, we can issue a status check which wakes it up
+            status = seestar_client.status
+            success = status.connected
+
+        if success:
+            return {"status": "active", "message": "Telescope unparked and ready"}
+        else:
+            return {"status": "error", "message": "Failed to unpark telescope"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unpark failed: {str(e)}")
+
+
 @router.post("/telescope/park")
 async def park_telescope():
     """
@@ -904,10 +1137,10 @@ async def park_telescope():
         Park status
     """
     try:
-        if not seestar_client.connected:
+        if seestar_client is None or not seestar_client.connected:
             raise HTTPException(status_code=400, detail="Telescope not connected")
 
-        success = await telescope_service.park_telescope()
+        success = await seestar_client.park()
 
         if success:
             return {"status": "parking", "message": "Telescope parking"}
@@ -917,6 +1150,117 @@ async def park_telescope():
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Park failed: {str(e)}")
+
+
+@router.post("/telescope/goto")
+async def goto_coordinates(request: dict):
+    """
+    Slew telescope to RA/Dec coordinates.
+
+    Args:
+        request: {"ra": float (hours), "dec": float (degrees), "target_name": str (optional)}
+
+    Returns:
+        Goto status
+    """
+    try:
+        if seestar_client is None or not seestar_client.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        ra = request.get("ra")
+        dec = request.get("dec")
+        target_name = request.get("target_name", "Manual Target")
+
+        if ra is None or dec is None:
+            raise HTTPException(status_code=400, detail="Must provide ra and dec coordinates")
+
+        success = await seestar_client.goto_target(ra, dec, target_name)
+
+        if success:
+            return {"status": "slewing", "message": f"Slewing to RA={ra}, Dec={dec}"}
+        else:
+            return {"status": "error", "message": "Failed to start goto"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Goto failed: {str(e)}")
+
+
+@router.post("/telescope/stop-slew")
+async def stop_slew():
+    """
+    Stop current slew/goto operation.
+
+    Returns:
+        Stop status
+    """
+    try:
+        if seestar_client is None or not seestar_client.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        success = await seestar_client.stop_slew()
+
+        if success:
+            return {"status": "stopped", "message": "Slew stopped"}
+        else:
+            return {"status": "error", "message": "Failed to stop slew"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stop slew failed: {str(e)}")
+
+
+@router.post("/telescope/start-imaging")
+async def start_imaging(request: dict = None):
+    """
+    Start imaging/stacking.
+
+    Args:
+        request: {"restart": bool (optional, default True)}
+
+    Returns:
+        Imaging status
+    """
+    try:
+        if seestar_client is None or not seestar_client.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        restart = True if request is None else request.get("restart", True)
+
+        success = await seestar_client.start_imaging(restart=restart)
+
+        if success:
+            return {"status": "imaging", "message": "Imaging started"}
+        else:
+            return {"status": "error", "message": "Failed to start imaging"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Start imaging failed: {str(e)}")
+
+
+@router.post("/telescope/stop-imaging")
+async def stop_imaging():
+    """
+    Stop current imaging/stacking.
+
+    Returns:
+        Stop status
+    """
+    try:
+        if seestar_client is None or not seestar_client.connected:
+            raise HTTPException(status_code=400, detail="Telescope not connected")
+
+        success = await seestar_client.stop_imaging()
+
+        if success:
+            return {"status": "stopped", "message": "Imaging stopped"}
+        else:
+            return {"status": "error", "message": "Failed to stop imaging"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stop imaging failed: {str(e)}")
 
 
 @router.get("/telescope/preview")
@@ -975,6 +1319,55 @@ async def get_telescope_preview():
         raise HTTPException(status_code=500, detail=f"Failed to get preview: {str(e)}")
 
 
+@router.get("/telescope/preview/latest")
+async def get_latest_preview():
+    """
+    Get the latest preview image from telescope as raw image bytes.
+
+    This endpoint returns the most recent JPEG image directly for display
+    in the live preview panel. Polls this endpoint to get updated images.
+
+    Returns:
+        Latest preview image (JPEG bytes)
+    """
+    import os
+    from pathlib import Path
+
+    from fastapi.responses import Response
+
+    try:
+        # Look for recent JPEG files in /fits directory
+        fits_root = Path(os.getenv("FITS_DIR", "/fits"))
+
+        if not fits_root.exists():
+            raise HTTPException(status_code=503, detail="Telescope image directory not mounted")
+
+        # Find all JPEG files (Seestar creates preview JPEGs during stacking)
+        jpeg_files = []
+        for ext in ["*.jpg", "*.jpeg", "*.JPG", "*.JPEG"]:
+            jpeg_files.extend(fits_root.rglob(ext))
+
+        if not jpeg_files:
+            raise HTTPException(status_code=404, detail="No preview images available. Start imaging first.")
+
+        # Sort by modification time, get most recent
+        latest_image = max(jpeg_files, key=lambda p: p.stat().st_mtime)
+
+        # Read and return image bytes
+        image_bytes = latest_image.read_bytes()
+
+        return Response(
+            content=image_bytes,
+            media_type="image/jpeg",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"},
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get latest preview: {str(e)}")
+
+
 @router.get("/telescope/preview/download")
 async def download_telescope_preview(path: str = Query(..., description="Relative path to image")):
     """
@@ -1015,6 +1408,16 @@ async def download_telescope_preview(path: str = Query(..., description="Relativ
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to download preview: {str(e)}")
+
+
+# NOTE: This endpoint is disabled while transitioning to adapter pattern
+# It provided direct access to SeestarClient methods which doesn't fit the adapter abstraction
+# Telescope-specific commands should be implemented as proper adapter methods
+#
+# @router.post("/telescope/command/{command}")
+# async def execute_telescope_command(command: str, params: Optional[Dict[str, Any]] = None):
+#     """Generic telescope command proxy (DISABLED)."""
+#     raise HTTPException(status_code=501, detail="Generic command endpoint not implemented with adapter pattern")
 
 
 @router.get("/sky-quality/{lat}/{lon}")
@@ -1087,9 +1490,9 @@ async def health_check():
     """
     return {
         "status": "healthy",
-        "service": "astro-planner-api",
+        "service": "astronomus-api",
         "version": "1.0.0",
-        "telescope_connected": seestar_client.connected,
+        "telescope_connected": seestar_client is not None and seestar_client.connected,
     }
 
 
@@ -1145,29 +1548,63 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
         from app.services.catalog_service import CatalogService
         from app.services.image_preview_service import ImagePreviewService
 
-        # Reconstruct original catalog_id (reverse sanitization)
-        # Note: This is lossy - we can't distinguish between underscore and space/slash
-        # So we'll query the database to find matching target
+        # Parse catalog ID to find target in database
+        # Catalog IDs are like: M31, NGC224, IC434, C80
         catalog_service = CatalogService(db)
 
-        # Get all targets and find one matching sanitized ID
-        # This is not optimal but works for the MVP
-        all_targets = catalog_service.filter_targets(object_types=None, limit=5000)
-
         target = None
-        for t in all_targets:
-            sanitized = t.catalog_id.replace(" ", "_").replace("/", "_").replace(":", "_")
-            if sanitized == sanitized_catalog_id:
-                target = t
-                break
+
+        # Try to parse catalog ID format
+        import logging
+        import re
+
+        logger = logging.getLogger(__name__)
+
+        # Match patterns like M31, NGC224, IC434, C80
+        match = re.match(r"([A-Z]+)(\d+)", sanitized_catalog_id)
+        if match:
+            catalog_name = match.group(1)
+            catalog_number = int(match.group(2))
+
+            logger.info(f"Looking up target: {catalog_name}{catalog_number}")
+
+            # Query database for this specific catalog entry
+            from app.models.catalog_models import DSOCatalog
+
+            # Handle special cases
+            if catalog_name == "M":
+                # Messier objects - find by common_name starting with M
+                dso = db.query(DSOCatalog).filter(DSOCatalog.common_name.like(f"M%{catalog_number:03d}")).first()
+            elif catalog_name == "C":
+                # Caldwell objects - find by caldwell_number
+                dso = db.query(DSOCatalog).filter(DSOCatalog.caldwell_number == catalog_number).first()
+            else:
+                # NGC, IC, etc. - find by catalog_name and catalog_number
+                dso = (
+                    db.query(DSOCatalog)
+                    .filter(DSOCatalog.catalog_name == catalog_name, DSOCatalog.catalog_number == catalog_number)
+                    .first()
+                )
+                logger.info(f"DSO query result for {catalog_name}{catalog_number}: {dso is not None}")
+
+            if dso:
+                target = catalog_service._db_row_to_target(dso)
+                logger.info(f"Successfully created target for {sanitized_catalog_id}")
+        else:
+            logger.warning(f"Failed to parse catalog ID: {sanitized_catalog_id}")
 
         if not target:
+            logger.warning(f"Target not found: {sanitized_catalog_id}")
             raise HTTPException(status_code=404, detail=f"Target not found: {sanitized_catalog_id}")
 
         # Use image preview service to get or fetch image
-        image_service = ImagePreviewService()
+        image_service = ImagePreviewService(db=db)
         cache_filename = f"{sanitized_catalog_id}.jpg"
         cache_dir = Path(os.getenv("IMAGE_CACHE_DIR", "/app/data/previews"))
+
+        # Ensure cache directory exists
+        cache_dir.mkdir(parents=True, exist_ok=True)
+
         cache_path = cache_dir / cache_filename
 
         # Check cache first
@@ -1178,7 +1615,7 @@ async def get_target_preview(sanitized_catalog_id: str, db: Session = Depends(ge
                 headers={"Cache-Control": "public, max-age=2592000"},
             )
 
-        # Fetch from SkyView (this will cache it)
+        # Fetch from multi-source service (this will cache it)
         image_data = image_service._fetch_from_skyview(target)
         if image_data:
             cache_path.write_bytes(image_data)

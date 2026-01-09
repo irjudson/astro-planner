@@ -117,16 +117,16 @@ def _load_test_catalog_data():
 
             # Sample constellation data (covering objects we'll add)
             constellations = [
-                {"abbreviation": "And", "full_name": "Andromeda"},
-                {"abbreviation": "Ori", "full_name": "Orion"},
-                {"abbreviation": "Sgr", "full_name": "Sagittarius"},
-                {"abbreviation": "Cyg", "full_name": "Cygnus"},
-                {"abbreviation": "Lyr", "full_name": "Lyra"},
-                {"abbreviation": "Tau", "full_name": "Taurus"},
-                {"abbreviation": "Gem", "full_name": "Gemini"},
-                {"abbreviation": "Per", "full_name": "Perseus"},
-                {"abbreviation": "Vir", "full_name": "Virgo"},
-                {"abbreviation": "Com", "full_name": "Coma Berenices"},
+                {"abbreviation": "And", "full_name": "Andromeda", "common_name": "Andromeda"},
+                {"abbreviation": "Ori", "full_name": "Orion", "common_name": "Orion"},
+                {"abbreviation": "Sgr", "full_name": "Sagittarius", "common_name": "Sagittarius"},
+                {"abbreviation": "Cyg", "full_name": "Cygnus", "common_name": "Cygnus"},
+                {"abbreviation": "Lyr", "full_name": "Lyra", "common_name": "Lyra"},
+                {"abbreviation": "Tau", "full_name": "Taurus", "common_name": "Taurus"},
+                {"abbreviation": "Gem", "full_name": "Gemini", "common_name": "Gemini"},
+                {"abbreviation": "Per", "full_name": "Perseus", "common_name": "Perseus"},
+                {"abbreviation": "Vir", "full_name": "Virgo", "common_name": "Virgo"},
+                {"abbreviation": "Com", "full_name": "Coma Berenices", "common_name": "Coma Berenices"},
             ]
             session.bulk_insert_mappings(ConstellationName, constellations)
 

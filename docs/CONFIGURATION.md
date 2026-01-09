@@ -45,7 +45,7 @@ These variables are required for the application to function:
 **Examples:**
 ```bash
 # Docker deployment
-DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
 TEST_DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/test_astro_planner
 
 # Native deployment
@@ -161,10 +161,10 @@ Configuration for GPU-accelerated image processing with NVIDIA CUDA:
 **Verification:**
 ```bash
 # Check GPU access in container
-docker exec astro-planner-worker nvidia-smi
+docker exec astronomus-worker nvidia-smi
 
 # Check CuPy installation
-docker exec astro-planner-worker python3 -c "import cupy; print(cupy.__version__)"
+docker exec astronomus-worker python3 -c "import cupy; print(cupy.__version__)"
 ```
 
 **Fallback:** If GPU is unavailable, processing automatically falls back to CPU (NumPy).
@@ -271,7 +271,7 @@ The application runs as multiple Docker services:
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| `astro-planner` | 9247 | Main API server |
+| `astronomus` | 9247 | Main API server |
 | `celery-worker` | - | Background task processor |
 | `celery-beat` | - | Periodic task scheduler |
 | `flower` | 5555 | Celery monitoring UI (optional) |
@@ -282,12 +282,12 @@ The application runs as multiple Docker services:
 
 ### Service Configuration
 
-**astro-planner (API server):**
+**astronomus (API server):**
 ```yaml
 ports:
   - "9247:9247"
 environment:
-  - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+  - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
   - REDIS_URL=redis://:buffalo-jump@redis:6379/1
   - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY}
   - DEFAULT_LAT=${DEFAULT_LAT:-45.9183}
@@ -302,7 +302,7 @@ volumes:
 runtime: nvidia  # Enables GPU access
 environment:
   - REDIS_URL=redis://:buffalo-jump@redis:6379/1
-  - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+  - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
   - FITS_DIR=/fits
   - NVIDIA_VISIBLE_DEVICES=all
   - CUDA_MPS_PIPE_DIRECTORY=/tmp/nvidia-mps
@@ -319,7 +319,7 @@ volumes:
 ```yaml
 environment:
   - REDIS_URL=redis://:buffalo-jump@redis:6379/1
-  - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astro-planner
+  - DATABASE_URL=postgresql://pg:buffalo-jump@postgres:5432/astronomus
   - CELERY_TIMEZONE=${CELERY_TIMEZONE:-America/Denver}
   - WEBHOOK_URL=${WEBHOOK_URL:-}
 ```
@@ -441,7 +441,7 @@ CELERY_TIMEZONE=Europe/London        # GMT/BST
 
 **Verify:**
 ```bash
-docker exec astro-planner-beat python3 -c "
+docker exec astronomus-beat python3 -c "
 from app.tasks.celery_app import celery_app
 print('Configured timezone:', celery_app.conf.timezone)
 "
@@ -459,10 +459,10 @@ print('Configured timezone:', celery_app.conf.timezone)
 docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
 
 # Check worker GPU access
-docker exec astro-planner-worker nvidia-smi
+docker exec astronomus-worker nvidia-smi
 
 # Verify CuPy
-docker exec astro-planner-worker python3 -c "import cupy; print(cupy.cuda.is_available())"
+docker exec astronomus-worker python3 -c "import cupy; print(cupy.cuda.is_available())"
 ```
 
 ---
@@ -477,7 +477,7 @@ docker exec astro-planner-worker python3 -c "import cupy; print(cupy.cuda.is_ava
 docker-compose ps postgres
 
 # Test connection
-docker exec astro-planner psql $DATABASE_URL -c "SELECT 1;"
+docker exec astronomus psql $DATABASE_URL -c "SELECT 1;"
 ```
 
 ---

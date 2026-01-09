@@ -94,7 +94,7 @@ The full MVP of the Docker + GPU post-capture processing system has been impleme
 ## 🗂️ File Structure
 
 ```
-astro-planner/
+astronomus/
 ├── backend/
 │   ├── alembic/                    # Database migrations
 │   │   └── versions/
@@ -134,7 +134,7 @@ astro-planner/
 
 ```bash
 docker build -f docker/processing-worker.Dockerfile \
-  -t astro-planner/processing-worker:latest .
+  -t astronomus/processing-worker:latest .
 ```
 
 ### 2. Start Services
@@ -227,7 +227,7 @@ elif pipeline_name == "my_custom_pipeline":
 python3 test_processing.py
 
 # Test GPU availability
-docker run --rm --gpus all astro-planner/processing-worker:latest \
+docker run --rm --gpus all astronomus/processing-worker:latest \
   python3 -c "from app.processing import gpu_ops; print(gpu_ops.check_gpu_available())"
 ```
 
@@ -254,7 +254,7 @@ docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi
 
 # Rebuild with GPU support
 docker build -f docker/processing-worker.Dockerfile \
-  -t astro-planner/processing-worker:latest .
+  -t astronomus/processing-worker:latest .
 ```
 
 ### Celery Worker Not Processing

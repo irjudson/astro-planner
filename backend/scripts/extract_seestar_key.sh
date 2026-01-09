@@ -127,7 +127,7 @@ echo "MIICd..."
 echo "-----END PRIVATE KEY-----"
 echo ""
 echo "Or press Ctrl+C to exit and contact the maintainer:"
-echo "  https://github.com/irjudson/astro-planner/issues"
+echo "  https://github.com/irjudson/astronomus/issues"
 echo ""
 read -p "Paste key now? (y/N) " -n 1 -r
 echo
@@ -156,6 +156,6 @@ else
     echo "until you provide a valid private key."
     echo ""
     echo "Please open an issue for assistance:"
-    echo "  https://github.com/irjudson/astro-planner/issues"
+    echo "  https://github.com/irjudson/astronomus/issues"
     exit 1
 fi

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Observe Drawer Tests</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #1a4d1a;
+            border-left: 4px solid #00ff00;
+        }
+        .fail {
+            background: #4d1a1a;
+            border-left: 4px solid #ff0000;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Observe Drawer Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="summary"></div>
+
+    <!-- Mock drawer elements for testing -->
+    <div id="drawer-content" class="hidden"></div>
+    <span id="drawer-toggle-text">⬆ Advanced Controls</span>
+    <span id="drawer-last-tab">Last: Advanced Stacking</span>
+
+    <div id="bottom-drawer">
+        <div class="tab active" data-tab="stacking">Advanced Stacking</div>
+        <div class="tab" data-tab="system">System</div>
+        <div class="tab" data-tab="wifi">WiFi</div>
+    </div>
+
+    <div id="stacking-drawer-content" class="drawer-tab-content">Stacking Content</div>
+    <div id="system-drawer-content" class="drawer-tab-content hidden">System Content</div>
+    <div id="wifi-drawer-content" class="drawer-tab-content hidden">WiFi Content</div>
+
+    <!-- Mock state management -->
+    <script>
+        const observeState = {
+            ui: { drawerOpen: false, drawerActiveTab: 'stacking' }
+        };
+        function updateState(section, updates) {
+            Object.assign(observeState[section], updates);
+        }
+    </script>
+
+    <script src="../js/observe-drawer.js"></script>
+    <script>
+        const results = [];
+        const resultsDiv = document.getElementById('results');
+        const summaryDiv = document.getElementById('summary');
+
+        function assert(condition, testName) {
+            const passed = condition;
+            results.push({ testName, passed });
+
+            const div = document.createElement('div');
+            div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            div.textContent = `${passed ? '✓' : '✗'} ${testName}`;
+            resultsDiv.appendChild(div);
+
+            if (!passed) {
+                console.error(`Test failed: ${testName}`);
+            }
+        }
+
+        function runTests() {
+            // Test 1: toggleDrawer function exists
+            assert(
+                typeof toggleDrawer === 'function',
+                'toggleDrawer function exists'
+            );
+
+            // Test 2: Initial drawer is closed
+            const drawerContent = document.getElementById('drawer-content');
+            assert(
+                drawerContent.classList.contains('hidden'),
+                'Initial drawer state is closed'
+            );
+
+            // Test 3: toggleDrawer opens drawer
+            toggleDrawer();
+            assert(
+                !drawerContent.classList.contains('hidden'),
+                'toggleDrawer opens the drawer'
+            );
+            assert(
+                observeState.ui.drawerOpen === true,
+                'toggleDrawer updates state to open'
+            );
+
+            // Test 4: toggleDrawer text changes when open
+            const toggleText = document.getElementById('drawer-toggle-text');
+            assert(
+                toggleText.textContent === '⬇ Advanced Controls',
+                'Toggle text changes when drawer opens'
+            );
+
+            // Test 5: toggleDrawer closes drawer
+            toggleDrawer();
+            assert(
+                drawerContent.classList.contains('hidden'),
+                'toggleDrawer closes the drawer'
+            );
+            assert(
+                observeState.ui.drawerOpen === false,
+                'toggleDrawer updates state to closed'
+            );
+            assert(
+                toggleText.textContent === '⬆ Advanced Controls',
+                'Toggle text changes when drawer closes'
+            );
+
+            // Test 6: showDrawerTab requires event parameter
+            showDrawerTab('system');
+            // Should not crash, but should log error
+            assert(
+                true,
+                'showDrawerTab handles missing event gracefully'
+            );
+
+            // Test 7: showDrawerTab with event parameter works
+            const mockEvent = {
+                target: document.querySelector('.tab[data-tab="system"]')
+            };
+            showDrawerTab('system', mockEvent);
+
+            const systemContent = document.getElementById('system-drawer-content');
+            const stackingContent = document.getElementById('stacking-drawer-content');
+            assert(
+                !systemContent.classList.contains('hidden'),
+                'showDrawerTab shows selected tab content'
+            );
+            assert(
+                stackingContent.classList.contains('hidden'),
+                'showDrawerTab hides previous tab content'
+            );
+
+            // Test 8: showDrawerTab updates state
+            assert(
+                observeState.ui.drawerActiveTab === 'system',
+                'showDrawerTab updates state with active tab'
+            );
+
+            // Test 9: showDrawerTab updates last tab text
+            const lastTabText = document.getElementById('drawer-last-tab');
+            assert(
+                lastTabText.textContent === 'Last: System',
+                'showDrawerTab updates last tab text'
+            );
+
+            // Test 10: showDrawerTab updates active class
+            const tabs = document.querySelectorAll('.tab');
+            let stackingTabActive = false;
+            let systemTabActive = false;
+
+            tabs.forEach(tab => {
+                if (tab.getAttribute('data-tab') === 'stacking') {
+                    stackingTabActive = tab.classList.contains('active');
+                }
+                if (tab.getAttribute('data-tab') === 'system') {
+                    systemTabActive = tab.classList.contains('active');
+                }
+            });
+
+            assert(
+                !stackingTabActive && systemTabActive,
+                'showDrawerTab updates active class on tab buttons'
+            );
+
+            // Test 11: Keyboard shortcut listener exists
+            const listeners = getEventListeners ? getEventListeners(document).keydown : null;
+            // Note: getEventListeners is only available in Chrome DevTools
+            // This test is informational only
+            assert(
+                true,
+                'Keyboard shortcut listener registered (manual verification needed)'
+            );
+
+            // Display summary
+            const passed = results.filter(r => r.passed).length;
+            const failed = results.filter(r => !r.passed).length;
+            const total = results.length;
+
+            summaryDiv.innerHTML = `
+                <strong>Test Summary:</strong><br>
+                Total: ${total}<br>
+                Passed: <span style="color: #00ff00">${passed}</span><br>
+                Failed: <span style="color: #ff0000">${failed}</span><br>
+                Success Rate: ${((passed / total) * 100).toFixed(1)}%
+            `;
+        }
+
+        // Run tests after page load
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

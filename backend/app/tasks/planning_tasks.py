@@ -96,7 +96,14 @@ def generate_daily_plan_task(self) -> Dict[str, Any]:
 
         logger.info(f"Plan name: {plan_name}")
 
-        # Create Quality mode constraints (optimized for quality)
+        # Get user observing preferences from database
+        min_altitude = float(get_setting_value(db, "user.min_altitude", "30.0"))
+        max_moon_phase = int(get_setting_value(db, "user.max_moon_phase", "50"))
+        avoid_moon = get_setting_value(db, "user.avoid_moon", "true").lower() in ("true", "1", "yes")
+
+        logger.info(f"Using preferences: min_alt={min_altitude}°, max_moon={max_moon_phase}%, avoid_moon={avoid_moon}")
+
+        # Create Quality mode constraints (optimized for quality) with user preferences
         constraints = ObservingConstraints(
             object_types=[
                 "galaxy",
@@ -106,11 +113,12 @@ def generate_daily_plan_task(self) -> Dict[str, Any]:
                 "supernova_remnant",
                 "comet",
             ],
-            min_altitude=30,
+            min_altitude=min_altitude,
             max_altitude=90,
+            max_moon_illumination=max_moon_phase / 100.0,  # Convert percentage to 0-1
             min_duration=45,  # Quality mode: 45-180 minutes
             max_duration=180,
-            max_targets=8,  # Will limit to 5 later
+            max_targets=8,  # Will limit later by target_count setting
             min_score=0.7,  # Quality mode threshold
             planning_mode="quality",
             daytime_planning=False,

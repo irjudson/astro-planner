@@ -81,24 +81,24 @@ docker-compose build celery-beat
 docker-compose up -d celery-beat
 
 # Verify beat scheduler is running
-docker logs astro-planner-beat
+docker logs astronomus-beat
 
 # Verify worker is ready to process tasks
-docker logs astro-planner-worker
+docker logs astronomus-worker
 ```
 
 ### Verify Configuration
 
 ```bash
 # Check beat scheduler configuration
-docker exec astro-planner-beat python3 -c "
+docker exec astronomus-beat python3 -c "
 from app.tasks.celery_app import celery_app
 print('Timezone:', celery_app.conf.timezone)
 print('Schedule:', celery_app.conf.beat_schedule)
 "
 
 # Check registered tasks
-docker exec astro-planner-worker python3 -c "
+docker exec astronomus-worker python3 -c "
 from app.tasks.celery_app import celery_app
 tasks = [t for t in celery_app.tasks.keys() if not t.startswith('celery.')]
 print('Registered tasks:', tasks)
@@ -111,10 +111,10 @@ You can manually trigger plan generation for testing:
 
 ```bash
 # Using Celery CLI
-docker exec astro-planner-worker celery -A app.tasks.celery_app call generate_daily_plan
+docker exec astronomus-worker celery -A app.tasks.celery_app call generate_daily_plan
 
 # Using Python
-docker exec astro-planner-worker python3 -c "
+docker exec astronomus-worker python3 -c "
 from app.tasks.planning_tasks import generate_daily_plan_task
 result = generate_daily_plan_task.delay()
 print('Task ID:', result.id)
@@ -162,13 +162,13 @@ The webhook service includes:
 
 ```bash
 # Beat scheduler logs (scheduling events)
-docker logs -f astro-planner-beat
+docker logs -f astronomus-beat
 
 # Worker logs (task execution)
-docker logs -f astro-planner-worker
+docker logs -f astronomus-worker
 
 # Filter for daily plan events
-docker logs astro-planner-worker 2>&1 | grep "Daily plan"
+docker logs astronomus-worker 2>&1 | grep "Daily plan"
 ```
 
 ### Example Log Output
@@ -222,10 +222,10 @@ The schedule runs in the configured timezone (`CELERY_TIMEZONE`), not UTC.
 
 ```bash
 # Check logs for errors
-docker logs astro-planner-beat
+docker logs astronomus-beat
 
 # Verify Redis connection
-docker exec astro-planner-beat python3 -c "
+docker exec astronomus-beat python3 -c "
 from app.tasks.celery_app import celery_app
 print(celery_app.connection().as_uri())
 "
@@ -235,10 +235,10 @@ print(celery_app.connection().as_uri())
 
 ```bash
 # Check worker is connected to beat
-docker exec astro-planner-worker celery -A app.tasks.celery_app inspect active
+docker exec astronomus-worker celery -A app.tasks.celery_app inspect active
 
 # Check for task in queue
-docker exec astro-planner-beat python3 -c "
+docker exec astronomus-beat python3 -c "
 from celery import Celery
 app = Celery(broker='redis://:buffalo-jump@redis:6379/1')
 print('Queued tasks:', app.control.inspect().scheduled())
@@ -249,7 +249,7 @@ print('Queued tasks:', app.control.inspect().scheduled())
 
 ```bash
 # Check configured timezone
-docker exec astro-planner-beat python3 -c "
+docker exec astronomus-beat python3 -c "
 from app.tasks.celery_app import celery_app
 print('Configured timezone:', celery_app.conf.timezone)
 "
@@ -264,7 +264,7 @@ environment:
 Check logs for errors:
 
 ```bash
-docker logs astro-planner-worker 2>&1 | grep -A 20 "Daily plan generation failed"
+docker logs astronomus-worker 2>&1 | grep -A 20 "Daily plan generation failed"
 ```
 
 Common issues:
@@ -278,7 +278,7 @@ Common issues:
 Webhook failures don't prevent plan creation, but check logs:
 
 ```bash
-docker logs astro-planner-worker 2>&1 | grep webhook
+docker logs astronomus-worker 2>&1 | grep webhook
 ```
 
 Common issues:

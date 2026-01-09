@@ -1,0 +1,27 @@
+{
+  "name": "astronomus",
+  "version": "1.0.0",
+  "description": "> Intelligent observing session planner for astrophotography with Seestar S50 integration",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/irjudson/astro-planner.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/irjudson/astro-planner/issues"
+  },
+  "homepage": "https://github.com/irjudson/astro-planner#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.57.0"
+  }
+}

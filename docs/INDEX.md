@@ -101,4 +101,4 @@ Detailed documentation for specific features:
 - Check the [User Guide](user-guides/USAGE.md) for usage questions
 - See the [Development Guide](development/DEVELOPMENT.md) for technical questions
 - Review the [Roadmap](planning/ROADMAP.md) for feature status
-- Open an issue on [GitHub](https://github.com/irjudson/astro-planner/issues)
+- Open an issue on [GitHub](https://github.com/irjudson/astronomus/issues)

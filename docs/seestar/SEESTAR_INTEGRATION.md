@@ -612,7 +612,7 @@ See [ROADMAP.md](../planning/ROADMAP.md) for full feature roadmap.
 ## Getting Help
 
 **For Astro Planner issues:**
-- GitHub Issues: https://github.com/irjudson/astro-planner/issues
+- GitHub Issues: https://github.com/irjudson/astronomus/issues
 - Check [Testing Guide](../development/TESTING_GUIDE.md) for troubleshooting
 
 **For seestar_alp issues:**
