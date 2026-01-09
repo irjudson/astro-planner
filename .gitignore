@@ -239,3 +239,8 @@ dev-*.sh
 *.sqlite
 *.sqlite3
 processed_images/
+
+# Node.js
+node_modules/
+package-lock.json
+test-results/

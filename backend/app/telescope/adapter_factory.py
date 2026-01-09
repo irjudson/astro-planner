@@ -4,7 +4,6 @@ Telescope adapter factory.
 Creates appropriate telescope adapter instances based on device configuration.
 """
 
-from typing import Optional
 
 from app.models.settings_models import SeestarDevice
 from app.telescope.base_adapter import TelescopeAdapter

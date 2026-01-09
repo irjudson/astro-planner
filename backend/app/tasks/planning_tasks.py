@@ -100,7 +100,6 @@ def generate_daily_plan_task(self) -> Dict[str, Any]:
         min_altitude = float(get_setting_value(db, "user.min_altitude", "30.0"))
         max_moon_phase = int(get_setting_value(db, "user.max_moon_phase", "50"))
         avoid_moon = get_setting_value(db, "user.avoid_moon", "true").lower() in ("true", "1", "yes")
-        prioritize_transits = get_setting_value(db, "user.prioritize_transits", "false").lower() in ("true", "1", "yes")
 
         logger.info(f"Using preferences: min_alt={min_altitude}°, max_moon={max_moon_phase}%, avoid_moon={avoid_moon}")
 
