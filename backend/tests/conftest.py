@@ -425,7 +425,6 @@ def sample_location():
 @pytest.fixture
 def sample_target():
     """Shared DSO target fixture."""
-    from datetime import datetime
 
     from app.models import DSOTarget
 
@@ -458,3 +457,79 @@ def sample_scheduled_target(sample_target):
         max_altitude=65.0,
         field_rotation_deg=15.0,
     )
+
+
+# ==========================================
+# Seestar Playback Testing Fixtures
+# ==========================================
+
+
+@pytest.fixture
+def seestar_recorder():
+    """Fixture for recording live telescope sessions.
+
+    Usage:
+        async def test_record_session(seestar_recorder):
+            async with seestar_recorder.intercept_connection("192.168.2.47", 4700) as addr:
+                client = SeestarClient()
+                await client.connect(addr[0], addr[1])
+                # Perform operations
+            seestar_recorder.save("tests/fixtures/recordings/my_test.json")
+    """
+    from tests.fixtures.seestar_recorder import SeestarSessionRecorder
+
+    return SeestarSessionRecorder()
+
+
+@pytest.fixture
+async def playback_server(request):
+    """Fixture that loads recording by pytest marker.
+
+    Usage:
+        @pytest.mark.recording("goto_success.json")
+        async def test_goto(playback_server):
+            host, port = playback_server
+            client = SeestarClient()
+            await client.connect(host, port)
+            # Test operations
+    """
+    from tests.fixtures.seestar_playback import SeestarPlaybackServer
+
+    marker = request.node.get_closest_marker("recording")
+    if not marker:
+        pytest.skip("No recording specified - use @pytest.mark.recording('filename.json')")
+
+    recording_name = marker.args[0]
+    recording_path = Path(__file__).parent / "fixtures" / "recordings" / recording_name
+
+    if not recording_path.exists():
+        pytest.skip(f"Recording not found: {recording_path}")
+
+    playback = SeestarPlaybackServer.from_recording(str(recording_path))
+    address = await playback.serve()
+
+    yield address
+
+    await playback.stop()
+
+
+@pytest.fixture
+async def seestar_client_with_playback(playback_server):
+    """Connected SeestarClient using playback server.
+
+    Usage:
+        @pytest.mark.recording("goto_success.json")
+        async def test_goto(seestar_client_with_playback):
+            client = seestar_client_with_playback
+            success = await client.goto_target(10.0, 45.0, "M31")
+            assert success
+    """
+    from app.clients.seestar_client import SeestarClient
+
+    host, port = playback_server
+    client = SeestarClient()
+    await client.connect(host, port)
+
+    yield client
+
+    await client.disconnect()

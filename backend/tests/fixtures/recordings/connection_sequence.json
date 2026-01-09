@@ -1,0 +1,88 @@
+{
+  "recording_metadata": {
+    "telescope": "Seestar S50",
+    "firmware_version": "6.45",
+    "recorded_at": "2026-01-09T14:00:00Z",
+    "duration_seconds": 2.5,
+    "description": "Simple connection and authentication sequence",
+    "host": "192.168.2.47",
+    "port": 4700
+  },
+  "interactions": [
+    {
+      "timestamp": 0.0,
+      "direction": "send",
+      "message": {
+        "method": "get_verify_str",
+        "id": 10000,
+        "jsonrpc": "2.0"
+      },
+      "delay_after": 0.15
+    },
+    {
+      "timestamp": 0.15,
+      "direction": "recv",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "get_verify_str",
+        "result": "abc123def456",
+        "code": 0,
+        "id": 10000
+      },
+      "delay_after": 0.05
+    },
+    {
+      "timestamp": 0.20,
+      "direction": "send",
+      "message": {
+        "method": "verify",
+        "params": {
+          "signature": "dGVzdHNpZ25hdHVyZTEyMzQ1Njc4OTA="
+        },
+        "id": 10001,
+        "jsonrpc": "2.0"
+      },
+      "delay_after": 0.10
+    },
+    {
+      "timestamp": 0.30,
+      "direction": "recv",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "verify",
+        "result": {
+          "verified": true
+        },
+        "code": 0,
+        "id": 10001
+      },
+      "delay_after": 0.05
+    },
+    {
+      "timestamp": 0.35,
+      "direction": "send",
+      "message": {
+        "method": "scope_get_equ_coord",
+        "id": 10002,
+        "jsonrpc": "2.0"
+      },
+      "delay_after": 0.08
+    },
+    {
+      "timestamp": 0.43,
+      "direction": "recv",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "scope_get_equ_coord",
+        "result": {
+          "ra": 0.0,
+          "dec": 0.0,
+          "state": "parked"
+        },
+        "code": 0,
+        "id": 10002
+      },
+      "delay_after": 0.0
+    }
+  ]
+}
