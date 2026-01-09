@@ -30,7 +30,10 @@
             <div class="status-item clickable" id="connection-status-compact">
                 <span class="status-indicator disconnected"></span>
                 <span class="status-label">Disconnected</span>
-                <button id="connect-btn-compact" class="btn-icon" disabled title="Connect">⚡</button>
+                <span class="status-detail" id="telescope-ip-display" style="margin-left: 8px; opacity: 0.7;">--</span>
+                <span class="status-separator" style="margin: 0 8px; opacity: 0.5;">|</span>
+                <span class="status-detail" id="telescope-target-display">No Target</span>
+                <button id="connect-btn-compact" class="btn-icon" title="Connect">⚡</button>
             </div>
         </div>
 
@@ -515,26 +518,6 @@
                 <!-- Execution View (Simplified Telescope Control) -->
                 <div class="execution-view" id="execution-view" style="display: none;">
                     <div class="telescope-control-layout">
-
-                        <!-- Connection Panel -->
-                        <div class="control-panel" id="connection-panel">
-                            <h3>Connection</h3>
-                            <div class="connection-controls">
-                                <input type="text" id="telescope-host" placeholder="192.168.2.47" value="192.168.2.47" class="form-control">
-                                <button id="telescope-panel-connect-btn" class="btn btn-primary">Connect</button>
-                                <button id="telescope-panel-disconnect-btn" class="btn btn-secondary" disabled>Disconnect</button>
-                            </div>
-                            <div id="connection-status" class="status-display">
-                                <div class="status-item">
-                                    <span class="label">State:</span>
-                                    <span id="telescope-state" class="value">Disconnected</span>
-                                </div>
-                                <div class="status-item">
-                                    <span class="label">Target:</span>
-                                    <span id="current-target" class="value">None</span>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Main Controls -->
                         <div class="control-panel" id="main-controls">

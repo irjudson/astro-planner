@@ -28,9 +28,14 @@ const TelescopeControls = {
     },
 
     setupControlHandlers() {
-        // Connection
-        this.on('telescope-panel-connect-btn', () => this.handleConnect());
-        this.on('telescope-panel-disconnect-btn', () => this.handleDisconnect());
+        // Connection - use compact status bar button
+        this.on('connect-btn-compact', () => {
+            if (this.isConnected) {
+                this.handleDisconnect();
+            } else {
+                this.handleConnect();
+            }
+        });
 
         // Telescope control - main panel
         this.on('slew-to-target-btn', () => this.handleSlewToTarget());
@@ -65,8 +70,8 @@ const TelescopeControls = {
     // ==========================================
 
     async handleConnect() {
-        const hostInput = document.getElementById('telescope-host');
-        const host = hostInput?.value || '192.168.2.47';
+        // Use default host from preferences or hardcoded default
+        const host = '192.168.2.47'; // TODO: Get from preferences
 
         try {
             const response = await fetch('/api/telescope/connect', {
@@ -103,10 +108,22 @@ const TelescopeControls = {
         this.startTelemetryPolling();
         this.showStatus('Telescope connected', 'success');
 
-        // Update UI
-        document.getElementById('connection-panel')?.classList.add('connected');
-        document.getElementById('telescope-panel-connect-btn').disabled = true;
-        document.getElementById('telescope-panel-disconnect-btn').disabled = false;
+        // Update status bar
+        const statusLabel = document.querySelector('#connection-status-compact .status-label');
+        if (statusLabel) statusLabel.textContent = 'Connected';
+        const statusIndicator = document.querySelector('#connection-status-compact .status-indicator');
+        if (statusIndicator) {
+            statusIndicator.classList.remove('disconnected');
+            statusIndicator.classList.add('connected');
+        }
+        this.setText('telescope-ip-display', '192.168.2.47'); // TODO: Get from actual connection
+
+        // Update connect button to disconnect
+        const connectBtn = document.getElementById('connect-btn-compact');
+        if (connectBtn) {
+            connectBtn.disabled = false;
+            connectBtn.title = 'Disconnect';
+        }
     },
 
     onDisconnected() {
@@ -115,16 +132,27 @@ const TelescopeControls = {
         this.stopTelemetryPolling();
 
         // Update UI with disconnected state
-        this.setText('telescope-state', 'Disconnected');
+        this.setText('telescope-ip-display', '--');
+        this.setText('telescope-target-display', 'No Target');
         this.setText('tracking-status', 'Not tracking');
         this.setText('current-ra', '--:--:--');
         this.setText('current-dec', '--°--\'--"');
-        this.setText('current-target', 'None');
 
-        // Update connection buttons
-        document.getElementById('connection-panel')?.classList.remove('connected');
-        document.getElementById('telescope-panel-connect-btn').disabled = false;
-        document.getElementById('telescope-panel-disconnect-btn').disabled = true;
+        // Update status bar
+        const statusLabel = document.querySelector('#connection-status-compact .status-label');
+        if (statusLabel) statusLabel.textContent = 'Disconnected';
+        const statusIndicator = document.querySelector('#connection-status-compact .status-indicator');
+        if (statusIndicator) {
+            statusIndicator.classList.remove('connected');
+            statusIndicator.classList.add('disconnected');
+        }
+
+        // Update connect button
+        const connectBtn = document.getElementById('connect-btn-compact');
+        if (connectBtn) {
+            connectBtn.disabled = false;
+            connectBtn.title = 'Connect';
+        }
 
         this.showStatus('Telescope disconnected', 'warning');
     },
@@ -303,7 +331,6 @@ const TelescopeControls = {
         }
 
         // State and tracking
-        this.setText('telescope-state', status.state || 'Unknown');
         this.setText('tracking-status', status.is_tracking ? 'Tracking' : 'Not tracking');
 
         // Coordinates
@@ -312,8 +339,8 @@ const TelescopeControls = {
             this.setText('current-dec', this.formatDec(status.current_dec_degrees));
         }
 
-        // Target
-        this.setText('current-target', status.current_target || 'None');
+        // Target - update status bar
+        this.setText('telescope-target-display', status.current_target || 'No Target');
 
         // Update control states based on telescope state
         this.updateControlStates(status.state);
