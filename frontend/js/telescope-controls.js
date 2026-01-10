@@ -115,6 +115,7 @@ const TelescopeControls = {
         if (statusIndicator) {
             statusIndicator.classList.remove('disconnected');
             statusIndicator.classList.add('connected');
+            statusIndicator.textContent = '🟢'; // Green circle for connected
         }
         this.setText('telescope-ip-display', '192.168.2.47'); // TODO: Get from actual connection
 
@@ -145,6 +146,7 @@ const TelescopeControls = {
         if (statusIndicator) {
             statusIndicator.classList.remove('connected');
             statusIndicator.classList.add('disconnected');
+            statusIndicator.textContent = '🔴'; // Red circle for disconnected
         }
 
         // Update connect button
@@ -313,10 +315,30 @@ const TelescopeControls = {
     async fetchTelemetry() {
         try {
             const response = await fetch('/api/telescope/status');
+            if (!response.ok) {
+                console.error('[TELEMETRY ERROR] HTTP', response.status, response.statusText);
+                // If we get consistent errors, trigger disconnect
+                if (!this.telemetryErrorCount) this.telemetryErrorCount = 0;
+                this.telemetryErrorCount++;
+                if (this.telemetryErrorCount >= 3) {
+                    console.error('[TELEMETRY ERROR] 3 consecutive failures, triggering disconnect');
+                    this.onDisconnected();
+                }
+                return;
+            }
             const status = await response.json();
+            // Reset error count on success
+            this.telemetryErrorCount = 0;
             this.updateTelemetry(status);
         } catch (error) {
-            console.error('Telemetry fetch error:', error);
+            console.error('[TELEMETRY ERROR]', error);
+            // Network error or JSON parse error
+            if (!this.telemetryErrorCount) this.telemetryErrorCount = 0;
+            this.telemetryErrorCount++;
+            if (this.telemetryErrorCount >= 3) {
+                console.error('[TELEMETRY ERROR] 3 consecutive failures, triggering disconnect');
+                this.onDisconnected();
+            }
         }
     },
 
