@@ -1417,6 +1417,263 @@ async def download_telescope_preview(path: str = Query(..., description="Relativ
 # NOTE: This endpoint is disabled while transitioning to adapter pattern
 # It provided direct access to SeestarClient methods which doesn't fit the adapter abstraction
 # Telescope-specific commands should be implemented as proper adapter methods
+# ==========================================
+# REAL-TIME TRACKING & STATUS
+# ==========================================
+
+
+@router.get("/telescope/coordinates")
+async def get_current_coordinates():
+    """
+    Get current telescope RA/Dec coordinates.
+
+    For real-time tracking display. Poll every 1-5 seconds during observation.
+
+    Returns:
+        Current RA (hours) and Dec (degrees)
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        coords = await seestar_client.get_current_coordinates()
+        return {
+            "ra_hours": coords.get("ra", 0.0),
+            "dec_degrees": coords.get("dec", 0.0),
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get coordinates: {str(e)}")
+
+
+@router.get("/telescope/app-state")
+async def get_app_state():
+    """
+    Get application state for progress monitoring.
+
+    Returns current operation status including:
+    - Stage (slewing, focusing, stacking, etc.)
+    - Progress percentage
+    - Frame counts
+    - Operation details
+
+    Poll during operations for status updates.
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        state = await seestar_client.get_app_state()
+        return state
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get app state: {str(e)}")
+
+
+@router.get("/telescope/stacking-status")
+async def check_stacking_complete():
+    """
+    Check if stacking is complete.
+
+    Returns:
+        Boolean indicating if enough frames have been captured
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        is_complete = await seestar_client.check_stacking_complete()
+        return {"is_stacked": is_complete}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check stacking status: {str(e)}")
+
+
+# ==========================================
+# VIEW PLANS (AUTOMATION)
+# ==========================================
+
+
+@router.post("/telescope/plan/start")
+async def start_view_plan(plan_config: Dict[str, Any]):
+    """
+    Execute automated observation plan.
+
+    Starts multi-target imaging sequence using telescope's built-in
+    view plan system.
+
+    Args:
+        plan_config: Plan configuration object with targets and settings
+
+    Returns:
+        Success status
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        success = await seestar_client.start_view_plan(plan_config)
+        return {"success": success, "message": "View plan started"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start view plan: {str(e)}")
+
+
+@router.post("/telescope/plan/stop")
+async def stop_view_plan():
+    """
+    Stop running view plan.
+
+    Cancels automated sequence.
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        success = await seestar_client.stop_view_plan()
+        return {"success": success, "message": "View plan stopped"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to stop view plan: {str(e)}")
+
+
+@router.get("/telescope/plan/state")
+async def get_view_plan_state():
+    """
+    Get view plan execution state.
+
+    Returns current plan status, target, and progress.
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        state = await seestar_client.get_view_plan_state()
+        return state
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get view plan state: {str(e)}")
+
+
+# ==========================================
+# PLATE SOLVING & ANNOTATION
+# ==========================================
+
+
+@router.get("/telescope/solve-result")
+async def get_plate_solve_result():
+    """
+    Get plate solve result.
+
+    Returns actual RA/Dec after goto to verify pointing accuracy.
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        result = await seestar_client.get_plate_solve_result()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get solve result: {str(e)}")
+
+
+@router.get("/telescope/field-annotations")
+async def get_field_annotations():
+    """
+    Get annotation results.
+
+    Returns identified objects in current field of view.
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        annotations = await seestar_client.get_field_annotations()
+        return annotations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get annotations: {str(e)}")
+
+
+# ==========================================
+# PLANETARY IMAGING
+# ==========================================
+
+
+@router.post("/telescope/planet/start")
+async def start_planet_scan(planet_name: str, exposure_ms: int = 30, gain: float = 100.0):
+    """
+    Start planetary scanning mode.
+
+    Activates planet-specific imaging with different stacking algorithm
+    optimized for planetary targets.
+
+    Args:
+        planet_name: Name of planet to image
+        exposure_ms: Exposure time in milliseconds
+        gain: Gain value (0-100)
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        success = await seestar_client.start_planet_scan(planet_name, exposure_ms, gain)
+        return {"success": success, "message": f"Planetary scan started for {planet_name}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start planet scan: {str(e)}")
+
+
+@router.post("/telescope/planet/configure")
+async def configure_planetary_imaging(config: Dict[str, Any]):
+    """
+    Configure planetary imaging settings.
+
+    Sets planet-specific parameters like ROI, exposure, gain, frame rate.
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        success = await seestar_client.configure_planetary_imaging(**config)
+        return {"success": success, "message": "Planetary imaging configured"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to configure planetary imaging: {str(e)}")
+
+
+# ==========================================
+# UTILITY OPERATIONS
+# ==========================================
+
+
+@router.post("/telescope/cancel")
+async def cancel_current_operation():
+    """
+    Cancel current operation.
+
+    Emergency abort for any running operation.
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        success = await seestar_client.cancel_current_operation()
+        return {"success": success, "message": "Operation cancelled"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to cancel operation: {str(e)}")
+
+
+@router.post("/telescope/sound/play")
+async def play_notification_sound(volume: str = "backyard"):
+    """
+    Play notification sound.
+
+    Args:
+        volume: Sound volume preset (e.g., "backyard", "city", "remote")
+    """
+    if seestar_client is None or not seestar_client.connected:
+        raise HTTPException(status_code=400, detail="Telescope not connected")
+
+    try:
+        success = await seestar_client.play_notification_sound(volume)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to play sound: {str(e)}")
+
+
 #
 # @router.post("/telescope/command/{command}")
 # async def execute_telescope_command(command: str, params: Optional[Dict[str, Any]] = None):

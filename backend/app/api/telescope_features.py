@@ -377,3 +377,413 @@ async def reboot_telescope_endpoint(telescope: SeestarClient = Depends(get_curre
         return {"success": success}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/system/time")
+async def get_pi_time(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Get system time from telescope."""
+    try:
+        time_info = await telescope.get_pi_time()
+        return time_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/system/time")
+async def set_pi_time(unix_timestamp: int, telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Set system time on telescope."""
+    try:
+        success = await telescope.set_pi_time(unix_timestamp)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/system/pi-info")
+async def get_pi_info(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Get Raspberry Pi system information."""
+    try:
+        info = await telescope.get_pi_info()
+        return info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# ADVANCED IMAGING SETTINGS
+# ==========================================
+
+
+@router.post("/imaging/advanced-stacking")
+async def configure_advanced_stacking_endpoint(
+    config: Dict[str, Any], telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Configure advanced stacking settings (DBE, star correction, etc.)."""
+    try:
+        success = await telescope.configure_advanced_stacking(**config)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/imaging/manual-exposure")
+async def set_manual_exposure_endpoint(
+    exposure_ms: float, gain: float, telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Set manual exposure settings."""
+    try:
+        success = await telescope.set_manual_exposure(exposure_ms, gain)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/imaging/auto-exposure")
+async def set_auto_exposure_endpoint(
+    brightness_target: float = 50.0, telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Set auto exposure with brightness target."""
+    try:
+        success = await telescope.set_auto_exposure(brightness_target)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/focuser/stop")
+async def stop_autofocus_endpoint(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Stop autofocus operation."""
+    try:
+        success = await telescope.stop_autofocus()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# CALIBRATION
+# ==========================================
+
+
+@router.get("/calibration/polar-alignment")
+async def check_polar_alignment(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Check polar alignment quality."""
+    try:
+        result = await telescope.check_polar_alignment()
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/calibration/polar-alignment/clear")
+async def clear_polar_alignment(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Clear polar alignment data."""
+    try:
+        success = await telescope.clear_polar_alignment()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/calibration/compass/start")
+async def start_compass_calibration(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Start compass calibration routine."""
+    try:
+        success = await telescope.start_compass_calibration()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/calibration/compass/stop")
+async def stop_compass_calibration(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Stop compass calibration routine."""
+    try:
+        success = await telescope.stop_compass_calibration()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/calibration/compass/state")
+async def get_compass_state(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Get compass state and heading."""
+    try:
+        state = await telescope.get_compass_state()
+        return state
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# MOVEMENT CONTROL
+# ==========================================
+
+
+@router.post("/movement/slew")
+async def slew_to_coordinates(
+    ra_hours: float, dec_degrees: float, telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Slew to specific RA/Dec coordinates."""
+    try:
+        success = await telescope.slew_to_coordinates(ra_hours, dec_degrees)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/movement/stop")
+async def stop_telescope_movement(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Stop all telescope movement."""
+    try:
+        success = await telescope.stop_telescope_movement()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/movement/horizon")
+async def move_to_horizon(
+    azimuth: float, altitude: float, telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Move to horizon position (azimuth/altitude)."""
+    try:
+        success = await telescope.move_to_horizon(azimuth, altitude)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# IMAGE MANAGEMENT
+# ==========================================
+
+
+@router.get("/images/list")
+async def list_images(
+    image_type: str = "stacked", telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """List available images on telescope."""
+    try:
+        images = await telescope.list_images(image_type)
+        return {"images": images}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/images/info")
+async def get_image_info(
+    file_path: str = "", telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Get image file information."""
+    try:
+        info = await telescope.get_image_file_info(file_path)
+        return info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/images/download/{filename}")
+async def download_image(filename: str, telescope: SeestarClient = Depends(get_current_telescope)):
+    """Download stacked image from telescope."""
+    try:
+        from fastapi.responses import Response
+
+        image_data = await telescope.get_stacked_image(filename)
+        return Response(content=image_data, media_type="application/octet-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/images/raw/{filename}")
+async def download_raw_frame(filename: str, telescope: SeestarClient = Depends(get_current_telescope)):
+    """Download raw frame from telescope."""
+    try:
+        from fastapi.responses import Response
+
+        image_data = await telescope.get_raw_frame(filename)
+        return Response(content=image_data, media_type="application/octet-stream")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/images/{filename}")
+async def delete_image(filename: str, telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Delete image from telescope storage."""
+    try:
+        success = await telescope.delete_image(filename)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/images/preview/live")
+async def get_live_preview(telescope: SeestarClient = Depends(get_current_telescope)):
+    """Get live preview frame from RTMP stream."""
+    try:
+        from fastapi.responses import Response
+
+        image_data = await telescope.get_live_preview()
+        return Response(content=image_data, media_type="image/jpeg")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# WIFI & NETWORK MANAGEMENT
+# ==========================================
+
+
+@router.post("/wifi/enable-client")
+async def enable_wifi_client_mode(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Enable WiFi client mode."""
+    try:
+        success = await telescope.enable_wifi_client_mode()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/wifi/disable-client")
+async def disable_wifi_client_mode(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Disable WiFi client mode."""
+    try:
+        success = await telescope.disable_wifi_client_mode()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/wifi/save-network")
+async def save_wifi_network(
+    ssid: str, password: str, security: str = "WPA2-PSK", telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Save WiFi network credentials."""
+    try:
+        success = await telescope.save_wifi_network(ssid, password, security)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/wifi/network/{ssid}")
+async def remove_wifi_network(ssid: str, telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Remove saved WiFi network."""
+    try:
+        success = await telescope.remove_wifi_network(ssid)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/wifi/station-state")
+async def get_station_state(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Get WiFi station connection state."""
+    try:
+        state = await telescope.get_station_state()
+        return state
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/wifi/access-point")
+async def configure_access_point(
+    ssid: str, password: str, is_5g: bool = True, telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Configure WiFi access point."""
+    try:
+        success = await telescope.configure_access_point(ssid, password, is_5g)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/wifi/country")
+async def set_wifi_country(
+    country_code: str, telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Set WiFi regulatory domain."""
+    try:
+        success = await telescope.set_wifi_country(country_code)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# REMOTE SESSIONS
+# ==========================================
+
+
+@router.post("/remote/join")
+async def join_remote_session(
+    session_id: str = "", telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Join remote observation session."""
+    try:
+        success = await telescope.join_remote_session(session_id)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/remote/leave")
+async def leave_remote_session(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Leave remote observation session."""
+    try:
+        success = await telescope.leave_remote_session()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/remote/disconnect/{client_id}")
+async def disconnect_remote_client(
+    client_id: str, telescope: SeestarClient = Depends(get_current_telescope)
+) -> Dict[str, Any]:
+    """Disconnect a remote client."""
+    try:
+        success = await telescope.disconnect_remote_client(client_id)
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# DEMO MODE
+# ==========================================
+
+
+@router.post("/demo/start")
+async def start_demo_mode(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Start demonstration mode."""
+    try:
+        success = await telescope.start_demo_mode()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/demo/stop")
+async def stop_demo_mode(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Stop demonstration mode."""
+    try:
+        success = await telescope.stop_demo_mode()
+        return {"success": success}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# VERIFICATION
+# ==========================================
+
+
+@router.get("/verification/status")
+async def check_client_verified(telescope: SeestarClient = Depends(get_current_telescope)) -> Dict[str, Any]:
+    """Check if client is verified with telescope."""
+    try:
+        is_verified = await telescope.check_client_verified()
+        return {"is_verified": is_verified}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
