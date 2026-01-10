@@ -124,6 +124,7 @@ const TelescopeControls = {
         if (connectBtn) {
             connectBtn.disabled = false;
             connectBtn.title = 'Disconnect';
+            connectBtn.textContent = '🔌'; // Plug icon for disconnect
         }
     },
 
@@ -154,6 +155,7 @@ const TelescopeControls = {
         if (connectBtn) {
             connectBtn.disabled = false;
             connectBtn.title = 'Connect';
+            connectBtn.textContent = '⚡'; // Lightning icon for connect
         }
 
         this.showStatus('Telescope disconnected', 'warning');
