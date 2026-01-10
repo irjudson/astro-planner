@@ -905,6 +905,10 @@ async def get_telescope_status():
         }
 
     try:
+        # Actively poll telescope to keep connection alive
+        # This sends get_device_state command which acts as a keepalive
+        await seestar_client.get_device_state()
+
         status = seestar_client.status
 
         return {
